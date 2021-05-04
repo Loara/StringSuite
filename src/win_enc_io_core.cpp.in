@@ -1,0 +1,25 @@
+extern "C"{
+#include <windows.h>
+}
+#include <strsuite/encmetric/enc_io_core.hpp>
+using namespace sts;
+
+size_t sts::raw_stdin_readbytes(byte *b, size_t siz){
+	DWORD y;
+	if(ReadConsoleW(GetStdHandle(STD_INPUT_HANDLE), b, static_cast<DWORD>(siz/2), &y, NULL) == 0)
+		throw IOException{};
+	return 2*y;
+}
+size_t sts::raw_stdout_writebytes(const byte *b, size_t siz){
+	DWORD y;
+	if(WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), b, static_cast<DWORD>(siz/2), &y, NULL) == 0)
+		throw IOException{};
+	return 2*y;
+}
+size_t sts::raw_stderr_writebytes(const byte *b, size_t siz){
+	DWORD y;
+	if(WriteConsoleW(GetStdHandle(STD_ERROR_HANDLE), b, static_cast<DWORD>(siz/2), &y, NULL) == 0)
+		throw IOException{};
+	return 2*y;
+}
+
