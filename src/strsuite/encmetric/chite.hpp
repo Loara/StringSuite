@@ -162,80 +162,82 @@ class const_tchar_pt : public base_tchar_pt<T, const_tchar_pt<T>, byte const>{
 	public:
 		explicit const_tchar_pt(const byte *c, EncMetric_info<T> f) : base_tchar_pt<T, const_tchar_pt<T>, byte const>{c, f} {}
 
-		//bool terminate() const {return is_all_zero(this->ptr, this->ei.unity());}
-        //No more required
+
+        /*
+         Will be available with gcc >= 10.3
+		explicit const_tchar_pt(const byte *b) requires not_widenc<T> : const_tchar_pt{b, EncMetric_info<T>{}} {}
+		explicit const_tchar_pt(const char *b) requires not_widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{}} {}
+		explicit const_tchar_pt(const char8_t *b) requires not_widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{}} {}
+		explicit const_tchar_pt(const char16_t *b) requires not_widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{}} {}
+		explicit const_tchar_pt(const char32_t *b) requires not_widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{}} {}
+		explicit const_tchar_pt(std::nullptr_t) requires not_widenc<T> : const_tchar_pt{static_cast<const byte *>(nullptr), EncMetric_info<T>{}} {}
+
+		explicit const_tchar_pt(const byte *b, const EncMetric<typename T::ctype> *f) requires widenc<T> : const_tchar_pt{b, EncMetric_info<T>{f}} {}
+		explicit const_tchar_pt(const char *b, const EncMetric<typename T::ctype> *f) requires widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{f}} {}
+		explicit const_tchar_pt(const char8_t *b, const EncMetric<typename T::ctype> *f) requires widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{f}} {}
+		explicit const_tchar_pt(const char16_t *b, const EncMetric<typename T::ctype> *f) requires widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{f}} {}
+		explicit const_tchar_pt(const char32_t *b, const EncMetric<typename T::ctype> *f) requires widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{f}} {}
+		explicit const_tchar_pt(std::nullptr_t, const EncMetric<typename T::ctype> *f) requires widenc<T> : const_tchar_pt{static_cast<const byte *>(nullptr), EncMetric_info<T>{f}} {}
+		*/
 
 		const_tchar_pt new_instance(const byte *c) const{return const_tchar_pt<T>{c, this->ei};}
 		const_tchar_pt new_instance(const char *c) const{return const_tchar_pt<T>{reinterpret_cast<const byte *>(c), this->ei};}
 };
 
-template<typename T, enable_not_wide_t<T, int> =0>
-const_tchar_pt<T> new_const_tchar_pt(const byte *b)noexcept{
-    return const_tchar_pt<T>(b, EncMetric_info<T>{});
-}
-template<typename T, enable_not_wide_t<T, int> =0>
-const_tchar_pt<T> new_const_tchar_pt(const char *b)noexcept{
-    return const_tchar_pt<T>(reinterpret_cast<const byte *>(b), EncMetric_info<T>{});
-}
-template<typename T, enable_not_wide_t<T, int> =0>
-const_tchar_pt<T> new_const_tchar_pt(const char16_t *b)noexcept{
-    return const_tchar_pt<T>(reinterpret_cast<const byte *>(b), EncMetric_info<T>{});
-}
-template<typename T, enable_not_wide_t<T, int> =0>
-const_tchar_pt<T> new_const_tchar_pt(const char32_t *b)noexcept{
-    return const_tchar_pt<T>(reinterpret_cast<const byte *>(b), EncMetric_info<T>{});
-}
-template<typename T, enable_not_wide_t<T, int> =0>
-const_tchar_pt<T> new_const_tchar_pt()noexcept{
-    return const_tchar_pt<T>(nullptr, EncMetric_info<T>{});
-}
-
-template<typename T, enable_wide_t<T, int> =0>
-const_tchar_pt<T> new_const_tchar_pt(const byte *b, const EncMetric<typename T::ctype> *f)noexcept{
-    return const_tchar_pt<T>(b, EncMetric_info<T>{f});
-}
-template<typename T, enable_wide_t<T, int> =0>
-const_tchar_pt<T> new_const_tchar_pt(const char *b, const EncMetric<typename T::ctype> *f)noexcept{
-    return const_tchar_pt<T>(reinterpret_cast<const byte *>(b), EncMetric_info<T>{f});
-}
-template<typename T, enable_wide_t<T, int> =0>
-const_tchar_pt<T> new_const_tchar_pt(const char16_t *b, const EncMetric<typename T::ctype> *f)noexcept{
-    return const_tchar_pt<T>(reinterpret_cast<const byte *>(b), EncMetric_info<T>{f});
-}
-template<typename T, enable_wide_t<T, int> =0>
-const_tchar_pt<T> new_const_tchar_pt(const char32_t *b, const EncMetric<typename T::ctype> *f)noexcept{
-    return const_tchar_pt<T>(reinterpret_cast<const byte *>(b), EncMetric_info<T>{f});
-}
-template<typename T, enable_wide_t<T, int> =0>
-const_tchar_pt<T> new_const_tchar_pt(const EncMetric<typename T::ctype> *f)noexcept{
-    return const_tchar_pt<T>(nullptr, EncMetric_info<T>{f});
-}
 /*
-template<typename tt>
-class const_tchar_pt<WIDE<tt>> : public base_tchar_pt<WIDE<tt>, const_tchar_pt<WIDE<tt>>, byte const>{
-	public:
-		explicit const_tchar_pt(const byte *c, EncMetric_info<WIDE<tt>> f) : base_tchar_pt<WIDE<tt>, const_tchar_pt<WIDE<tt>>, byte const>{c, f} {}
+ * Additional costructors
+ */
 
-		explicit const_tchar_pt(const byte *c, const EncMetric<tt> *format) : const_tchar_pt{c, EncMetric_info<WIDE<tt>>{format}} {}
-		explicit const_tchar_pt(const char *c, const EncMetric<tt> *format) : const_tchar_pt{reinterpret_cast<const byte *>(c), EncMetric_info<WIDE<tt>>{format}} {}
-		explicit const_tchar_pt(const char16_t *c, const EncMetric<tt> *format) : const_tchar_pt{reinterpret_cast<const byte *>(c), EncMetric_info<WIDE<tt>>{format}} {}
-		explicit const_tchar_pt(const char32_t *c, const EncMetric<tt> *format) : const_tchar_pt{reinterpret_cast<const byte *>(c), EncMetric_info<WIDE<tt>>{format}} {}
-		explicit const_tchar_pt(const EncMetric<tt> *format) : const_tchar_pt{static_cast<const byte *>(nullptr), EncMetric_info<WIDE<tt>>{format}} {}
+template<strong_enctype T>
+const_tchar_pt<T> new_const_pt(const byte *b){
+    return const_tchar_pt<T>{b, EncMetric_info<T>{}};
+}
+template<strong_enctype T>
+const_tchar_pt<T> new_const_pt(const char *b){
+    return const_tchar_pt<T>{reinterpret_cast<const byte *>(b), EncMetric_info<T>{}};
+}
+template<strong_enctype T>
+const_tchar_pt<T> new_const_pt(){
+    return const_tchar_pt<T>{nullptr, EncMetric_info<T>{}};
+}
 
-		//bool terminate() const {return is_all_zero(this->ptr, this->ei.unity());}
-        //No more required
-
-		const_tchar_pt new_instance(const byte *c) const{return const_tchar_pt<WIDE<tt>>{c, this->ei};}
-		const_tchar_pt new_instance(const char *c) const{return const_tchar_pt<WIDE<tt>>{reinterpret_cast<const byte*>(c), this->ei};}
-};
-*/
+template<widenc T>
+const_tchar_pt<T> new_const_pt(const byte *b, const EncMetric<typename T::ctype> *f){
+    return const_tchar_pt<T>{b, EncMetric_info<T>{f}};
+}
+template<widenc T>
+const_tchar_pt<T> new_const_pt(const char *b, const EncMetric<typename T::ctype> *f){
+    return const_tchar_pt<T>{reinterpret_cast<const byte *>(b), EncMetric_info<T>{f}};
+}
+template<widenc T>
+const_tchar_pt<T> new_const_pt(const EncMetric<typename T::ctype> *f){
+    return const_tchar_pt<T>{nullptr, EncMetric_info<T>{f}};
+}
 
 template<general_enctype T>
 class tchar_pt : public wbase_tchar_pt<T, tchar_pt<T>>{
 	public:
 		explicit tchar_pt(byte *c, EncMetric_info<T> f) : wbase_tchar_pt<T, tchar_pt<T>>{c, f} {}
 
-		//bool terminate() const {return is_all_zero(this->ptr, this->ei.unity());}
+        /*
+         Will be available with gcc >= 10.3
+
+		explicit tchar_pt(byte *b) requires not_widenc<T> : tchar_pt{b, EncMetric_info<T>{}} {}
+		explicit tchar_pt(char *b) requires not_widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{}} {}
+		explicit tchar_pt(char8_t *b) requires not_widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{}} {}
+		explicit tchar_pt(char16_t *b) requires not_widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{}} {}
+		explicit tchar_pt(char32_t *b) requires not_widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{}} {}
+		explicit tchar_pt(std::nullptr_t) requires not_widenc<T> : tchar_pt{static_cast<byte *>(nullptr), EncMetric_info<T>{}} {}
+
+
+		explicit tchar_pt(byte *b, const EncMetric<typename T::ctype> *f) requires widenc<T> : tchar_pt{b, EncMetric_info<T>{f}} {}
+		explicit tchar_pt(char *b, const EncMetric<typename T::ctype> *f) requires widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{f}} {}
+		explicit tchar_pt(char8_t *b, const EncMetric<typename T::ctype> *f) requires widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{f}} {}
+		explicit tchar_pt(char16_t *b, const EncMetric<typename T::ctype> *f) requires widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{f}} {}
+		explicit tchar_pt(char32_t *b, const EncMetric<typename T::ctype> *f) requires widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{f}} {}
+		explicit tchar_pt(std::nullptr_t, EncMetric<typename T::ctype> *f) requires widenc<T> : tchar_pt{static_cast<byte *>(nullptr), EncMetric_info<T>{f}} {}
+        */
+
 		const_tchar_pt<T> cast() const noexcept{ return const_tchar_pt<T>{this->ptr, this->ei};}
 		operator const_tchar_pt<T>() const noexcept{ return cast();}
 
@@ -243,69 +245,32 @@ class tchar_pt : public wbase_tchar_pt<T, tchar_pt<T>>{
 		tchar_pt new_instance(char *c) const{return tchar_pt<T>{reinterpret_cast<byte *>(c), this->ei};}
 };
 
-
-
-template<typename T, enable_not_wide_t<T, int> =0>
-tchar_pt<T> new_tchar_pt(byte *b)noexcept{
-    return tchar_pt<T>(b, EncMetric_info<T>{});
+template<strong_enctype T>
+tchar_pt<T> new_pt(byte *b){
+    return tchar_pt<T>{b, EncMetric_info<T>{}};
 }
-template<typename T, enable_not_wide_t<T, int> =0>
-tchar_pt<T> new_tchar_pt(char *b)noexcept{
-    return tchar_pt<T>(reinterpret_cast<byte *>(b), EncMetric_info<T>{});
+template<strong_enctype T>
+tchar_pt<T> new_pt(char *b){
+    return tchar_pt<T>{reinterpret_cast<byte *>(b), EncMetric_info<T>{}};
 }
-template<typename T, enable_not_wide_t<T, int> =0>
-tchar_pt<T> new_tchar_pt(char16_t *b)noexcept{
-    return tchar_pt<T>(reinterpret_cast<byte *>(b), EncMetric_info<T>{});
-}
-template<typename T, enable_not_wide_t<T, int> =0>
-tchar_pt<T> new_tchar_pt(char32_t *b)noexcept{
-    return tchar_pt<T>(reinterpret_cast<byte *>(b), EncMetric_info<T>{});
-}
-template<typename T, enable_not_wide_t<T, int> =0>
-tchar_pt<T> new_tchar_pt()noexcept{
-    return tchar_pt<T>(nullptr, EncMetric_info<T>{});
+template<strong_enctype T>
+tchar_pt<T> new_pt(){
+    return tchar_pt<T>{nullptr, EncMetric_info<T>{}};
 }
 
-template<typename T, enable_wide_t<T, int> =0>
-tchar_pt<T> new_tchar_pt(byte *b, const EncMetric<typename T::ctype> *f)noexcept{
-    return tchar_pt<T>(b, EncMetric_info<T>{f});
+template<widenc T>
+tchar_pt<T> new_pt(byte *b, const EncMetric<typename T::ctype> *f){
+    return tchar_pt<T>{b, EncMetric_info<T>{f}};
 }
-template<typename T, enable_wide_t<T, int> =0>
-tchar_pt<T> new_tchar_pt(char *b, const EncMetric<typename T::ctype> *f)noexcept{
-    return tchar_pt<T>(reinterpret_cast<byte *>(b), EncMetric_info<T>{f});
+template<widenc T>
+tchar_pt<T> new_pt(char *b, const EncMetric<typename T::ctype> *f){
+    return tchar_pt<T>{reinterpret_cast<byte *>(b), EncMetric_info<T>{f}};
 }
-template<typename T, enable_wide_t<T, int> =0>
-tchar_pt<T> new_tchar_pt(char16_t *b, const EncMetric<typename T::ctype> *f)noexcept{
-    return tchar_pt<T>(reinterpret_cast<byte *>(b), EncMetric_info<T>{f});
+template<widenc T>
+tchar_pt<T> new_pt(const EncMetric<typename T::ctype> *f){
+    return tchar_pt<T>{nullptr, EncMetric_info<T>{f}};
 }
-template<typename T, enable_wide_t<T, int> =0>
-tchar_pt<T> new_tchar_pt(char32_t *b, const EncMetric<typename T::ctype> *f)noexcept{
-    return tchar_pt<T>(reinterpret_cast<byte *>(b), EncMetric_info<T>{f});
-}
-template<typename T, enable_wide_t<T, int> =0>
-tchar_pt<T> new_tchar_pt(const EncMetric<typename T::ctype> *f)noexcept{
-    return tchar_pt<T>(nullptr, EncMetric_info<T>{f});
-}
-/*
-template<typename tt>
-class tchar_pt<WIDE<tt>> : public wbase_tchar_pt<WIDE<tt>, tchar_pt<WIDE<tt>>>{
-	public:
-		explicit tchar_pt(byte *c, EncMetric_info<WIDE<tt>> f) : wbase_tchar_pt<WIDE<tt>, tchar_pt<WIDE<tt>>>{c, f} {}
 
-		explicit tchar_pt(byte *c, const EncMetric<tt> *format) : wbase_tchar_pt<WIDE<tt>, tchar_pt<WIDE<tt>>>{c, EncMetric_info<WIDE<tt>>{format}} {}
-		explicit tchar_pt(char *c, const EncMetric<tt> *format) : tchar_pt{reinterpret_cast<byte *>(c), EncMetric_info<WIDE<tt>>{format}} {}
-		explicit tchar_pt(char16_t *c, const EncMetric<tt> *format) : tchar_pt{reinterpret_cast<byte *>(c), EncMetric_info<WIDE<tt>>{format}} {}
-		explicit tchar_pt(char32_t *c, const EncMetric<tt> *format) : tchar_pt{reinterpret_cast<byte *>(c), EncMetric_info<WIDE<tt>>{format}} {}
-
-		explicit tchar_pt(const EncMetric<tt> *form) : tchar_pt{static_cast<byte *>(nullptr), EncMetric_info<WIDE<tt>>{form}} {}
-
-		//bool terminate() const {return is_all_zero(this->ptr, this->ei.unity());}
-		const_tchar_pt<WIDE<tt>> cast() const noexcept{ return const_tchar_pt<WIDE<tt>>{this->ptr, this->ei};}
-
-		tchar_pt new_instance(byte *c) const{return tchar_pt<WIDE<tt>>{c, this->ei};}
-		tchar_pt new_instance(char *c) const{return tchar_pt<WIDE<tt>>{reinterpret_cast<byte *>(c), this->ei};}
-};
-*/
 //---------------------------------------------
 
 /*

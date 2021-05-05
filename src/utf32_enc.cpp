@@ -58,6 +58,7 @@ uint UTF32<be>::encode(const unicode &unin, byte *by, size_t l){
 
 	template class UTF32<true>;
 	template class UTF32<false>;
+
 }
 
 

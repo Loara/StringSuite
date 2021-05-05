@@ -16,6 +16,7 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 #include <fstream>
+#include <iostream>
 using namespace std;
 /*
  * Estimate the encoding used in your system to represents strings
@@ -55,6 +56,12 @@ int main(int argn, const char **args){
         out << "using CENC=UTF32BE;" << endl;
     else if(t[0] == '\x93' && t[1] == '\x03' && t[2] == '\x01' && t[3] == '\x00')
         out << "using CENC=UTF32LE;" << endl;
+    std::uint_least16_t inte = 0xa;
+    const char *acc = reinterpret_cast<const char *>(&inte);
+    if(acc[0] == '\xa')
+        out << "inline constexpr bool bend = false;" << endl;
+    else
+        out << "inline constexpr bool bend = true;" << endl;
     out << "}" << endl;
     out.close();
     return 0;

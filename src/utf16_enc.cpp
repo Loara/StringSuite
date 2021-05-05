@@ -109,6 +109,7 @@ uint UTF16<be>::encode(const unicode &unin, byte *by, size_t l){
 
 	template class UTF16<true>;
 	template class UTF16<false>;
+
 }
 
 

@@ -90,10 +90,27 @@ class adv_string_view{
 		*/
 		explicit adv_string_view(const_tchar_pt<T>, size_t siz, size_t len);
 
+        /*
+         Uncomment with gcc >= 10.3
+
 		explicit adv_string_view(const byte *b, EncMetric_info<T> f, const terminate_func<T> &tf = zero_terminating<T>) : adv_string_view{const_tchar_pt<T>{b, f}, tf} {}
 		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t dim, meas measure) : adv_string_view{const_tchar_pt<T>{b, f}, dim, measure} {}
 		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t siz, size_t len) : adv_string_view{const_tchar_pt<T>{b, f}, siz, len} {}
 
+		template<typename U>
+		explicit adv_string_view(const U *b, const terminate_func<T> &tf = zero_terminating<T>) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, tf} {}
+		template<typename U>
+		explicit adv_string_view(const U *b, size_t dim, meas measure) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, dim, measure} {}
+		template<typename U>
+		explicit adv_string_view(const U *b, size_t siz, size_t len) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, siz, len} {}
+
+		template<typename U>
+		explicit adv_string_view(const U *b, const EncMetric<typename T::ctype> *f, const terminate_func<T> &tf = zero_terminating<T>) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, tf} {}
+		template<typename U>
+		explicit adv_string_view(const U *b, const EncMetric<typename T::ctype> *f, size_t dim, meas measure) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, dim, measure} {}
+		template<typename U>
+		explicit adv_string_view(const U *b, const EncMetric<typename T::ctype> *f, size_t siz, size_t len) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, siz, len} {}
+        */
 		virtual ~adv_string_view() {}
 		/*
 		    Verify the string is correctly encoded
@@ -175,28 +192,35 @@ class adv_string_view{
 	friend class adv_string_buf;
 };
 
-/*
- * Other costructors
- */
-template<typename T, typename U, enable_not_wide_t<T, int> =0>
-adv_string_view<T> new_str_view(const U *b, const terminate_func<T> &tf = zero_terminating<T>) {return adv_string_view<T>{new_const_tchar_pt<T>(b), tf};}
+template<strong_enctype T, typename U>
+adv_string_view<T> new_string_view(const U *b, const terminate_func<T> &t = zero_terminating<T>){
+        return adv_string_view{new_const_pt<T>(b), t};
+}
 
-template<typename T, typename U, enable_not_wide_t<T, int> =0>
-adv_string_view<T> new_str_view(const U *b, size_t dim, meas measure){ return adv_string_view<T>{new_const_tchar_pt<T>(b), dim, measure};}
+template<strong_enctype T, typename U>
+adv_string_view<T> new_string_view(const U *b, size_t dim, meas measure){
+        return adv_string_view{new_const_pt<T>(b), dim, measure};
+}
 
-template<typename T, typename U, enable_not_wide_t<T, int> =0>
-adv_string_view<T> new_str_view(const U *b, size_t siz, size_t len){ return adv_string_view<T>{new_const_tchar_pt<T>(b), siz, len};}
+template<strong_enctype T, typename U>
+adv_string_view<T> new_string_view(const U *b, size_t siz, size_t len){
+        return adv_string_view{new_const_pt<T>(b), siz, len};
+}
 
+template<widenc T, typename U>
+adv_string_view<T> new_string_view(const U *b, const EncMetric<typename T::ctype> *f, const terminate_func<T> &t = zero_terminating<T>){
+        return adv_string_view{new_const_pt<T>(b, f), t};
+}
 
-template<typename T, typename U, enable_wide_t<T, int> =0>
-adv_string_view<T> new_str_view(const U *b, const EncMetric<typename T::ctype> *format, const terminate_func<T> &tf = zero_terminating<T>) {return adv_string_view<T>{new_const_tchar_pt<T>(b, format), tf};}
+template<widenc T, typename U>
+adv_string_view<T> new_string_view(const U *b, const EncMetric<typename T::ctype> *f, size_t dim, meas measure){
+        return adv_string_view{new_const_pt<T>(b, f), dim, measure};
+}
 
-template<typename T, typename U, enable_wide_t<T, int> =0>
-adv_string_view<T> new_str_view(const U *b, const EncMetric<typename T::ctype> *format, size_t dim, meas measure){ return adv_string_view<T>{new_const_tchar_pt<T>(b, format), dim, measure};}
-
-template<typename T, typename U, enable_wide_t<T, int> =0>
-adv_string_view<T> new_str_view(const U *b, const EncMetric<typename T::ctype> *format, size_t siz, size_t len){ return adv_string_view<T>{new_const_tchar_pt<T>(b, format), siz, len};}
-
+template<widenc T, typename U>
+adv_string_view<T> new_string_view(const U *b, const EncMetric<typename T::ctype> *f, size_t siz, size_t len){
+        return adv_string_view{new_const_pt<T>(b, f), siz, len};
+}
 
 template<typename T, typename S>
 bool sameEnc(const adv_string_view<T> &a, const adv_string_view<S> &b) noexcept{
