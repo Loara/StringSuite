@@ -10,7 +10,7 @@ C++ library to manage strings and (almost) any kind of encoded data.
 Encmetric is written under the GNU Lesser General Public License (LGPL) version 2.1. For more informations see LICENSE files
 
 # Build and Install
-To build the library you need cmake version 3.20 or later and a C++ compiler that supports C++20 concepts (for example gcc 10.2 or newer).
+To build the library you need cmake version 3.20 or later and a C++ compiler that supports C++20 concepts (for example `gcc` 10.2 or newer).
 
 To build and install the library
 
