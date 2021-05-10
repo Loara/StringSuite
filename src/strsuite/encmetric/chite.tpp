@@ -19,9 +19,9 @@
 
 template<typename S, typename T>
 bool sameEnc(const const_tchar_pt<T> &a) noexcept{
-	static_assert(!is_wide_v<S>, "Template parameter cannot be wide");
-	if constexpr(!is_wide_v<T>)
-		return sameEnc_static<S, T>;
+	static_assert(not_widenc<S>, "Template parameter cannot be wide");
+	if constexpr(not_widenc<T>)
+		return same_enc<S, T>;
 	else{
 		const EncMetric<typename T::ctype> &f = a.format();
 		return f.index() == index_traits<S>::index();
@@ -30,9 +30,9 @@ bool sameEnc(const const_tchar_pt<T> &a) noexcept{
 
 template<typename S, typename T>
 bool sameEnc(const const_tchar_pt<S> &, const const_tchar_pt<T> &) noexcept{
-	static_assert(!is_wide_v<S>, "encodings on different ctypes");
-	static_assert(!is_wide_v<T>, "encodings on different ctypes");
-	return sameEnc_static<S, T>;
+	static_assert(not_widenc<S>, "encodings on different ctypes");
+	static_assert(not_widenc<T>, "encodings on different ctypes");
+	return same_enc<S, T>;
 }
 
 template<typename T>
@@ -54,13 +54,13 @@ bool sameEnc(const const_tchar_pt<WIDE<tt>> &a, const const_tchar_pt<WIDE<tt>> &
 
 template<typename S, typename T>
 bool can_reassign(const_tchar_pt<T> ptr) noexcept{
-	if constexpr(is_raw_v<S>)
+	if constexpr(enc_raw<S>)
 		return true;
-	else if constexpr(is_wide_v<S>){
-		if constexpr(is_raw_v<T>)
+	else if constexpr(widenc<S>){
+		if constexpr(enc_raw<T>)
 			return true;
 		else
-			return std::is_same_v<typename S::ctype, typename T::ctype>;
+			return same_data<S, T>;
 	}
 	else
 		return sameEnc<S>(ptr);
@@ -68,14 +68,14 @@ bool can_reassign(const_tchar_pt<T> ptr) noexcept{
 
 template<typename S, typename T>
 tchar_pt<S> reassign(tchar_pt<T> p){
-	if constexpr( std::is_same_v<S, T> ){
+	if constexpr( same_enc<S, T> ){
 		return p;
 	}
-	else if constexpr(is_raw_v<S>){
+	else if constexpr(enc_raw<S>){
 		return tchar_pt<S>{p.data()};
 	}
-	else if constexpr( is_wide_v<S> ){
-		static_assert(is_raw_v<T> || std::is_same_v<typename S::ctype, typename T::ctype>, "Impossible to reassign this string");
+	else if constexpr(widenc<S> ){
+		static_assert(enc_raw<T> || same_data<S, T>, "Impossible to reassign this string");
 		return tchar_pt<S>{p.data(), DynEncoding<T>::instance()};
 	}
 	else{
@@ -87,14 +87,14 @@ tchar_pt<S> reassign(tchar_pt<T> p){
 
 template<typename S, typename T>
 const_tchar_pt<S> reassign(const_tchar_pt<T> p){
-	if constexpr( std::is_same_v<S, T> ){
+	if constexpr( same_enc<S, T> ){
 		return p;
 	}
-	else if constexpr(is_raw_v<S>){
+	else if constexpr(enc_raw<S>){
 		return const_tchar_pt<S>{p.data()};
 	}
-	else if constexpr( is_wide_v<S> ){
-		static_assert(is_raw_v<T> || std::is_same_v<typename S::ctype, typename T::ctype>, "Impossible to convert these strings");
+	else if constexpr(widenc<S> ){
+		static_assert(enc_raw<T> || same_data<S, T>, "Impossible to convert these strings");
 		return const_tchar_pt<S>{p.data(), DynEncoding<T>::instance()};
 	}
 	else{
@@ -104,14 +104,14 @@ const_tchar_pt<S> reassign(const_tchar_pt<T> p){
 	}
 }
 
-template<typename S, typename T, enable_same_data_t<S, T, int> =0>
+template<typename S, typename T>  requires same_data<S, T>
 void basic_encoding_conversion(const_tchar_pt<T> in, uint inlen, tchar_pt<S> out, uint oulen){
 	typename S::ctype bias;
 	in.decode(&bias, inlen);
 	out.encode(bias, oulen);
 }
 
-template<typename S, typename T, enable_same_data_t<S, T, int> =0>
+template<typename S, typename T>  requires same_data<S, T>
 void basic_encoding_conversion(const_tchar_pt<T> in, uint inlen, tchar_pt<S> out, uint oulen, uint &inread, uint &outread){
 	typename S::ctype bias;
 	inread = in.decode(&bias, inlen);
@@ -120,14 +120,14 @@ void basic_encoding_conversion(const_tchar_pt<T> in, uint inlen, tchar_pt<S> out
 
 template<typename T>
 uint min_size_estimate(const_tchar_pt<T> ptr, uint nchr) noexcept{
-	if constexpr(!is_wide_v<T>)
+	if constexpr(not_widenc<T>)
 		return min_length<T>(nchr);
 	else
 		return min_length(nchr, ptr.format());
 }
 template<typename T>
 uint max_size_estimate(const_tchar_pt<T> ptr, uint nchr){
-	if constexpr(!is_wide_v<T>)
+	if constexpr(not_widenc<T>)
 		return max_length<T>(nchr);
 	else
 		return max_length(nchr, ptr.format());
@@ -135,7 +135,7 @@ uint max_size_estimate(const_tchar_pt<T> ptr, uint nchr){
 
 template<typename T>
 bool dynamic_fixed_size(const_tchar_pt<T> ptr) noexcept{
-	if constexpr(is_wide_v<T>)
+	if constexpr(widenc<T>)
 		return ptr.format().d_fixed_size();
 	else
 		return fixed_size<T>;

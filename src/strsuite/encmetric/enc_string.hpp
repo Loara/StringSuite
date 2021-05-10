@@ -229,7 +229,7 @@ bool sameEnc(const adv_string_view<T> &a, const adv_string_view<S> &b) noexcept{
 
 template<typename S, typename T>
 adv_string_view<S> reassign(const adv_string_view<T> &ret){
-	if constexpr(is_raw_v<S>)
+	if constexpr(enc_raw<S>)
 		return adv_string_view<S>{reassign<S, T>(ret.begin()), ret.size(), ret.size()};
 	else
 		return adv_string_view<S>{reassign<S, T>(ret.begin()), ret.length(), ret.size()};
@@ -282,20 +282,20 @@ class adv_string_buf{
 		adv_string<T> allocate(std::pmr::memory_resource *all = std::pmr::get_default_resource()) const;
 };
 
-template<typename T, enable_not_wide_t<T, int> = 0>
+template<strong_enctype T>
 adv_string_buf<T> new_str_buf(std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){
     return adv_string_buf<T>{EncMetric_info<T>{}, alloc};
 }
-template<typename T, enable_not_wide_t<T, int> = 0>
+template<strong_enctype T>
 adv_string_buf<T> new_str_buf(size_t siz, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){
     return adv_string_buf<T>{EncMetric_info<T>{}, siz, alloc};
 }
 
-template<typename T, enable_wide_t<T, int> = 0>
+template<widenc T>
 adv_string_buf<T> new_str_buf(const EncMetric<typename T::ctype> *format, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){
     return adv_string_buf<T>{EncMetric_info<T>{format}, alloc};
 }
-template<typename T, enable_wide_t<T, int> = 0>
+template<widenc T>
 adv_string_buf<T> new_str_buf(const EncMetric<typename T::ctype> *format, size_t siz, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){
     return adv_string_buf<T>{EncMetric_info<T>{format}, siz, alloc};
 }

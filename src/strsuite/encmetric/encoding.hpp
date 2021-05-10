@@ -88,7 +88,7 @@ class RAW{
 		static constexpr uint unity() noexcept {return 1;}
 		static constexpr bool has_max() noexcept {return true;}
 		static constexpr uint max_bytes() {return 1;}
-		using equivalent_enc=RAWcmp;
+		using compare_enc=RAWcmp;
 		static uint chLen(const byte *) {return 1;}
 		static bool validChar(const byte *, uint &i) noexcept{
 			i=1;
@@ -125,45 +125,39 @@ template<typename tt>
 struct is_wide<WIDE<tt>> : public std::true_type {};
 
 template<typename T>
-inline constexpr bool is_wide_v = is_wide<T>::value;
-
+concept widenc = enctype<T> && is_wide<T>::value;
 template<typename T>
-concept widenc = enctype<T> && is_wide_v<T>;
-template<typename T>
-concept not_widenc = enctype<T> && !is_wide_v<T>;
+concept not_widenc = strong_enctype<T> && !is_wide<T>::value;
 
 template<typename T>
 concept general_enctype = widenc<T> || strong_enctype<T>;
-
-template<typename T, typename U, typename...>
-struct enable_wide : public std::enable_if<is_wide_v<T>, U> {};
-template<typename T, typename U, typename...>
-struct enable_not_wide : public std::enable_if<!is_wide_v<T>, U>{};
-
-template<typename T, typename U, typename... Args>
-using enable_wide_t = typename enable_wide<T, U, Args...>::type;
-template<typename T, typename U, typename... Args>
-using enable_not_wide_t = typename enable_not_wide<T, U, Args...>::type;
 
 /*
     index_traits control if encoding class ovverides the index
 */
 template<typename T>
-concept static_alias = not_widenc<T> && requires {typename T::equivalent_enc;};
+concept default_aliases = not_widenc<T> && !requires {typename T::compare_enc;} && !requires {typename T::equivalent_enc;};
 template<typename T>
-concept not_static_alias = not_widenc<T> && !requires {typename T::equivalent_enc;};
+concept compare_aliases = not_widenc<T> && requires {typename T::compare_enc;};
+template<typename T>
+concept equivalence_aliases = not_widenc<T> && !requires {typename T::compare_enc;} && requires {typename T::equivalent_enc;};
 
 template<typename T>
 struct index_traits_0;
 
-template<not_static_alias T>
+template<default_aliases T>
 struct index_traits_0<T>{
 	using type_enc=T;
 };
 
-template<static_alias T>
+template<compare_aliases T>
 struct index_traits_0<T>{
-	using type_enc=typename T::equivalent_enc;
+	using type_enc=typename T::compare_enc;
+};
+
+template<equivalence_aliases T>
+struct index_traits_0<T>{
+	using type_enc=typename index_traits_0<typename T::equivalence_enc>::type_enc;
 };
 
 template<not_widenc T>
@@ -174,50 +168,23 @@ struct index_traits : public index_traits_0<T> {
 /*
  * Test if both encodings work on the same data type
  */
-template<typename S, typename T>
-struct same_data : public std::is_same<typename S::ctype, typename T::ctype> {};
-template<typename S, typename T>
-inline constexpr bool same_data_v = same_data<S, T>::value;
 
 template<typename S, typename T>
-concept encdata_same = enctype<S> && enctype<T> && std::same_as<typename S::ctype, typename T::ctype>;
+concept same_data = general_enctype<S> && general_enctype<T> && std::same_as<typename S::ctype, typename T::ctype>;
 
 /*
     Test if types refer to the same encoding
 */
-template<typename S, typename T>
-inline constexpr bool sameEnc_static = std::is_same_v<typename index_traits<S>::type_enc, typename index_traits<T>::type_enc>;
-
-template<typename S, typename tt>
-inline constexpr bool sameEnc_static<S, WIDE<tt>> = false;
-
-template<typename tt, typename T>
-inline constexpr bool sameEnc_static<WIDE<tt>, T> = false;
-
-template<typename ss, typename tt>
-inline constexpr bool sameEnc_static<WIDE<ss>, WIDE<tt>> = false;
 
 template<typename S, typename T>
-concept enc_same_static = not_widenc<S> && not_widenc<T> && std::same_as<typename index_traits_0<S>::type_enc, typename index_traits_0<T>::type_enc>;
-
-template<typename U>
-struct is_raw : public std::bool_constant<sameEnc_static<U, RAW<byte>>> {};
+concept same_enc = not_widenc<S> && not_widenc<T> && std::same_as<typename index_traits_0<S>::type_enc, typename index_traits_0<T>::type_enc>;
 
 template<typename T>
-inline constexpr bool is_raw_v = is_raw<T>::value;
-
-template<typename T>
-concept enc_raw = enc_same_static<T, RAW<byte>>;
+concept enc_raw = same_enc<T, RAW<byte>>;
 
 /*
     Template packs are used when you need SFINAE
 */
-template<typename S, typename T, typename U, typename...>
-struct enable_same_data : public std::enable_if<same_data_v<S, T>, U>{};
-
-template<typename S, typename T, typename U, typename... Args>
-using enable_same_data_t = typename enable_same_data<S, T, U, Args...>::type;
-
 template<typename T>
 inline constexpr bool safe_hasmax = T::has_max();
 template<typename tt>
@@ -230,6 +197,9 @@ inline constexpr bool fixed_size<WIDE<tt>> = false;
 
 template<typename T>
 concept is_fixed = not_widenc<T> && fixed_size<T>;
+
+template<typename S, typename T>
+concept can_assign = not_widenc<S> && (enc_raw<T> || (same_data<S, T> && (widenc<T> || same_enc<S, T>)));
 
 template<strong_enctype T>
 constexpr int min_length(int nchr) noexcept{
@@ -254,7 +224,7 @@ int max_length(uint nchr, const EncMetric<tt> &format){
 }
 
 template<strong_enctype T>
-constexpr void assert_raw(){static_assert(!is_raw_v<T>, "Using RAW format");}
+constexpr void assert_raw(){static_assert(!enc_raw<T>, "Using RAW format");}
 
 template<typename tt>
 void assert_raw(const EncMetric<tt> &f){

@@ -360,9 +360,9 @@ inline const_tchar_pt<WIDE<tt>> set_encoding(const_tchar_pt<RAW<tt>> r, const En
     Make an encoding conversion between Unicode-compatible encodings using from_unicode and to_unicode functions.
     Note: convert only the first character
 */
-template<typename S, typename T, enable_same_data_t<S, T, int> =0>
+template<typename S, typename T> requires same_data<S, T>
 void basic_encoding_conversion(const_tchar_pt<T> in, uint inlen, tchar_pt<S> out, uint oulen);
-template<typename S, typename T, enable_same_data_t<S, T, int> =0>
+template<typename S, typename T> requires same_data<S, T>
 void basic_encoding_conversion(const_tchar_pt<T> in, uint inlen, tchar_pt<S> out, uint oulen, uint &inread, uint &outwrite);
 
 /*
