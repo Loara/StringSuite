@@ -106,10 +106,7 @@ using RAWchr=RAW<unicode>;
 
 
 template<typename T>
-concept enctype = requires {typename T::ctype;};
-
-template<typename T>
-concept strong_enctype = enctype<T> && requires(const byte *a, byte *b, uint i, typename T::ctype tu, size_t sz){
+concept strong_enctype = requires {typename T::ctype;} && requires(const byte *a, byte *b, uint i, typename T::ctype tu, size_t sz){
         {T::unity()} noexcept->std::convertible_to<uint>;
         {T::has_max()} noexcept->std::same_as<bool>;
         {T::max_bytes()}->std::convertible_to<uint>;
@@ -125,7 +122,7 @@ template<typename tt>
 struct is_wide<WIDE<tt>> : public std::true_type {};
 
 template<typename T>
-concept widenc = enctype<T> && is_wide<T>::value;
+concept widenc = is_wide<T>::value;
 template<typename T>
 concept not_widenc = strong_enctype<T> && !is_wide<T>::value;
 
@@ -152,11 +149,13 @@ struct index_traits_0<T>{
 
 template<compare_aliases T>
 struct index_traits_0<T>{
+    static_assert(not_widenc<typename T::compare_enc>, "Cannot define aliases to WIDE encodings");
 	using type_enc=typename T::compare_enc;
 };
 
 template<equivalence_aliases T>
 struct index_traits_0<T>{
+    static_assert(not_widenc<typename T::equivalence_enc>, "Cannot define aliases to WIDE encodings");
 	using type_enc=typename index_traits_0<typename T::equivalence_enc>::type_enc;
 };
 
@@ -166,25 +165,24 @@ struct index_traits : public index_traits_0<T> {
 };
 
 /*
- * Test if both encodings work on the same data type
- */
-
-template<typename S, typename T>
-concept same_data = general_enctype<S> && general_enctype<T> && std::same_as<typename S::ctype, typename T::ctype>;
-
-/*
     Test if types refer to the same encoding
 */
 
 template<typename S, typename T>
-concept same_enc = not_widenc<S> && not_widenc<T> && std::same_as<typename index_traits_0<S>::type_enc, typename index_traits_0<T>::type_enc>;
+concept same_enc = not_widenc<S> && not_widenc<T> && std::same_as<typename index_traits<S>::type_enc, typename index_traits<T>::type_enc>;
 
 template<typename T>
 concept enc_raw = same_enc<T, RAW<byte>>;
 
 /*
-    Template packs are used when you need SFINAE
-*/
+ * Test if both encodings work on the same data type
+ */
+
+template<typename S, typename T>
+concept same_data = general_enctype<S> && general_enctype<T> && (enc_raw<S> || enc_raw<T> || std::same_as<typename S::ctype, typename T::ctype>);
+
+
+
 template<typename T>
 inline constexpr bool safe_hasmax = T::has_max();
 template<typename tt>
@@ -198,8 +196,18 @@ inline constexpr bool fixed_size<WIDE<tt>> = false;
 template<typename T>
 concept is_fixed = not_widenc<T> && fixed_size<T>;
 
+/*
+ * Tests if a pointer with encoding S can be assigned to a pointer with encoding T
+ *
+ * weak_assign and strong_assign work in the same way except when S is WIDE, in this case weak_assign returns true whereas strong_assign returns false
+ * This different behaviour is due to different goals: weak_assign will only test statically the types before performing runtime checks; instead strong_assign
+ * have to determine at compile-time if a string can be reassigned to a new class encoding.
+ */
 template<typename S, typename T>
-concept can_assign = not_widenc<S> && (enc_raw<T> || (same_data<S, T> && (widenc<T> || same_enc<S, T>)));
+concept weak_assign = enc_raw<T> || (same_data<S, T> && (widenc<S> || widenc<T> || same_enc<S, T>));
+
+template<typename S, typename T>
+concept strong_assign = (widenc<S> && (enc_raw<T> || same_enc<S, T>)) || (not_widenc<S> && weak_assign<S, T>);
 
 template<strong_enctype T>
 constexpr int min_length(int nchr) noexcept{
@@ -272,7 +280,7 @@ class EncMetric_info{
 
 		EncMetric_info() {}
 		using ctype=typename T::ctype;
-		const EncMetric<ctype> &format() const noexcept {return DynEncoding<T>::instance();}
+		const EncMetric<ctype> *format() const noexcept {return DynEncoding<T>::instance();}
 
 		constexpr uint unity() const noexcept {return T::unity();}
 		constexpr bool has_max() const noexcept {return T::has_max();}
@@ -294,7 +302,7 @@ class EncMetric_info<WIDE<tt>>{
 		EncMetric_info(const EncMetric<tt> *format) : f{format} {}
 		EncMetric_info(const EncMetric_info &info) : f{info.f} {}
 
-		const EncMetric<tt> &format() const noexcept {return *f;}
+		const EncMetric<tt> *format() const noexcept {return f;}
 		uint unity() const noexcept {return f->d_unity();}
 		bool has_max() const noexcept {return f->d_has_max();}
 		uint max_bytes() const noexcept {return f->d_max_bytes();}

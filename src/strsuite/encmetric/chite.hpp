@@ -318,7 +318,7 @@ class tchar_relative{
 
 //---------------------------------------------
 
-template<typename S, typename T>
+template<general_enctype S, general_enctype T>
 bool sameEnc(const const_tchar_pt<S> &, const const_tchar_pt<T> &) noexcept;
 template<typename T1, typename T2>
 bool sameEnc(const T1 &arg1, const T2 &arg2) noexcept{
@@ -328,52 +328,50 @@ template<typename S, typename T, typename... Rarg>
 bool sameEnc(const S &f1, const T &f2, const Rarg&... tre) noexcept{
 	return sameEnc(f2, tre...) && sameEnc(f1, f2);
 }
-/*
-	T not wide
-*/
-template<typename S, typename T>
+
+template<strong_enctype S, general_enctype T>
 bool sameEnc(const const_tchar_pt<T> &) noexcept;
 
 /*
 	Different from sameEnc, since it can handle also WIDE encodings and also allow
 	conversion to any RAW encoded string, also with different ctype
 */
-template<typename S, typename T>
+template<typename S, general_enctype T>
 bool can_reassign(const const_tchar_pt<T> &) noexcept;
 /*
 	Return a new pointer pointing to the same array and with a similar, but with possible different template parameter.
 */
-template<typename S, typename T>
+template<general_enctype S, general_enctype T>
 tchar_pt<S> reassign(tchar_pt<T> p);
-template<typename S, typename T>
+template<general_enctype S, general_enctype T>
 const_tchar_pt<S> reassign(const_tchar_pt<T> p);
 
 /*
     Assign an encoding to a RAW character pointer
 */
 template<typename tt>
-inline tchar_pt<WIDE<tt>> set_encoding(tchar_pt<RAW<tt>> r, const EncMetric<tt> &f) noexcept {return tchar_pt<WIDE<tt>>{r.data(), f};}
+inline tchar_pt<WIDE<tt>> set_encoding(tchar_pt<RAW<tt>> r, const EncMetric<tt> *f) noexcept {return tchar_pt<WIDE<tt>>{r.data(), f};}
 template<typename tt>
-inline const_tchar_pt<WIDE<tt>> set_encoding(const_tchar_pt<RAW<tt>> r, const EncMetric<tt> &f) noexcept {return const_tchar_pt<WIDE<tt>>{r.data(), f};}
+inline const_tchar_pt<WIDE<tt>> set_encoding(const_tchar_pt<RAW<tt>> r, const EncMetric<tt> *f) noexcept {return const_tchar_pt<WIDE<tt>>{r.data(), f};}
 
 /*
     Make an encoding conversion between Unicode-compatible encodings using from_unicode and to_unicode functions.
     Note: convert only the first character
 */
-template<typename S, typename T> requires same_data<S, T>
+template<general_enctype S, general_enctype T> requires same_data<S, T>
 void basic_encoding_conversion(const_tchar_pt<T> in, uint inlen, tchar_pt<S> out, uint oulen);
-template<typename S, typename T> requires same_data<S, T>
+template<general_enctype S, general_enctype T> requires same_data<S, T>
 void basic_encoding_conversion(const_tchar_pt<T> in, uint inlen, tchar_pt<S> out, uint oulen, uint &inread, uint &outwrite);
 
 /*
     Estimate the size of a possible string with n characters
 */
-template<typename T>
+template<general_enctype T>
 uint min_size_estimate(const_tchar_pt<T>, uint) noexcept;
-template<typename T>
+template<general_enctype T>
 uint max_size_estimate(const_tchar_pt<T>, uint);
 
-template<typename T>
+template<general_enctype T>
 bool dynamic_fixed_size(const_tchar_pt<T>) noexcept;
 
 using c_wchar_pt = const_tchar_pt<WIDE<unicode>>;

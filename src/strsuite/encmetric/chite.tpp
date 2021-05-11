@@ -17,9 +17,8 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 
-template<typename S, typename T>
+template<strong_enctype S, general_enctype T>
 bool sameEnc(const const_tchar_pt<T> &a) noexcept{
-	static_assert(not_widenc<S>, "Template parameter cannot be wide");
 	if constexpr(not_widenc<T>)
 		return same_enc<S, T>;
 	else{
@@ -28,104 +27,86 @@ bool sameEnc(const const_tchar_pt<T> &a) noexcept{
 	}
 }
 
-template<typename S, typename T>
-bool sameEnc(const const_tchar_pt<S> &, const const_tchar_pt<T> &) noexcept{
-	static_assert(not_widenc<S>, "encodings on different ctypes");
-	static_assert(not_widenc<T>, "encodings on different ctypes");
-	return same_enc<S, T>;
+template<general_enctype S, general_enctype T>
+bool sameEnc(const const_tchar_pt<S> &pa, const const_tchar_pt<T> &pb) noexcept{
+	if constexpr(widenc<S>){
+        if constexpr(widenc<T>){
+            auto fa = pa.format();
+            auto fb = pb.format();
+            return fa.index() == fb.index();
+        }
+        else
+            return sameEnc<T>(pa);
+    }
+    else{
+        return sameEnc<S>(pb);
+    }
 }
 
-template<typename T>
-bool sameEnc(const const_tchar_pt<T> &, const const_tchar_pt<WIDE<typename T::ctype>> &a) noexcept{
-	return sameEnc<T>(a);
-}
-
-template<typename T>
-bool sameEnc(const const_tchar_pt<WIDE<typename T::ctype>> &a, const const_tchar_pt<T> &) noexcept{
-	return sameEnc<T>(a);
-}
-
-template<typename tt>
-bool sameEnc(const const_tchar_pt<WIDE<tt>> &a, const const_tchar_pt<WIDE<tt>> &b) noexcept{
-	const EncMetric<tt> &f = a.format();
-	const EncMetric<tt> &g = b.format();
-	return f.index() == g.index();
-}
-
-template<typename S, typename T>
+template<typename S, general_enctype T>
 bool can_reassign(const_tchar_pt<T> ptr) noexcept{
-	if constexpr(enc_raw<S>)
-		return true;
-	else if constexpr(widenc<S>){
-		if constexpr(enc_raw<T>)
-			return true;
-		else
-			return same_data<S, T>;
-	}
-	else
-		return sameEnc<S>(ptr);
+    bool b = weak_assign<T, S>;
+    if(!b)
+        return false;
+    if constexpr(widenc<T>){
+        if constexpr(enc_raw<S> || (widenc<S> && same_data<S, T>))
+            return true;
+        else if constexpr(not_widenc<S>)
+            return sameEnc<S>(ptr);
+        else return false;
+    }
+    else return true;
 }
 
-template<typename S, typename T>
+template<general_enctype S, general_enctype T>
 tchar_pt<S> reassign(tchar_pt<T> p){
-	if constexpr( same_enc<S, T> ){
-		return p;
-	}
-	else if constexpr(enc_raw<S>){
-		return tchar_pt<S>{p.data()};
-	}
-	else if constexpr(widenc<S> ){
-		static_assert(enc_raw<T> || same_data<S, T>, "Impossible to reassign this string");
-		return tchar_pt<S>{p.data(), DynEncoding<T>::instance()};
-	}
-	else{
-		if(!sameEnc<S>(p.cast()))
-			throw encoding_error("Impossible to reassign this string");
-		return tchar_pt<S>(p.data());
-	}
+    if constexpr (widenc<S>){
+        static_assert(same_data<S, T>, "Not same data encodings");
+        return tchar_pt<S>{p.data(), p.format()};
+    }
+    else{
+        if(!can_reassign<S>(p))
+            throw encoding_error{"Cannot convert these strings"};
+        return tchar_pt<S>{p.data()};
+    }
 }
 
-template<typename S, typename T>
+template<general_enctype S, general_enctype T>
 const_tchar_pt<S> reassign(const_tchar_pt<T> p){
-	if constexpr( same_enc<S, T> ){
-		return p;
-	}
-	else if constexpr(enc_raw<S>){
-		return const_tchar_pt<S>{p.data()};
-	}
-	else if constexpr(widenc<S> ){
-		static_assert(enc_raw<T> || same_data<S, T>, "Impossible to convert these strings");
-		return const_tchar_pt<S>{p.data(), DynEncoding<T>::instance()};
-	}
-	else{
-		if(!sameEnc<S>(p))
-			throw encoding_error("Impossible to convert these strings");
-		return const_tchar_pt<S>(p.data());
-	}
+    if constexpr (widenc<S>){
+        static_assert(same_data<S, T>, "Not same data encodings");
+        return const_tchar_pt<S>{p.data(), p.format()};
+    }
+    else{
+        if(!can_reassign<S>(p))
+            throw encoding_error{"Cannot convert these strings"};
+        return const_tchar_pt<S>{p.data()};
+    }
 }
 
-template<typename S, typename T>  requires same_data<S, T>
+
+template<general_enctype S, general_enctype T>  requires same_data<S, T>
 void basic_encoding_conversion(const_tchar_pt<T> in, uint inlen, tchar_pt<S> out, uint oulen){
 	typename S::ctype bias;
 	in.decode(&bias, inlen);
 	out.encode(bias, oulen);
 }
 
-template<typename S, typename T>  requires same_data<S, T>
+template<general_enctype S, general_enctype T>  requires same_data<S, T>
 void basic_encoding_conversion(const_tchar_pt<T> in, uint inlen, tchar_pt<S> out, uint oulen, uint &inread, uint &outread){
 	typename S::ctype bias;
 	inread = in.decode(&bias, inlen);
 	outread = out.encode(bias, oulen);
 }
 
-template<typename T>
+template<general_enctype T>
 uint min_size_estimate(const_tchar_pt<T> ptr, uint nchr) noexcept{
 	if constexpr(not_widenc<T>)
 		return min_length<T>(nchr);
 	else
 		return min_length(nchr, ptr.format());
 }
-template<typename T>
+template<general_enctype T>
 uint max_size_estimate(const_tchar_pt<T> ptr, uint nchr){
 	if constexpr(not_widenc<T>)
 		return max_length<T>(nchr);
@@ -133,7 +114,7 @@ uint max_size_estimate(const_tchar_pt<T> ptr, uint nchr){
 		return max_length(nchr, ptr.format());
 }
 
-template<typename T>
+template<general_enctype T>
 bool dynamic_fixed_size(const_tchar_pt<T> ptr) noexcept{
 	if constexpr(widenc<T>)
 		return ptr.format().d_fixed_size();
