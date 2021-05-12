@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(StringSuite VERSION 1.0 DESCRIPTION "Library to manage encoded strings" LANGUAGES CXX)
+project(StringSuite VERSION 0.5 DESCRIPTION "Library to manage encoded strings" LANGUAGES CXX)
 
 #require C++20
 set(CMAKE_CXX_STANDARD 20)
