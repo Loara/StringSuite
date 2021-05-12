@@ -18,7 +18,7 @@ To build and install the library
     cmake --build .
     cmake --install .
 
-# Encodings currently included in this library (v. 1.0)
+# Encodings currently included in this library
 * ASCII
 * Latin1 / ISO-8859-1
 * ISO-8859-2
