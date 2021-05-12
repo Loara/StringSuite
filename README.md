@@ -12,7 +12,7 @@ Encmetric is written under the GNU Lesser General Public License (LGPL) version 
 # Build and Install
 To build the library you need cmake version 3.19 or later and a C++ compiler that supports C++20 concepts (for example `gcc` 10.2 or newer).
 
-To build and install the library
+To build and install the library you need to run these commands:
 
     cmake src/
     cmake --build .
