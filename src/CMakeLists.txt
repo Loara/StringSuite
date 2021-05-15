@@ -36,6 +36,7 @@ add_library(strsuite
     utf32_enc.cpp
     utf16_enc.cpp
     iso8859_enc.cpp
+    koi8.cpp
     win_codepages.cpp
     enc_io.cpp
     enc_io_core.cpp
@@ -61,6 +62,7 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
     "strsuite/encmetric/encoding.hpp"
     "strsuite/encmetric/exceptions.hpp"
     "strsuite/encmetric/iso8859_enc.hpp"
+    "strsuite/encmetric/koi8.hpp"
     "strsuite/encmetric/utf8_enc.hpp"
     "strsuite/encmetric/utf16_enc_0.hpp"
     "strsuite/encmetric/utf16_enc.hpp"

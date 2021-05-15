@@ -10,16 +10,29 @@
 
     Encmetric is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU Lesser General Public License for more details.
 
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
-#include <strsuite/encmetric/utf8_enc.hpp>
-#include <strsuite/encmetric/utf16_enc.hpp>
-#include <strsuite/encmetric/utf32_enc.hpp>
-#include <strsuite/encmetric/iso8859_enc.hpp>
-#include <strsuite/encmetric/win_codepages.hpp>
-#include <strsuite/encmetric/koi8.hpp>
-#include <strsuite/encmetric/base64.hpp>
+#include <strsuite/encmetric/ascii_extensions.hpp>
+
+namespace sts{
+
+class KOI8_R : public ASCII_extension<KOI8_R>{
+	public:
+		static const unsigned int table[];
+};
+
+class KOI8_U : public ASCII_extension<KOI8_U>{
+	public:
+		static const unsigned int table[];
+};
+
+class KOI8_RU : public ASCII_extension<KOI8_RU>{
+	public:
+		static const unsigned int table[];
+};
+
+}

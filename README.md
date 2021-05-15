@@ -20,13 +20,10 @@ To build and install the library you can run these commands:
 
 # Encodings currently included in this library
 * ASCII
-* Latin1 / ISO-8859-1
-* ISO-8859-2
-* UTF8
-* UTF16
-* UTF32
+* Latin1 / ISO-8859-1, ISO-8859-2
+* UTF8, UTF16, UTF32
+* KOI8-R, KOI8-U, KOI8-RU
 * Base64
-* Windows codepage 1252
-* Windows codepage 1250
+* Windows codepage 1252, 1250
 
 Clearly you can write and use your own encoding classes.
