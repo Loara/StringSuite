@@ -126,37 +126,37 @@ class adv_string_view{
 		size_t size(size_t a, size_t n) const;//bytes of first n character starting from the (a+1)-st character
 		size_t size(size_t n) const {return size(0, n);}
 
-		template<typename S>
-		bool compstr(const adv_string_view<S> &, size_t n) const;//compare only the first n character
+		template<general_enctype S>
+		bool equal_to(const adv_string_view<S> &, size_t n) const;//compare only the first n character
 
-		template<typename S>
+		template<general_enctype S>
 		bool operator==(const adv_string_view<S> &) const;
 
-		template<typename S>
+		template<general_enctype S>
 		bool operator==(const_tchar_pt<S>) const;
 
-		template<typename S>
+		template<general_enctype S>
 		bool operator!=(const adv_string_view<S> &bin) const {return !(*this == bin);}
 
-		template<typename S>
+		template<general_enctype S>
 		bool operator!=(const_tchar_pt<S> bin) const {return !(*this == bin);}
 
 		/*
 			Note: id found is false then can return anything
 		*/
-		template<typename S>
+		template<general_enctype S>
 		size_t bytesOf(const adv_string_view<S> &, bool &found) const;
 
-		template<typename S>
+		template<general_enctype S>
 		size_t indexOf(const adv_string_view<S> &, bool &found) const;
 
-		template<typename S>
+		template<general_enctype S>
 		bool containsChar(const_tchar_pt<S>) const;
 
-		template<typename S>
+		template<general_enctype S>
 		bool startsWith(const adv_string_view<S> &) const;
 
-		template<typename S>
+		template<general_enctype S>
 		bool endsWith(const adv_string_view<S> &) const;
 
 		const byte *data() const noexcept {return ptr.data();}
@@ -169,21 +169,7 @@ class adv_string_view{
 		const_tchar_pt<T> begin() const noexcept {return at(0);}
 		const_tchar_pt<T> end() const noexcept {return at(len);}
 
-		/*
-			These functions convert out string to another one with different encoding
-		*/
-		/*
-			This one is unsafe, since blen is only the number of character to write, not the dimension of buffer
-		*/
-		template<typename S>
-		adv_string_view<S> basic_encoding_conversion(tchar_pt<S> buffer, size_t blen) const;
-
-		adv_string<WIDE<typename T::ctype>> basic_encoding_conversion(const EncMetric<typename T::ctype> *, std::pmr::memory_resource * = std::pmr::get_default_resource()) const;
-
-		template<typename S>
-		adv_string<S> basic_encoding_conversion(std::pmr::memory_resource * = std::pmr::get_default_resource()) const;
-
-		template<typename S>
+		template<general_enctype S>
 		adv_string<T> concatenate(const adv_string_view<S> &, std::pmr::memory_resource * = std::pmr::get_default_resource()) const;
 
 	template<general_enctype W, general_enctype S>

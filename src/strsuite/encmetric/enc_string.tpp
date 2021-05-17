@@ -198,8 +198,8 @@ adv_string_view<T> adv_string_view<T>::substring(size_t b, size_t e, bool ign) c
 	}
 }
 
-template<typename T> template<typename S>
-bool adv_string_view<T>::compstr(const adv_string_view<S> &t, size_t ch) const{
+template<typename T> template<general_enctype S>
+bool adv_string_view<T>::equal_to(const adv_string_view<S> &t, size_t ch) const{
 	if(!sameEnc(ptr, t.begin()))
 		return false;
 	size_t l1 = size(ch);
@@ -209,16 +209,18 @@ bool adv_string_view<T>::compstr(const adv_string_view<S> &t, size_t ch) const{
 	return compare(data(), t.data(), l1);
 }
 
-template<typename T> template<typename S>
+template<typename T> template<general_enctype S>
 bool adv_string_view<T>::operator==(const adv_string_view<S> &t) const{
 	if(!sameEnc(ptr, t.begin()))
 		return false;
 	if(siz != t.size())
 		return false;
+    if(len != t.length())
+        return false;
 	return compare(data(), t.data(), siz);
 }
 
-template<typename T> template<typename S>
+template<typename T> template<general_enctype S>
 bool adv_string_view<T>::operator==(const_tchar_pt<S> t) const{
 	if(!sameEnc(ptr, t))
 		return false;
@@ -229,7 +231,7 @@ bool adv_string_view<T>::operator==(const_tchar_pt<S> t) const{
 	return compare(data(), t.data(), siz);
 }
 
-template<typename T> template<typename S>
+template<typename T> template<general_enctype S>
 size_t adv_string_view<T>::bytesOf(const adv_string_view<S> &sq, bool &found) const{
 	if(!sameEnc(ptr, sq.begin())){
 		found = false;
@@ -258,7 +260,7 @@ size_t adv_string_view<T>::bytesOf(const adv_string_view<S> &sq, bool &found) co
 	return 0;
 }
 
-template<typename T> template<typename S>
+template<typename T> template<general_enctype S>
 size_t adv_string_view<T>::indexOf(const adv_string_view<S> &sq, bool &found) const{
 	if(!sameEnc(ptr, sq.begin())){
 		found = false;
@@ -289,7 +291,7 @@ size_t adv_string_view<T>::indexOf(const adv_string_view<S> &sq, bool &found) co
 	return 0;
 }
 
-template<typename T> template<typename S>
+template<typename T> template<general_enctype S>
 bool adv_string_view<T>::containsChar(const_tchar_pt<S> cu) const{
 	if(!sameEnc(ptr, cu))
 		return false;
@@ -309,7 +311,7 @@ bool adv_string_view<T>::containsChar(const_tchar_pt<S> cu) const{
 	return false;
 }
 
-template<typename T> template<typename S>
+template<typename T> template<general_enctype S>
 bool adv_string_view<T>::startsWith(const adv_string_view<S> &sq) const{
 	if(!sameEnc(ptr, sq.begin())){
 		return false;
@@ -324,7 +326,7 @@ bool adv_string_view<T>::startsWith(const adv_string_view<S> &sq) const{
 	return compare(ptr.data(), sq.begin().data(), sq.size());
 }
 
-template<typename T> template<typename S>
+template<typename T> template<general_enctype S>
 bool adv_string_view<T>::endsWith(const adv_string_view<S> &sq) const{
 	if(!sameEnc(ptr, sq.begin())){
 		return false;
@@ -341,271 +343,7 @@ bool adv_string_view<T>::endsWith(const adv_string_view<S> &sq) const{
 }
 
 template<typename T>
-template<typename S>
-adv_string_view<S> adv_string_view<T>::basic_encoding_conversion(tchar_pt<S> buffer, size_t blen) const{
-	size_t remby = siz;
-	size_t sadby = blen;
-	size_t byread;
-	size_t bywrite;
-	const_tchar_pt<T> read = ptr;
-	tchar_pt<S> write = buffer;
-	for(size_t i=0; i<len; i++){
-		basic_encoding_conversion(read, remby, write, sadby, byread, bywrite);
-		++read;
-		++write;
-		remby -= byread;
-		sadby -= bywrite;
-	}
-	return adv_string_view<S>(buffer, blen-sadby);
-}
-/*
- Stable version
-
-template<typename T>
-template<typename U>
-adv_string<WIDE<typename T::ctype>, U> adv_string_view<T>::basic_encoding_conversion(const EncMetric<typename T::ctype> &format, const U &alloc) const{
-	basic_ptr<byte, U> temp{len * format.d_unity(), alloc};
-	const_tchar_pt<T> from = ptr;
-	tchar_pt<WIDE<typename T::ctype>> to{temp.memory, format};
-	const_tchar_pt<WIDE<typename T::ctype>> new_to = to.cast();
-	size_t remsiz = temp.dimension;
-	size_t newsiz = 0;
-	size_t input_len = siz;
-
-	if(len == 0)
-		return adv_string<WIDE<typename T::ctype>, U>{new_to, 0, 0, std::move(temp)};
-	if(format.d_fixed_size()){
-		for(size_t i=0; i<len; i++){
-			typename T::ctype uni;
-			size_t read = from.decode(uni, input_len);
-			size_t write = to.encode(uni, remsiz);
-			if(input_len < read)
-				throw encoding_error();	
-			input_len -= read;
-			if(remsiz < write)
-				throw encoding_error();	
-			remsiz -= write;
-			newsiz += write;
-			from.next();
-			to.next();
-		}
-		return adv_string<WIDE<typename T::ctype>, U>{new_to, len, newsiz, std::move(temp)};
-	}
-	else{
-		for(size_t i=0; i<len; i++){
-			typename T::ctype uni;
-			size_t read = from.decode(uni, input_len);
-			size_t write = to.encode(uni, remsiz);
-			while(write == 0){
-				size_t tdim = temp.dimension;
-				byte *old_pr = temp.memory;
-				remsiz += 3*tdim;
-				temp = reallocate(std::move(temp), 4*tdim);
-				new_to = to.new_instance(temp.memory).cast();
-				to = to.transfer_to(old_pr, temp.memory);
-				write = to.encode(uni, remsiz);
-			}
-			if(input_len < read)
-				throw encoding_error();	
-			input_len -= read;
-			if(remsiz < write)
-				throw encoding_error();	
-			remsiz -= write;
-			newsiz += write;
-			from.next();
-			to.next();
-		}
-		return adv_string<WIDE<typename T::ctype>, U>{new_to, len, newsiz, std::move(temp)};
-	}
-}
-
-template<typename T>
-template<typename S, typename U>
-adv_string<S, U> adv_string_view<T>::basic_encoding_conversion(const U &alloc) const{
-	static_assert(!is_wide_v<S>, "Wide encoding");
-	basic_ptr<byte, U> temp{len, alloc};
-	const_tchar_pt<T> from = ptr;
-	tchar_pt<S> to{temp.memory};
-	const_tchar_pt<S> new_to = to.new_instance(temp.memory).cast();
-	if(len == 0)
-		return adv_string<S, U>{new_to, 0, 0, std::move(temp)};
-	size_t remsiz = temp.dimension;
-	size_t newsiz = 0;
-	size_t input_len = siz;
-	if constexpr(fixed_size<S>){
-		for(size_t i=0; i<len; i++){
-			typename T::ctype uni;
-			int read = from.decode(uni, input_len);
-			int write = to.encode(uni, remsiz);
-			if(input_len < read)
-				throw encoding_error();	
-			input_len -= read;
-			if(remsiz < write)
-				throw encoding_error();	
-			remsiz -= write;
-			newsiz += write;
-			from.next();
-			to.next();
-		}
-	}
-	else{
-		for(size_t i=0; i<len; i++){
-			typename T::ctype uni;
-			int read = from.decode(uni, input_len);
-			int write = to.encode(uni, remsiz);
-			while(write == 0){
-				size_t tdim = temp.dimension;
-				byte *old_pr = temp.memory;
-				remsiz += 3*tdim;
-				temp = reallocate(std::move(temp), 4*tdim);
-				new_to = to.new_instance(temp.memory).cast();
-				to = to.transfer_to(old_pr, temp.memory);
-				write = to.encode(uni, remsiz);
-			}
-			if(input_len < read)
-				throw encoding_error();	
-			input_len -= read;
-			if(remsiz < write)
-				throw encoding_error();	
-			remsiz -= write;
-			newsiz += write;
-			from.next();
-			to.next();
-		}
-	}
-	return adv_string<S, U>{new_to, len, newsiz, std::move(temp)};
-}
-*/
-
-template<typename T>
-adv_string<WIDE<typename T::ctype>> adv_string_view<T>::basic_encoding_conversion(const EncMetric<typename T::ctype> *format, std::pmr::memory_resource *alloc) const{
-	basic_ptr temp{len * format->d_unity(), alloc};
-	const_tchar_pt<T> from = ptr;
-    tchar_pt<WIDE<typename T::ctype>> destination{temp.memory, format};
-    tchar_relative<WIDE<typename T::ctype>> to{destination};
-
-	size_t remsiz = temp.dimension;
-	size_t newsiz = 0;
-	size_t input_len = siz;
-
-	if(len == 0)
-		return adv_string<WIDE<typename T::ctype>>{destination.cast(), 0, 0, std::move(temp)};
-	if(format->d_fixed_size()){
-		for(size_t i=0; i<len; i++){
-			typename T::ctype uni;
-			size_t read = from.decode(&uni, input_len);
-			size_t write = to.encode(uni, remsiz);
-			if(input_len < read)
-				throw encoding_error();
-			input_len -= read;
-			if(remsiz < write)
-				throw encoding_error();
-			remsiz -= write;
-			newsiz += write;
-			from.next();
-			to.next();
-		}
-		return adv_string<WIDE<typename T::ctype>>{destination.cast(), len, newsiz, std::move(temp)};
-	}
-	else{
-		for(size_t i=0; i<len; i++){
-			typename T::ctype uni;
-			size_t read = from.decode(&uni, input_len);
-            bool completewrite = false;
-            size_t write = 0;
-            while(!completewrite){
-                try{
-                    write = to.encode(uni, remsiz);
-                    completewrite = true;
-                }
-                catch(const buffer_small &bs){
-                    size_t olddim = temp.dimension;
-                    temp.exp_fit(olddim + bs.get_required_size() +1);
-                    remsiz += temp.dimension - olddim;
-                    destination = destination.new_instance(temp.memory);
-                }
-            }
-			if(input_len < read)
-				throw encoding_error();
-			input_len -= read;
-			if(remsiz < write)
-				throw encoding_error();
-			remsiz -= write;
-			newsiz += write;
-			from.next();
-			to.next();
-		}
-		return adv_string<WIDE<typename T::ctype>>{destination.cast(), len, newsiz, std::move(temp)};
-	}
-}
-
-template<typename T>
-template<typename S>
-adv_string<S> adv_string_view<T>::basic_encoding_conversion(std::pmr::memory_resource *alloc) const{
-	basic_ptr temp{len * S::unity(), alloc};
-	const_tchar_pt<T> from = ptr;
-    tchar_pt<S> destination{temp.memory};
-    tchar_relative<S> to{destination};
-
-	size_t remsiz = temp.dimension;
-	size_t newsiz = 0;
-	size_t input_len = siz;
-
-	if(len == 0)
-		return adv_string<S>{destination.cast(), 0, 0, std::move(temp)};
-	if constexpr (fixed_size<S>){
-		for(size_t i=0; i<len; i++){
-			typename T::ctype uni;
-			size_t read = from.decode(&uni, input_len);
-			size_t write = to.encode(uni, remsiz);
-			if(input_len < read)
-				throw encoding_error();
-			input_len -= read;
-			if(remsiz < write)
-				throw encoding_error();
-			remsiz -= write;
-			newsiz += write;
-			from.next();
-			to.next();
-		}
-		return adv_string<S>{destination.cast(), len, newsiz, std::move(temp)};
-	}
-	else{
-		for(size_t i=0; i<len; i++){
-			typename T::ctype uni;
-			size_t read = from.decode(&uni, input_len);
-            bool completewrite = false;
-            size_t write = 0;
-            while(!completewrite){
-                try{
-                    write = to.encode(uni, remsiz);
-                    completewrite = true;
-                }
-                catch(const buffer_small &bs){
-                    size_t olddim = temp.dimension;
-                    temp.exp_fit(olddim + bs.get_required_size() +1);
-                    remsiz += temp.dimension - olddim;
-                    destination = destination.new_instance(temp.memory);
-                }
-            }
-			if(input_len < read)
-				throw encoding_error();
-			input_len -= read;
-
-			if(remsiz < write)
-				throw encoding_error();
-			remsiz -= write;
-			newsiz += write;
-			from.next();
-			to.next();
-		}
-		return adv_string<S>{destination.cast(), len, newsiz, std::move(temp)};
-	}
-}
-
-
-template<typename T>
-template<typename S>
+template<general_enctype S>
 adv_string<T> adv_string_view<T>::concatenate(const adv_string_view<S> &err, std::pmr::memory_resource *alloc) const{
 	if(!sameEnc(*this, err))
 		throw encoding_error("Not same encoding");

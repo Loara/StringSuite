@@ -149,7 +149,7 @@ struct index_traits_0<T>{
 
 template<compare_aliases T>
 struct index_traits_0<T>{
-    static_assert(not_widenc<typename T::compare_enc>, "Cannot define aliases to WIDE encodings");
+    static_assert(!is_wide<typename T::compare_enc>::value, "Cannot define aliases to WIDE encodings");
 	using type_enc=typename T::compare_enc;
 };
 
@@ -181,14 +181,12 @@ concept enc_raw = same_enc<T, RAW<byte>>;
 template<typename S, typename T>
 concept same_data = general_enctype<S> && general_enctype<T> && (enc_raw<S> || enc_raw<T> || std::same_as<typename S::ctype, typename T::ctype>);
 
-
-
-template<typename T>
+template<strong_enctype T>
 inline constexpr bool safe_hasmax = T::has_max();
 template<typename tt>
 inline constexpr bool safe_hasmax<WIDE<tt>> = false;
 
-template<typename T>
+template<strong_enctype T>
 inline constexpr bool fixed_size = T::has_max() && (T::unity() == T::max_bytes());
 template<typename tt>
 inline constexpr bool fixed_size<WIDE<tt>> = false;
@@ -199,7 +197,16 @@ concept is_fixed = not_widenc<T> && fixed_size<T>;
 /*
  * Tests if a pointer with encoding S can be assigned to a pointer with encoding T
  *
- * weak_assign and strong_assign work in the same way except when S is WIDE, in this case weak_assign returns true whereas strong_assign returns false
+ * Notice in particular their behavior when:
+ * 1 - T is raw
+ * Both returns true automatically, since a RAW encoding means undefined encoding, so can accept any encoding class also with a different ctype. Clearly
+ * a RAW encoding cannot be easily converted to another encoding
+ * 2 - T is wide
+ * Both returns true when T and S have the same ctype and false otherwise: in fact when T=WIDE<tt> the dynamically defined encoding is taken from S (that can
+ * be both wide or not) so the only limitation is due to their underlying ctype
+ * 3 - S is wide
+ * in this case weak_assign returns true if S has the same ctype of T, whereas strong_assign returns true only when S is equal to T (in particuar have same
+ * ctype) or T is raw.
  * This different behaviour is due to different goals: weak_assign will only test statically the types before performing runtime checks; instead strong_assign
  * have to determine at compile-time if a string can be reassigned to a new class encoding.
  */
@@ -207,7 +214,7 @@ template<typename S, typename T>
 concept weak_assign = enc_raw<T> || (same_data<S, T> && (widenc<S> || widenc<T> || same_enc<S, T>));
 
 template<typename S, typename T>
-concept strong_assign = (widenc<S> && (enc_raw<T> || same_enc<S, T>)) || (not_widenc<S> && weak_assign<S, T>);
+concept strong_assign = enc_raw<T> || (same_data<S, T> && (widenc<T> || same_enc<S, T>));
 
 template<strong_enctype T>
 constexpr int min_length(int nchr) noexcept{
@@ -276,10 +283,9 @@ class DynEncoding : public EncMetric<typename T::ctype>{
 template<general_enctype T>
 class EncMetric_info{
 	public:
-		EncMetric_info(const EncMetric_info<T> &) noexcept {}
-
-		EncMetric_info() {}
 		using ctype=typename T::ctype;
+		EncMetric_info(const EncMetric_info<T> &) noexcept {}
+		EncMetric_info() {}
 		const EncMetric<ctype> *format() const noexcept {return DynEncoding<T>::instance();}
 
 		constexpr uint unity() const noexcept {return T::unity();}
@@ -291,6 +297,25 @@ class EncMetric_info{
 		uint decode(ctype *uni, const byte *by, size_t l) const {return T::decode(uni, by, l);}
 		uint encode(const ctype &uni, byte *by, size_t l) const {return T::encode(uni, by, l);}
 		std::type_index index() const noexcept {return index_traits<T>::index();}
+
+		template<general_enctype S>
+		bool equalTo(EncMetric_info<S> o) const noexcept{
+            if constexpr(not_widenc<S>)
+                return same_enc<S, T>;
+            else
+                return index() == o.index();
+        }
+        template<general_enctype S>
+        bool can_reassign_to(EncMetric_info<S> o) const noexcept{
+            if(o.index() == index_traits<RAW<byte>>::index())
+                return true;
+            else
+                return equalTo(o);
+        }
+        template<general_enctype S>
+        bool can_reassign_to() const noexcept{
+            return weak_assign<T, S>;//T never wide
+        }
 };
 
 template<typename tt>
@@ -301,8 +326,8 @@ class EncMetric_info<WIDE<tt>>{
 		using ctype=tt;
 		EncMetric_info(const EncMetric<tt> *format) : f{format} {}
 		EncMetric_info(const EncMetric_info &info) : f{info.f} {}
-
 		const EncMetric<tt> *format() const noexcept {return f;}
+
 		uint unity() const noexcept {return f->d_unity();}
 		bool has_max() const noexcept {return f->d_has_max();}
 		uint max_bytes() const noexcept {return f->d_max_bytes();}
@@ -312,6 +337,27 @@ class EncMetric_info<WIDE<tt>>{
 		uint decode(ctype *uni, const byte *by, size_t l) const {return f->d_decode(uni, by, l);}
 		uint encode(const ctype &uni, byte *by, size_t l) const {return f->d_encode(uni, by, l);}
 		std::type_index index() const noexcept {return f->index();}
+
+		template<general_enctype S>
+		bool equalTo(EncMetric_info<S> o) const noexcept{
+            return index() == o.index();
+        }
+        template<general_enctype S>
+        bool can_reassign_to(EncMetric_info<S> o) const noexcept{
+            if(o.index() == index_traits<RAW<byte>>::index())
+                return true;
+            else
+                return equalTo(o);
+        }
+        template<general_enctype S>
+        bool can_reassign_to() const noexcept{
+            if constexpr(enc_raw<S>)
+                return true;
+            else if constexpr(widenc<S>)
+                return same_data<WIDE<tt>, S>;
+            else
+                return index() == index_traits<S>::index();
+        }
 };
 
 /*

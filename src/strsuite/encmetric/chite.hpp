@@ -108,6 +108,12 @@ class base_tchar_pt{
 			ptr += dec;
 			return true;
 		}
+
+		uint decode_next(ctype *uni, size_t l){
+            uint ret = ei.decode(uni, ptr, l);
+            ptr += ret;
+            return ret;
+        }
 		/*
 		    Test if is a null string
 		*/
@@ -152,6 +158,11 @@ class wbase_tchar_pt : public base_tchar_pt<T, U, byte>{
 		explicit wbase_tchar_pt(byte *b, EncMetric_info<T> f) : base_tchar_pt<T, U, byte>{b, f} {}
 	public:
 		uint encode(const typename base_tchar_pt<T, U, byte>::ctype &uni, size_t l) const {return this->ei.encode(uni, this->ptr, l);}
+		uint encode_next(const typename base_tchar_pt<T, U, byte>::ctype &uni, size_t l) {
+            uint ret = this->ei.encode(uni, this->ptr, l);
+            this->ptr += ret;
+            return ret;
+        }
 };
 
 /*
@@ -299,6 +310,17 @@ class tchar_relative{
 		uint decode(ctype *uni, size_t l) const {return raw_format().decode(uni, data(), l);}
 		uint encode(ctype &uni, size_t l) const {return raw_format().encode(uni, data(), l);}
 
+		uint decode_next(ctype *uni, size_t l) {
+            uint ret = raw_format().decode(uni, data(), l);
+            dif += ret;
+            return ret;
+        }
+		uint encode_next(ctype &uni, size_t l) {
+            uint ret = raw_format().encode(uni, data(), l);
+            dif += ret;
+            return ret;
+        }
+
 		tchar_pt<T> convert() const noexcept {return ptr.new_instance(data());}
 		tchar_relative operator+(std::size_t t) const{
             return tchar_relative(ptr, dif + t);
@@ -319,25 +341,10 @@ class tchar_relative{
 //---------------------------------------------
 
 template<general_enctype S, general_enctype T>
-bool sameEnc(const const_tchar_pt<S> &, const const_tchar_pt<T> &) noexcept;
-template<typename T1, typename T2>
-bool sameEnc(const T1 &arg1, const T2 &arg2) noexcept{
-	return sameEnc(const_tchar_pt<typename T1::static_enc>{arg1}, const_tchar_pt<typename T2::static_enc>{arg2});
-}
-template<typename S, typename T, typename... Rarg>
-bool sameEnc(const S &f1, const T &f2, const Rarg&... tre) noexcept{
-	return sameEnc(f2, tre...) && sameEnc(f1, f2);
+bool sameEnc(const_tchar_pt<S> s, const_tchar_pt<T> t) noexcept{
+    return s.raw_format().equalTo(t.raw_format());
 }
 
-template<strong_enctype S, general_enctype T>
-bool sameEnc(const const_tchar_pt<T> &) noexcept;
-
-/*
-	Different from sameEnc, since it can handle also WIDE encodings and also allow
-	conversion to any RAW encoded string, also with different ctype
-*/
-template<typename S, general_enctype T>
-bool can_reassign(const const_tchar_pt<T> &) noexcept;
 /*
 	Return a new pointer pointing to the same array and with a similar, but with possible different template parameter.
 */
