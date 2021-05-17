@@ -349,6 +349,9 @@ bool sameEnc(const_tchar_pt<S> s, const_tchar_pt<T> t) noexcept{
 	Return a new pointer pointing to the same array and with a similar, but with possible different template parameter.
 */
 template<general_enctype S, general_enctype T>
+bool can_reassign_to(const_tchar_pt<T> chr) noexcept {return chr.raw_format().template can_reassign_to<S>();};
+
+template<general_enctype S, general_enctype T>
 tchar_pt<S> reassign(tchar_pt<T> p);
 template<general_enctype S, general_enctype T>
 const_tchar_pt<S> reassign(const_tchar_pt<T> p);

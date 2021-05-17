@@ -23,3 +23,8 @@ size_t sts::raw_stderr_writebytes(const byte *b, size_t siz){
 	return 2*y;
 }
 
+size_t sts::raw_newline(){
+    byte ar[] = {byte{0x0d}, byte{0x00}, byte{0x0a}, byte{0x00}};
+    return raw_stdout_writebytes(ar, 4);
+}
+

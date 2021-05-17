@@ -43,45 +43,14 @@ bool sameEnc(const const_tchar_pt<S> &pa, const const_tchar_pt<T> &pb) noexcept{
     }
 }
 
-template<typename S, general_enctype T>
-bool can_reassign(const_tchar_pt<T> ptr) noexcept{
-    bool b = weak_assign<T, S>;
-    if(!b)
-        return false;
-    if constexpr(widenc<T>){
-        if constexpr(enc_raw<S> || (widenc<S> && same_data<S, T>))
-            return true;
-        else if constexpr(not_widenc<S>)
-            return sameEnc<S>(ptr);
-        else return false;
-    }
-    else return true;
-}
-
 template<general_enctype S, general_enctype T>
 tchar_pt<S> reassign(tchar_pt<T> p){
-    if constexpr (widenc<S>){
-        static_assert(same_data<S, T>, "Not same data encodings");
-        return tchar_pt<S>{p.data(), p.format()};
-    }
-    else{
-        if(!can_reassign<S>(p))
-            throw encoding_error{"Cannot convert these strings"};
-        return tchar_pt<S>{p.data()};
-    }
+    return tchar_pt<S>{p.data(), p.raw_format().template reassign<S>()};
 }
 
 template<general_enctype S, general_enctype T>
 const_tchar_pt<S> reassign(const_tchar_pt<T> p){
-    if constexpr (widenc<S>){
-        static_assert(same_data<S, T>, "Not same data encodings");
-        return const_tchar_pt<S>{p.data(), p.format()};
-    }
-    else{
-        if(!can_reassign<S>(p))
-            throw encoding_error{"Cannot convert these strings"};
-        return const_tchar_pt<S>{p.data()};
-    }
+    return const_tchar_pt<S>{p.data(), p.raw_format().template reassign<S>()};
 }
 
 

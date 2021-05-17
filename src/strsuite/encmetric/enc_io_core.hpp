@@ -31,6 +31,8 @@ size_t raw_stdin_readbytes(byte *, size_t);
 size_t raw_stdout_writebytes(const byte *, size_t);
 size_t raw_stderr_writebytes(const byte *, size_t);
 
+size_t raw_newline();
+
 }
 
 

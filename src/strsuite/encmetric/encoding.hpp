@@ -216,6 +216,7 @@ concept weak_assign = enc_raw<T> || (same_data<S, T> && (widenc<S> || widenc<T> 
 template<typename S, typename T>
 concept strong_assign = enc_raw<T> || (same_data<S, T> && (widenc<T> || same_enc<S, T>));
 
+
 template<strong_enctype T>
 constexpr int min_length(int nchr) noexcept{
 	return T::unity() * nchr;
@@ -306,15 +307,23 @@ class EncMetric_info{
                 return index() == o.index();
         }
         template<general_enctype S>
-        bool can_reassign_to(EncMetric_info<S> o) const noexcept{
-            if(o.index() == index_traits<RAW<byte>>::index())
+        bool can_reassign_to() const noexcept{
+            if constexpr(enc_raw<S>)
                 return true;
+            else if constexpr(widenc<S>)
+                return same_data<T, S>;
             else
-                return equalTo(o);
+                return same_enc<T, S>;
         }
         template<general_enctype S>
-        bool can_reassign_to() const noexcept{
-            return weak_assign<T, S>;//T never wide
+        EncMetric_info<S> reassign() const{
+            static_assert(weak_assign<T, S>, "Cannot reassign these encodings");
+            if(!can_reassign_to<S>())
+                throw encoding_error{"Cannot reassign these encodings"};
+            if constexpr(widenc<S>)
+                return EncMetric_info<S>{DynEncoding<T>::instance()};
+            else
+                return EncMetric_info<S>{};
         }
 };
 
@@ -343,13 +352,6 @@ class EncMetric_info<WIDE<tt>>{
             return index() == o.index();
         }
         template<general_enctype S>
-        bool can_reassign_to(EncMetric_info<S> o) const noexcept{
-            if(o.index() == index_traits<RAW<byte>>::index())
-                return true;
-            else
-                return equalTo(o);
-        }
-        template<general_enctype S>
         bool can_reassign_to() const noexcept{
             if constexpr(enc_raw<S>)
                 return true;
@@ -357,6 +359,16 @@ class EncMetric_info<WIDE<tt>>{
                 return same_data<WIDE<tt>, S>;
             else
                 return index() == index_traits<S>::index();
+        }
+        template<general_enctype S>
+        EncMetric_info<S> reassign() const{
+            static_assert(weak_assign<WIDE<tt>, S>, "Cannot reassign these encodings");
+            if(!can_reassign_to<S>())
+                throw encoding_error{"Cannot reassign these encodings"};
+            if constexpr(widenc<S>)
+                return EncMetric_info<S>{f};
+            else
+                return EncMetric_info<S>{};
         }
 };
 
