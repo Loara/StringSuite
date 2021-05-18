@@ -8,7 +8,7 @@ size_t sts::stdin_getChrs(iochar_pt ptr, size_t len){
 	size_t chrRead = 0;
 	bool eof;
 
-    uint unity = ptr.unity();
+    uint unity = ptr.min_bytes();
 	do{
 		siz = raw_stdin_readbytes(ptr.data(), (len - chrRead) * unity);
 		eof = siz < (len - chrRead);//less character than required
@@ -18,7 +18,7 @@ size_t sts::stdin_getChrs(iochar_pt ptr, size_t len){
                     throw incorrect_encoding{"Incomplete character"};
                 siz = unity;
             }
-			size_t dwsiz = ptr.chLen();
+			size_t dwsiz = ptr.chLen(siz);
 			if(dwsiz > siz){
 				if(raw_stdin_readbytes((ptr+siz).data(), dwsiz - siz) < (dwsiz - siz))
 					throw incorrect_encoding{"Incomplete character"};
@@ -42,7 +42,7 @@ size_t sts::stdin_getChrs_validate(iochar_pt ptr, size_t len){
 	size_t chrRead = 0;
 	bool eof;
 
-    uint unity = ptr.unity();
+    uint unity = ptr.min_bytes();
 	do{
 		siz = raw_stdin_readbytes(ptr.data(), (len - chrRead) * unity);
 		eof = siz < (len - chrRead);//less character than required
@@ -52,14 +52,13 @@ size_t sts::stdin_getChrs_validate(iochar_pt ptr, size_t len){
                     throw incorrect_encoding{"Incomplete character"};
                 siz = unity;
             }
-			size_t dwsiz = ptr.chLen();
+			size_t dwsiz = ptr.chLen(siz);
 			if(dwsiz > siz){
 				if(raw_stdin_readbytes((ptr+siz).data(), dwsiz - siz) < (dwsiz - siz))
 					throw incorrect_encoding{"Incomplete character"};
 				siz = dwsiz;
 			}
-			siz -= dwsiz;
-			ptr.next();
+			ptr.next_update(siz);
 			chrRead++;
 		}
 	}
@@ -74,7 +73,7 @@ size_t sts::stdout_putChrs(c_iochar_pt ptr, size_t len){
 	size_t chrWrite = 0;
 	bool eof;
 
-    uint unity = ptr.unity();
+    uint unity = ptr.min_bytes();
 	do{
 		siz = raw_stdout_writebytes(ptr.data(), (len - chrWrite) * unity);
 		if(siz < 0)
@@ -86,14 +85,13 @@ size_t sts::stdout_putChrs(c_iochar_pt ptr, size_t len){
                     throw incorrect_encoding{"Incomplete character"};
                 siz = unity;
             }
-			size_t dwsiz = ptr.chLen();
+			size_t dwsiz = ptr.chLen(siz);
 			if(dwsiz > siz){
 				if(raw_stdout_writebytes((ptr+siz).data(), dwsiz - siz) < (dwsiz - siz))
 					throw incorrect_encoding{"Incomplete character"};
 				siz = dwsiz;
 			}
-			siz -= dwsiz;
-			ptr.next();
+			ptr.next_update(siz);
 			chrWrite++;
 		}
 	}
@@ -108,7 +106,7 @@ size_t sts::stderr_putChrs(c_iochar_pt ptr, size_t len){
 	size_t chrWrite = 0;
 	bool eof;
 
-    uint unity = ptr.unity();
+    uint unity = ptr.min_bytes();
 	do{
 		siz = raw_stderr_writebytes(ptr.data(), (len - chrWrite) * unity);
 		eof = siz < (len - chrWrite);//less character than required
@@ -118,14 +116,13 @@ size_t sts::stderr_putChrs(c_iochar_pt ptr, size_t len){
                     throw incorrect_encoding{"Incomplete character"};
                 siz = unity;
             }
-			size_t dwsiz = ptr.chLen();
+			size_t dwsiz = ptr.chLen(siz);
 			if(dwsiz > siz){
 				if(raw_stderr_writebytes((ptr+siz).data(), dwsiz - siz) < (dwsiz - siz))
 					throw incorrect_encoding{"Incomplete character"};
 				siz = dwsiz;
 			}
-			siz -= dwsiz;
-			ptr.next();
+			ptr.next_update(siz);
 			chrWrite++;
 		}
 	}

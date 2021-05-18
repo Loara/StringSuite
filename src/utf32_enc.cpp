@@ -19,17 +19,17 @@
 
 namespace sts{
 template<bool be>
-bool UTF32<be>::validChar(const byte *data, uint &add) noexcept{
-	add = 0;
+validation_result UTF32<be>::validChar(const byte *data, size_t siz) noexcept{
+    if(siz < 4)
+        return validation_result{false, 0};
 	if(access(data, be, 4, 0) != byte{0})
-		return false;
+		return validation_result{false, 0};
 	byte rew = access(data, be, 4, 1);
 	if(!bit_zero(rew, 7, 6, 5))
-		return false;
+		return validation_result{false, 0};
 	if(bit_one(rew, 4) && !bit_zero(rew, 3, 2, 1, 0))
-		return false;
-	add = 4;
-	return true;
+		return validation_result{false, 0};
+	return validation_result{true, 4};
 }
 
 template<bool be>

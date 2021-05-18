@@ -28,11 +28,11 @@ template<bool be>
 class UTF32{
 	public:
 		using ctype=unicode;
-		static constexpr uint unity() noexcept {return 4;}
+		static constexpr uint min_bytes() noexcept {return 4;}
 		static constexpr bool has_max() noexcept {return true;}
 		static constexpr uint max_bytes() noexcept {return 4;}
-		static uint chLen(const byte *){ return 4;}
-		static bool validChar(const byte *, uint &chlen) noexcept;
+		static uint chLen(const byte *, size_t){ return 4;}
+		static validation_result validChar(const byte *, size_t) noexcept;
 		static uint decode(unicode *uni, const byte *by, size_t l);
 		static uint encode(const unicode &uni, byte *by, size_t l);
 };

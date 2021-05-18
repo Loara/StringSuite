@@ -20,14 +20,14 @@
 
 using namespace sts;
 
-uint UTF8::chLen(const byte *data){
-	//non è necessario fare tutti i controlli, poiché si suppone che la stringa sia corretta
-	//usare validChar per effettuare tutti i controlli
+uint UTF8::chLen(const byte *data, size_t siz){
+	if(siz == 0)
+        throw buffer_small{1};
 	byte b = *data;
 	if(bit_zero(b, 7))
 		return 1;
 	else if(bit_zero(b, 6))
-		throw encoding_error("Invalid utf8 character");
+		throw incorrect_encoding("Invalid utf8 character");
 	else if(bit_zero(b, 5))
 		return 2;
 	else if(bit_zero(b, 4))
@@ -39,13 +39,16 @@ uint UTF8::chLen(const byte *data){
 	}
 }
 
-bool UTF8::validChar(const byte *data, uint &add) noexcept{
-	byte b = *data;
+validation_result UTF8::validChar(const byte *data, size_t siz) noexcept{
+    if(siz == 0)
+        return validation_result{false, 0};
 
+    uint add;
+	byte b = *data;
 	if(bit_zero(b, 7))
 		add = 1;
 	else if(bit_zero(b, 6))
-		return false;
+		return validation_result{false, 0};
 	else if(bit_zero(b, 5))
 		add = 2;
 	else if(bit_zero(b, 4))
@@ -53,13 +56,13 @@ bool UTF8::validChar(const byte *data, uint &add) noexcept{
 	else if(bit_zero(b, 3))
 		add = 4;
 	else
-		return false;
+		return validation_result{false, 0};
 	for(int i=1; i<add; i++){
 		b=data[i];
 		if(bit_zero(b, 7) || bit_one(b, 6))
-			return false;
+			return validation_result{false, 0};
 	}
-	return true;
+	return validation_result{true, add};
 }
 
 uint UTF8::decode(unicode *uni, const byte *by, size_t l){

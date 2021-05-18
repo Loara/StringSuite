@@ -43,6 +43,7 @@ struct conditional_result{
 };
 
 using index_result=conditional_result<size_t>;
+using validation_result=conditional_result<uint>;
 
 }
 

@@ -36,36 +36,20 @@ using c_achar_pt = const_tchar_pt<CENC>;
 using astr_view = adv_string_view<CENC>;
 using astr = adv_string<CENC>;
 
-inline astr_view getstring(const char *c){
-	return new_string_view<CENC>(c);
+inline astr_view getstring(const char *c, size_t maxsiz){
+	return new_string_view<CENC>(c, maxsiz);
 }
 
-inline astr_view getstring(const char *c, size_t len){
-	return new_string_view<CENC>(c, len, meas::length);
+inline adv_string_view<UTF8> getstring(const char8_t *c, size_t maxsiz){
+	return new_string_view<UTF8>(reinterpret_cast<const byte *>(c), maxsiz);
 }
 
-inline adv_string_view<UTF8> getstring(const char8_t *c){
-	return new_string_view<UTF8>(reinterpret_cast<const byte *>(c));
+inline adv_string_view<UTF16<bend>> getstring(const char16_t *c, size_t maxsiz){
+	return new_string_view<UTF16<bend>>(reinterpret_cast<const byte *>(c), maxsiz);
 }
 
-inline adv_string_view<UTF8> getstring(const char8_t *c, size_t len){
-	return new_string_view<UTF8>(reinterpret_cast<const byte *>(c), len, meas::length);
-}
-
-inline adv_string_view<UTF16<bend>> getstring(const char16_t *c){
-	return new_string_view<UTF16<bend>>(reinterpret_cast<const byte *>(c));
-}
-
-inline adv_string_view<UTF16<bend>> getstring(const char16_t *c, size_t len){
-	return new_string_view<UTF16<bend>>(reinterpret_cast<const byte *>(c), len, meas::length);
-}
-
-inline adv_string_view<UTF32<bend>> getstring(const char32_t *c){
-	return new_string_view<UTF32<bend>>(reinterpret_cast<const byte *>(c));
-}
-
-inline adv_string_view<UTF32<bend>> getstring(const char32_t *c, size_t len){
-	return new_string_view<UTF32<bend>>(reinterpret_cast<const byte *>(c), len, meas::length);
+inline adv_string_view<UTF32<bend>> getstring(const char32_t *c, size_t maxsiz){
+	return new_string_view<UTF32<bend>>(reinterpret_cast<const byte *>(c), maxsiz);
 }
 
 /*
@@ -94,16 +78,16 @@ inline const byte * operator"" _raw(const char *c, std::size_t){
 }
 
 inline astr_view operator"" _asv(const char *b, std::size_t st){
-	return new_string_view<CENC>(b, st, meas::size);
+	return new_string_view<CENC>(b, st);
 }
 inline adv_string_view<UTF8> operator"" _asv(const char8_t *b, std::size_t st){
-	return new_string_view<UTF8>(reinterpret_cast<const byte *>(b), st, meas::size);
+	return new_string_view<UTF8>(reinterpret_cast<const byte *>(b), st);
 }
 inline adv_string_view<UTF16<bend>> operator"" _asv(const char16_t *b, std::size_t st){
-	return new_string_view<UTF16<bend>>(reinterpret_cast<const byte *>(b), st * 2, meas::size);
+	return new_string_view<UTF16<bend>>(reinterpret_cast<const byte *>(b), st * 2);
 }
 inline adv_string_view<UTF32<bend>> operator"" _asv(const char32_t *b, std::size_t st){
-	return new_string_view<UTF32<bend>>(reinterpret_cast<const byte *>(b), st * 4, meas::size);
+	return new_string_view<UTF32<bend>>(reinterpret_cast<const byte *>(b), st * 4);
 }
 
 }

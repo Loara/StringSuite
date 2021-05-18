@@ -69,56 +69,65 @@ class base_tchar_pt{
 		/*
 		    Informations about relative EncMetric
 		*/
-		uint unity() const noexcept {return ei.unity();}
+		/*
+		    Test if is a null string
+		*/
+		bool isNull() const {return ptr == nullptr;}
+		uint min_bytes() const noexcept {return ei.min_bytes();}
 		bool has_max() const noexcept {return ei.has_max();}
 		uint max_bytes() const noexcept {return ei.max_bytes();}
 		bool is_fixed() const noexcept {return ei.is_fixed();}
-		uint chLen() const {return ei.chLen(ptr);}
-		bool validChar(uint &l) const noexcept {return ei.validChar(ptr, l);}
+		uint chLen(size_t siz) const {return ei.chLen(ptr, siz);}
+		validation_result validChar(size_t l) const noexcept {return ei.validChar(ptr, l);}
 		uint decode(ctype *uni, size_t l) const {return ei.decode(uni, ptr, l);}
 
 		std::type_index index() const noexcept {return ei.index();}
 		/*
 		    Step the pointer by 1 character, returns the number og bytes skipped
 		*/
-		uint next(){
+		uint next(size_t siz){
 			if constexpr(fixed_size<T>){
-				ptr += T::unity();
-				return T::unity();
+                if(T::min_bytes() > siz)
+                    throw buffer_small{T::min_bytes()};
+				ptr += T::min_bytes();
+				return T::min_bytes();
 			}
 			else{
-				uint add = chLen();
+				uint add = chLen(siz);
+                if(add > siz)
+                    throw buffer_small{add};
 				ptr += add;
 				return add;
 			}
 		}
-		/*
-		    Validate the first character, then skip it
-
-		    rsiz is the number of bytes of ptr, it will be updated
-		*/
-		bool valid_next(size_t &rsiz) noexcept{
-			if(unity() > rsiz)
-				return false;
-			uint dec;
-			if(!validChar(dec))
-				return false;
-			if(dec > rsiz)
-				return false;
-			rsiz -= dec;
-			ptr += dec;
-			return true;
+		uint next_update(size_t &siz){
+            uint skip = next(siz);
+            siz -= skip;
+            return skip;
+        }
+		validation_result valid_next(size_t siz) noexcept{
+            validation_result ret = validChar(siz);
+			if(ret)
+                ptr += ret.get();
+			return ret;
+		}
+		validation_result valid_next_update(size_t &siz) noexcept{
+            validation_result ret = valid_next(siz);
+			if(ret)
+                siz -= ret.get();
+			return ret;
 		}
 
 		uint decode_next(ctype *uni, size_t l){
-            uint ret = ei.decode(uni, ptr, l);
+            uint ret = decode(uni, l);
             ptr += ret;
             return ret;
         }
-		/*
-		    Test if is a null string
-		*/
-		bool isNull() const {return ptr == nullptr;}
+		uint decode_next_update(ctype *uni, size_t &l){
+            uint ret = decode_next(uni, l);
+            l -= ret;
+            return ret;
+        }
 		/*
 		    Access ptr as a byte array
 		*/
@@ -160,8 +169,13 @@ class wbase_tchar_pt : public base_tchar_pt<T, U, byte>{
 	public:
 		uint encode(const typename base_tchar_pt<T, U, byte>::ctype &uni, size_t l) const {return this->ei.encode(uni, this->ptr, l);}
 		uint encode_next(const typename base_tchar_pt<T, U, byte>::ctype &uni, size_t l) {
-            uint ret = this->ei.encode(uni, this->ptr, l);
+            uint ret = encode(uni, l);
             this->ptr += ret;
+            return ret;
+        }
+		uint encode_next_update(const typename base_tchar_pt<T, U, byte>::ctype &uni, size_t &l) {
+            uint ret = encode_next(uni, l);
+            l -= ret;
             return ret;
         }
 };
@@ -298,23 +312,33 @@ class tchar_relative{
         std::size_t difff() const noexcept {return dif;}
 		EncMetric_info<T> raw_format() const noexcept{ return ptr.raw_format();}
 
-		uint unity() const noexcept {return raw_format().unity();}
+		uint min_bytes() const noexcept {return raw_format().min_bytes();}
 		bool has_max() const noexcept {return raw_format().has_max();}
 		uint max_bytes() const noexcept {return raw_format().max_bytes();}
 		bool is_fixed() const noexcept {return raw_format().is_fixed();}
-		uint chLen() const {return raw_format().chLen(data());}
-		bool validChar(uint &l) const noexcept {return raw_format().validChar(data(), l);}
+		uint chLen(size_t siz) const {return raw_format().chLen(data(), siz);}
+		validation_result validChar(size_t l) const noexcept {return raw_format().validChar(data(), l);}
 		uint decode(ctype *uni, size_t l) const {return raw_format().decode(uni, data(), l);}
-		uint encode(ctype &uni, size_t l) const {return raw_format().encode(uni, data(), l);}
+		uint encode(const ctype &uni, size_t l) const {return raw_format().encode(uni, data(), l);}
 
 		uint decode_next(ctype *uni, size_t l) {
-            uint ret = raw_format().decode(uni, data(), l);
+            uint ret = decode(uni, l);
             dif += ret;
             return ret;
         }
-		uint encode_next(ctype &uni, size_t l) {
-            uint ret = raw_format().encode(uni, data(), l);
+		uint encode_next(const ctype &uni, size_t l) {
+            uint ret = encode(uni, l);
             dif += ret;
+            return ret;
+        }
+		uint decode_next_update(ctype *uni, size_t &l) {
+            uint ret = decode_next(uni, l);
+            l -= ret;
+            return ret;
+        }
+		uint encode_next_update(const ctype &uni, size_t &l) {
+            uint ret = encode_next(uni, l);
+            l -= ret;
             return ret;
         }
 
@@ -322,17 +346,26 @@ class tchar_relative{
 		tchar_relative operator+(std::size_t t) const{
             return tchar_relative(ptr, dif + t);
         }
-		uint next(){
+		uint next(size_t siz){
 			if constexpr(fixed_size<T>){
-				dif += T::unity();
-				return T::unity();
+                if(T::min_bytes() > siz)
+                    throw buffer_small{T::min_bytes()};
+				dif += T::min_bytes();
+				return T::min_bytes();
 			}
 			else{
-				uint add = raw_format().chLen(data());
+				uint add = raw_format().chLen(data(), siz);
+                if(add > siz)
+                    throw buffer_small{add};
 				dif += add;
 				return add;
 			}
 		}
+		uint next_update(size_t &siz){
+            uint ret = next(siz);
+            siz -= ret;
+            return ret;
+        }
 };
 
 //---------------------------------------------

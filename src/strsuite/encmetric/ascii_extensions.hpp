@@ -31,14 +31,16 @@ template<typename Enc>
 class ASCII_extension{
 	public:
 		using ctype=unicode;
-		static constexpr uint unity() noexcept {return 1;}
+		static constexpr uint min_bytes() noexcept {return 1;}
 		static constexpr bool has_max() noexcept {return true;}
 		static constexpr uint max_bytes() noexcept {return 1;}
-		static constexpr uint chLen(const byte *) {return 1;}
-		static bool validChar(const byte *, uint &chlen) noexcept {chlen=1; return true;}
+		static constexpr uint chLen(const byte *, size_t siz) {
+            return 1;
+        }
+		static validation_result validChar(const byte *, size_t siz) noexcept {return validation_result{siz >= 1, 1};}
 		static uint decode(unicode *uni, const byte *by, size_t l){
 			if(l == 0)
-				throw buffer_small{};
+				throw buffer_small{1};
 			if(bit_zero(*by, 7)){
 				*uni = read_unicode(by[0]);
 				return 1;
@@ -52,7 +54,7 @@ class ASCII_extension{
 		}
 		static uint encode(const unicode &uni, byte *by, size_t l){
 			if(l == 0)
-				throw buffer_small{};
+				throw buffer_small{1};
 			if(uni < 0x80){
 				*by = byte{static_cast<uint8_t>(uni)};
 				return 1;

@@ -17,97 +17,55 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 template<typename T>
-void deduce_lens(const_tchar_pt<T> ptr, size_t &len, size_t &siz, const terminate_func<T> &terminate){
+void deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz, size_t &len, size_t &siz, const terminate_func<T> &terminate){
 	len=0;
 	siz=0;
-	int add;
+	uint add=0;
 
-	while(!terminate(ptr.data(), ptr.raw_format())){
-		add = ptr.next();
-		siz += add;
-		len++;
+	while(maxsiz > 0 && !terminate(ptr.data(), ptr.raw_format(), maxsiz)){
+        try{
+            add = ptr.next_update(maxsiz);
+            siz += add;
+            len++;
+        }
+        catch(buffer_small &){break;}
 	}
 }
 
 template<typename T>
-void deduce_lens(const_tchar_pt<T> ptr, size_t dim, meas measure, size_t &len, size_t &siz){
+void deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz, size_t chMax, size_t &len, size_t &siz){
 	len = 0;
 	siz = 0;
-	bool issiz = measure == meas::size;
 	if constexpr(fixed_size<T>){
-		if(issiz){
-			len = dim / T::unity();
-		}
-		else{
-			len = dim;
-		}
-		siz = len * T::unity();
+        /*
+         * Let i the max integer such that T::min_bytes() * i <= maxsiz
+         */
+        size_t i = maxsiz / T::min_bytes();
+        len = i;
+        siz = T::min_bytes() * i;
 	}
 	else{
-		int add;
-		size_t oldim;
-
-		if(issiz){
-			try{
-				add = ptr.next();
-				oldim = dim;
-				dim -= add;
-				while(dim < oldim){//Overflow test for unsigned integer
-					siz += add;
-					len++;
-					if(dim == 0)
-						break;
-					add = ptr.next();
-					oldim = dim;
-					dim -= add;
-				}
-			}
-			catch(const encoding_error &){}
-		}
-		else{
-			try{
-				for(size_t i=0; i<dim; i++){
-					add = ptr.next();
-					siz += add;
-					len++;
-				}
-			}
-			catch(const encoding_error &){}
-		}
+        uint add=0;
+        while(maxsiz > 0 && chMax > 0){
+            try{
+                add = ptr.next_update(maxsiz);
+                siz += add;
+                len++;
+                chMax--;
+            }
+            catch(buffer_small &){break;}
+        }
 	}
 }
 //-----------------------
 template<typename T>
-adv_string_view<T>::adv_string_view(const_tchar_pt<T> cu, const terminate_func<T> &terminate) : ptr{cu}, len{0}, siz{0}{
-	deduce_lens(cu, len, siz, terminate);
+adv_string_view<T>::adv_string_view(const_tchar_pt<T> cu, size_t maxsiz, const terminate_func<T> &terminate) : ptr{cu}, len{0}, siz{0}{
+	deduce_lens(cu, maxsiz, len, siz, terminate);
 }
 
 template<typename T>
-adv_string_view<T>::adv_string_view(const_tchar_pt<T> cu, size_t dim, meas isdim) : ptr{cu}, len{0}, siz{0}{
-	deduce_lens(cu, dim, isdim, len, siz);
-}
-
-template<typename T>
-adv_string_view<T>::adv_string_view(const_tchar_pt<T> cu, size_t size, size_t lent) : ptr{cu}, len{0}, siz{0}{
-	if constexpr(fixed_size<T>){
-		if(size / T::unity() < lent)
-			throw encoding_error("Too small string");//prevent integer overflow due to multiplication
-		len = lent;
-		siz = lent * T::unity(); //may be siz < size
-	}
-	else{
-		int add;
-		size_t olsiz;
-		for(size_t i=0; i<lent; i++){
-			add = cu.next();
-			olsiz = size;
-			size -= add;
-			siz += add;
-			if(size >= olsiz)
-				throw encoding_error("Too small string");
-		}
-		len = lent;
-	}
+adv_string_view<T>::adv_string_view(const_tchar_pt<T> cu, size_t maxsiz, size_t maxlen) : ptr{cu}, len{0}, siz{0}{
+	deduce_lens(cu, maxsiz, maxlen, len, siz);
 }
 
 template<typename T>
@@ -115,12 +73,11 @@ void adv_string_view<T>::verify() const{
 	size_t remlen = siz;
 	const_tchar_pt<T> mem{ptr};
 	for(size_t i=0; i<len; i++){
-		if(!mem.valid_next(remlen))
-			throw encoding_error("Invalid string encoding");
+		if(!mem.valid_next_update(remlen))
+			throw incorrect_encoding("Invalid string encoding");
 	}
-	//La lunghezza deve essere esatta
 	if(remlen != 0)
-		throw encoding_error("Invalid string encoding");
+		throw incorrect_encoding("Invalid string encoding");
 }
 
 template<typename T>
@@ -140,15 +97,15 @@ const_tchar_pt<T> adv_string_view<T>::at(size_t chr) const{
 		throw std::out_of_range{"Out of range"};
 	if(chr == 0)
 		return ptr;
-	if constexpr(fixed_size<T>){
-		return ptr + (chr * T::unity());
+	if(ptr.is_fixed()){
+		return ptr + (chr * ptr.raw_format().min_bytes());
 	}
 	else{
 		const_tchar_pt<T> ret = ptr;
 		if(chr == len)
 			return ret + siz;
 		for(size_t i=0; i< chr; i++)
-			ret.next();
+			ret.next(siz);
 		return ret;
 	}
 };
@@ -159,16 +116,16 @@ size_t adv_string_view<T>::size(size_t a, size_t n) const{
 		throw std::out_of_range{"Out of range"};
 	if(n == 0)
 		return 0;
-	if constexpr (fixed_size<T>){
-		return n * T::unity();
+	if (ptr.is_fixed()){
+		return n * ptr.raw_format().min_bytes();
 	}
 	else{
 		const_tchar_pt<T> mem = ptr;
 		for(size_t i=0; i<a; i++)
-			mem.next();
+			mem.next(siz);
 		size_t ret = 0;
 		for(size_t i=0; i<n; i++){
-			ret += mem.next();
+			ret += mem.next(siz);
 		}
 		return ret;
 	}
@@ -182,18 +139,19 @@ adv_string_view<T> adv_string_view<T>::substring(size_t b, size_t e, bool ign) c
 		e = len;
 	if(b > e)
 		b = e;
-	if constexpr(fixed_size<T>){
-		const_tchar_pt<T> nei = ptr + (b * T::unity());
-		return adv_string_view<T>{e-b, (e-b) * T::unity(), nei};
+	if(ptr.is_fixed()){
+        uint cl = ptr.raw_format().min_bytes();
+		const_tchar_pt<T> nei = ptr + (b * cl);
+		return adv_string_view<T>{e-b, (e-b) * cl, nei};
 	}
 	else{
 		const_tchar_pt<T> nei = ptr;
 		for(size_t i=0; i<b; i++)
-			nei.next();
+			nei.next(siz);
 		size_t nlen = 0;
 		const_tchar_pt<T> temp = nei;
 		for(size_t i=0; i<(e-b); i++)
-			nlen += temp.next();
+			nlen += temp.next(siz);
 		return adv_string_view<T>{e - b, nlen, nei};
 	}
 }
@@ -221,17 +179,6 @@ bool adv_string_view<T>::operator==(const adv_string_view<S> &t) const{
 }
 
 template<typename T> template<general_enctype S>
-bool adv_string_view<T>::operator==(const_tchar_pt<S> t) const{
-	if(!sameEnc(ptr, t))
-		return false;
-	size_t tsiz, tch;
-	deduce_lens(t, tch, tsiz);
-	if(siz != tsiz)
-		return false;
-	return compare(data(), t.data(), siz);
-}
-
-template<typename T> template<general_enctype S>
 index_result adv_string_view<T>::bytesOf(const adv_string_view<S> &sq) const{
 	if(!sameEnc(ptr, sq.begin())){
 		return index_result{false, 0};
@@ -250,7 +197,7 @@ index_result adv_string_view<T>::bytesOf(const adv_string_view<S> &sq) const{
 		if(compare(newi.data(), sq.begin().data(), sq.size())){
             return index_result{true, byt};
 		}
-		byt += newi.next();
+		byt += newi.next(siz);
 	}
     return index_result{false, 0};
 }
@@ -275,14 +222,19 @@ index_result adv_string_view<T>::indexOf(const adv_string_view<S> &sq) const{
 		if(compare(newi.data(), sq.begin().data(), sq.size())){
             return index_result{true, chr};
 		}
-		byt += newi.next();
+		byt += newi.next(siz);
 		chr++;
 	}
     return index_result{false, 0};
 }
 
 template<typename T> template<general_enctype S>
-bool adv_string_view<T>::containsChar(const_tchar_pt<S> cu) const{
+bool adv_string_view<T>::containsChar(const adv_string_view<S> &cu) const{
+    if(cu.length() == 0)
+        return true;
+    adv_string_view<S> strip = cu.substring(0, 1);
+    return indexOf(strip);
+    /*
 	if(!sameEnc(ptr, cu))
 		return false;
 
@@ -299,6 +251,7 @@ bool adv_string_view<T>::containsChar(const_tchar_pt<S> cu) const{
 		byt += newi.next();
 	}
 	return false;
+    */
 }
 
 template<typename T> template<general_enctype S>
@@ -335,6 +288,10 @@ bool adv_string_view<T>::endsWith(const adv_string_view<S> &sq) const{
 template<typename T>
 template<general_enctype S>
 adv_string<T> adv_string_view<T>::concatenate(const adv_string_view<S> &err, std::pmr::memory_resource *alloc) const{
+    adv_string_buf<T> buffer{*this, alloc};
+    buffer.append_string_c(err);
+    return buffer.move();
+    /*
 	if(!sameEnc(*this, err))
 		throw encoding_error("Not same encoding");
 	size_t esiz = err.size();
@@ -348,30 +305,17 @@ adv_string<T> adv_string_view<T>::concatenate(const adv_string_view<S> &err, std
 	for(size_t j=0; j<esiz; j++)
 		buf[j + siz] = buf2[j];
 	return adv_string<T>{std::move(allocater), ptr, len+elen, siz+esiz};
+    */
 }
+
+
 //----------------------------------------------
-template<typename T>
-uint adv_string_buf<T>::append_chr(const_tchar_pt<T> ptr){
-	uint chl = ptr.chLen();
-	const byte *dat = ptr.data();
-	append(buffer, siz, dat, chl);
-	siz += chl;
-	len++;
-	return chl;
-}
 
-template<typename T>
-size_t adv_string_buf<T>::append_chrs(const_tchar_pt<T> ptr, size_t nchr){
-	size_t part = 0;
-	for(size_t i=0; i<nchr; i++){
-		part += append_chr(ptr);
-		ptr.next();
-	}
-	return part;
-}
 
-template<typename T>
-size_t adv_string_buf<T>::append_string(adv_string_view<T> str){
+template<typename T>template<general_enctype S>
+size_t adv_string_buf<T>::append_string(const adv_string_view<S> &str){
+    if(!ei.equalTo(str.raw_format()))
+        throw encoding_error{"Use append_string_c"};
 	size_t ret = str.size();
 	const byte *ptr = str.data();
 	append(buffer, siz, ptr, ret);
@@ -381,21 +325,33 @@ size_t adv_string_buf<T>::append_string(adv_string_view<T> str){
 } 
 
 template<typename T>
-bool adv_string_buf<T>::append_chr_v(const_tchar_pt<T> ptr, size_t siz){
-	uint chlen;
-	if(!ptr.validChar(chlen))
-		return false;
-	else if(siz < chlen)
+bool adv_string_buf<T>::append_chr_v(const_tchar_pt<T> ptr, size_t psiz){
+	validation_result valid = ptr.validChar(psiz);
+	if(!valid)
 		return false;
 	const byte *dat = ptr.data();
-	append(buffer, siz, dat, chlen);
-	siz += chlen;
+	append(buffer, siz, dat, valid.get());
+	siz += valid.get();
 	len++;
 	return true;
 }
 
 template<typename T>
-bool adv_string_buf<T>::append_chrs_v(const_tchar_pt<T> ptr, size_t siz, size_t nchr){
+bool adv_string_buf<T>::append_chrs_v(const_tchar_pt<T> ptr, size_t psiz, size_t nchr){
+    size_t totalsize=0;
+    const_tchar_pt<T> validation{ptr};
+    for(size_t i=0; i < nchr; i++){
+        validation_result valid = validation.valid_next_update(psiz);
+        if(!valid)
+            return false;
+        totalsize += valid.get();
+    }
+    const byte *data = ptr.data();
+    append(buffer, siz, data, totalsize);
+    siz += totalsize;
+    len += nchr;
+    return true;
+    /*
 	uint lbuf;
 	size_t siztotal=0;
 	const_tchar_pt<T> verify = ptr;
@@ -412,12 +368,16 @@ bool adv_string_buf<T>::append_chrs_v(const_tchar_pt<T> ptr, size_t siz, size_t 
 	siz += siztotal;
 	len += nchr;
 	return true;
+    */
 }
 
 template<typename T>
-template<typename S>
-size_t adv_string_buf<T>::append_string_c(adv_string_view<S> str){
+template<general_enctype S>
+size_t adv_string_buf<T>::append_string_c(const adv_string_view<S> &str){
 	static_assert(std::is_same_v<typename T::ctype, typename S::ctype>, "Impossible to convert this string");
+    if(ei.equalTo(str.raw_format()))
+        return append_string(str);
+
 	if(str.length() == 0)
 		return 0;
 	const_tchar_pt<S> from = str.begin();
@@ -434,11 +394,12 @@ size_t adv_string_buf<T>::append_string_c(adv_string_view<S> str){
 	typename T::ctype tempo{};
 
 	for(size_t i=0; i<nchr; i++){
-		from.decode(&tempo, from_r);
+		from.decode_next_update(&tempo, from_r);
 		bool written=false;
+        uint wrt=0;
 		while(!written){
 			try{
-				to.encode(tempo, to_r);
+				wrt=to.encode_next_update(tempo, to_r);
 				written=true;
 			}
 			catch(const buffer_small &err){
@@ -448,12 +409,9 @@ size_t adv_string_buf<T>::append_string_c(adv_string_view<S> str){
                 base = base.new_instance(buffer.memory);
 			}
 		}
-		from_r -= from.next();
-		uint wrt = to.next();
-		to_r -= wrt;
 		siz += wrt;
-		return_r += wrt;
 		len ++;
+		return_r += wrt;
 	}
 	return return_r;
 }
@@ -499,13 +457,6 @@ adv_string<T>::adv_string(const_tchar_pt<T> ptr, size_t len, size_t siz, basic_p
 template<typename T>
 adv_string<T>::adv_string(const adv_string_view<T> &st, std::pmr::memory_resource *alloc)
 	 : adv_string{st.begin(), st.length(), st.size(), basic_ptr{st.data(), (std::size_t)st.size(), alloc}, 0} {}
-
-template<typename T>
-adv_string<T> adv_string<T>::newinstance_ter(const_tchar_pt<T> pt, const terminate_func<T> &terminate, std::pmr::memory_resource *alloc){
-	size_t len=0, siz=0;
-	deduce_lens(pt, len, siz, terminate);
-	return adv_string<T>{pt, len, siz, basic_ptr{pt.data(), (std::size_t)siz, alloc}, 0};
-}
 
 
 

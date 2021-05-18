@@ -30,21 +30,23 @@
 namespace sts{
 
 template<general_enctype T>
-using terminate_func = std::function<bool(const byte *, const EncMetric_info<T> &)>;
-
+using terminate_func = std::function<bool(const byte *, const EncMetric_info<T> &, size_t)>;
+/*
 template<typename T>
-void deduce_lens(const_tchar_pt<T>, size_t &len, size_t &siz, const terminate_func<T> &);
+void deduce_lens(const_tchar_pt<T>, size_t maxsiz, size_t &len, size_t &siz, const terminate_func<T> &);
+
 template<typename T>
 void deduce_lens(const_tchar_pt<T>, size_t rsiz, bool zero, size_t &len, size_t &siz);
+*/
 
-enum class meas {size, length};
+//enum class meas {size, length};
 
 /*
  * Basic terminate function: string is terminated if and only if the encoded character is all 0 bytes
  */
 template<general_enctype T>
-bool zero_terminating(const byte *data, const EncMetric_info<T> &format){
-    uint size = format.unity();
+bool zero_terminating(const byte *data, const EncMetric_info<T> &format, size_t){
+    uint size = format.min_bytes();
 	for(uint i=0; i<size; i++){
 		if(data[i] != byte{0})
 			return false;
@@ -56,8 +58,8 @@ bool zero_terminating(const byte *data, const EncMetric_info<T> &format){
  *
  * WARNING: control up to st characters and may throw if the string is not correctly encoded
  */
-template<general_enctype T, size_t st = 100>
-bool encoding_terminating(const byte *data, const EncMetric_info<T> &format){
+template<general_enctype T>
+bool encoding_terminating(const byte *data, const EncMetric_info<T> &format, size_t st){
     using ctype = typename T::ctype;
     ctype cha;
     try{
@@ -84,29 +86,23 @@ class adv_string_view{
 	protected:
 		explicit adv_string_view(size_t length, size_t size, const_tchar_pt<T> bin) noexcept : ptr{bin}, len{length}, siz{size} {}
 	public:
-		explicit adv_string_view(const_tchar_pt<T>, const terminate_func<T> & = zero_terminating<T>);
-		explicit adv_string_view(const_tchar_pt<T>, size_t dim, meas measure);
+		explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz, const terminate_func<T> & = zero_terminating<T>);
 		/*
-		    read exactly len characters and siz bytes. If these values doesn't match trow error
+		    read at least len characters and/or siz bytes
 		*/
-		explicit adv_string_view(const_tchar_pt<T>, size_t siz, size_t len);
+		explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz, size_t maxlen);
+
+		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz, const terminate_func<T> &tf = zero_terminating<T>) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, tf} {}
+		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz, size_t maxlen) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, maxlen} {}
 
         #if costructors_concepts
-		explicit adv_string_view(const byte *b, EncMetric_info<T> f, const terminate_func<T> &tf = zero_terminating<T>) : adv_string_view{const_tchar_pt<T>{b, f}, tf} {}
-		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t dim, meas measure) : adv_string_view{const_tchar_pt<T>{b, f}, dim, measure} {}
-		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t siz, size_t len) : adv_string_view{const_tchar_pt<T>{b, f}, siz, len} {}
-
 		template<typename U>
-		explicit adv_string_view(const U *b, const terminate_func<T> &tf = zero_terminating<T>) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, tf} {}
-		template<typename U>
-		explicit adv_string_view(const U *b, size_t dim, meas measure) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, dim, measure} {}
+		explicit adv_string_view(const U *b, size_t maxsiz, const terminate_func<T> &tf = zero_terminating<T>) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, maxsiz, tf} {}
 		template<typename U>
 		explicit adv_string_view(const U *b, size_t siz, size_t len) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, siz, len} {}
 
 		template<typename U>
-		explicit adv_string_view(const U *b, const EncMetric<typename T::ctype> *f, const terminate_func<T> &tf = zero_terminating<T>) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, tf} {}
-		template<typename U>
-		explicit adv_string_view(const U *b, const EncMetric<typename T::ctype> *f, size_t dim, meas measure) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, dim, measure} {}
+		explicit adv_string_view(const U *b, size_t maxsiz, const EncMetric<typename T::ctype> *f, const terminate_func<T> &tf = zero_terminating<T>) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, tf} {}
 		template<typename U>
 		explicit adv_string_view(const U *b, const EncMetric<typename T::ctype> *f, size_t siz, size_t len) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, siz, len} {}
         #endif
@@ -125,6 +121,7 @@ class adv_string_view{
 		size_t size() const noexcept {return siz;}
 		size_t size(size_t a, size_t n) const;//bytes of first n character starting from the (a+1)-st character
 		size_t size(size_t n) const {return size(0, n);}
+		EncMetric_info<T> raw_format() const noexcept{ return ptr.raw_format();}
 
 		template<general_enctype S>
 		bool equal_to(const adv_string_view<S> &, size_t n) const;//compare only the first n character
@@ -133,13 +130,7 @@ class adv_string_view{
 		bool operator==(const adv_string_view<S> &) const;
 
 		template<general_enctype S>
-		bool operator==(const_tchar_pt<S>) const;
-
-		template<general_enctype S>
 		bool operator!=(const adv_string_view<S> &bin) const {return !(*this == bin);}
-
-		template<general_enctype S>
-		bool operator!=(const_tchar_pt<S> bin) const {return !(*this == bin);}
 
 		template<general_enctype S>
 		index_result bytesOf(const adv_string_view<S> &) const;
@@ -148,7 +139,7 @@ class adv_string_view{
 		index_result indexOf(const adv_string_view<S> &) const;
 
 		template<general_enctype S>
-		bool containsChar(const_tchar_pt<S>) const;
+		bool containsChar(const adv_string_view<S> &) const;
 
 		template<general_enctype S>
 		bool startsWith(const adv_string_view<S> &) const;
@@ -176,13 +167,8 @@ class adv_string_view{
 };
 
 template<strong_enctype T, typename U>
-adv_string_view<T> new_string_view(const U *b, const terminate_func<T> &t = zero_terminating<T>){
-        return adv_string_view{new_const_pt<T>(b), t};
-}
-
-template<strong_enctype T, typename U>
-adv_string_view<T> new_string_view(const U *b, size_t dim, meas measure){
-        return adv_string_view{new_const_pt<T>(b), dim, measure};
+adv_string_view<T> new_string_view(const U *b, size_t maxsiz, const terminate_func<T> &t = zero_terminating<T>){
+        return adv_string_view{new_const_pt<T>(b), maxsiz, t};
 }
 
 template<strong_enctype T, typename U>
@@ -191,13 +177,8 @@ adv_string_view<T> new_string_view(const U *b, size_t siz, size_t len){
 }
 
 template<widenc T, typename U>
-adv_string_view<T> new_string_view(const U *b, const EncMetric<typename T::ctype> *f, const terminate_func<T> &t = zero_terminating<T>){
-        return adv_string_view{new_const_pt<T>(b, f), t};
-}
-
-template<widenc T, typename U>
-adv_string_view<T> new_string_view(const U *b, const EncMetric<typename T::ctype> *f, size_t dim, meas measure){
-        return adv_string_view{new_const_pt<T>(b, f), dim, measure};
+adv_string_view<T> new_string_view(const U *b, const EncMetric<typename T::ctype> *f, size_t maxsiz, const terminate_func<T> &t = zero_terminating<T>){
+        return adv_string_view{new_const_pt<T>(b, f), maxsiz, t};
 }
 
 template<widenc T, typename U>
@@ -210,13 +191,6 @@ bool sameEnc(const adv_string_view<T> &a, const adv_string_view<S> &b) noexcept{
 	return sameEnc(a.begin(), b.begin());
 }
 
-template<typename S, typename T>
-adv_string_view<S> reassign(const adv_string_view<T> &ret){
-	if constexpr(enc_raw<S>)
-		return adv_string_view<S>{reassign<S, T>(ret.begin()), ret.size(), ret.size()};
-	else
-		return adv_string_view<S>{reassign<S, T>(ret.begin()), ret.length(), ret.size()};
-}
 
 template<general_enctype T>
 class adv_string_buf{
@@ -227,7 +201,7 @@ class adv_string_buf{
 	public:
 		adv_string_buf(EncMetric_info<T> f, std::pmr::memory_resource *alloc=std::pmr::get_default_resource()) : buffer{alloc}, ei{f}, siz{0}, len{0} {}
 		adv_string_buf(EncMetric_info<T> f, size_t siz, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()) : buffer{siz, alloc}, ei{f}, siz{0}, len{0} {}
-		adv_string_buf(adv_string_view<T> str, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()) : adv_string_buf{str.begin().raw_format(), str.size(), alloc} {
+		adv_string_buf(const adv_string_view<T> &str, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()) : adv_string_buf{str.begin().raw_format(), str.size(), alloc} {
 			append_string(str);
 		}
 
@@ -235,14 +209,13 @@ class adv_string_buf{
 		size_t length() const noexcept {return len;}
 		const byte *raw() {return buffer.memory;}
 
-		uint append_chr(const_tchar_pt<T>);
-		size_t append_chrs(const_tchar_pt<T>, size_t);
-		size_t append_string(adv_string_view<T>);
-		adv_string_buf &operator<<(const_tchar_pt<T> p){
-			append_chr(p);
-			return *this;
-		}
-		adv_string_buf &operator<<(adv_string_view<T> p){
+		/*
+         * Only if encoding is the same
+         */
+		template<general_enctype S>
+		size_t append_string(const adv_string_view<S> &);
+        template<general_enctype S>
+		adv_string_buf &operator<<(const adv_string_view<S> &p){
 			append_string(p);
 			return *this;
 		}
@@ -256,8 +229,8 @@ class adv_string_buf{
 		/*
 		    Convert the string before adding it
 		*/
-		template<typename S>
-		size_t append_string_c(adv_string_view<S>);
+		template<general_enctype S>
+		size_t append_string_c(const adv_string_view<S> &);
 
 		void clear() noexcept;
 		adv_string_view<T> view() const noexcept;
@@ -309,8 +282,6 @@ class adv_string : public adv_string_view<T>{
 
 		std::pmr::memory_resource *get_allocator() const noexcept{return bind.get_allocator();}
 		std::size_t capacity() const noexcept{ return bind.dimension;}
-		static adv_string<T> newinstance_ter(const_tchar_pt<T>, const terminate_func<T> &, std::pmr::memory_resource *alloc = std::pmr::get_default_resource());
-		static adv_string<T> newinstance(const_tchar_pt<T> p, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){return newinstance_ter(p, zero_terminating<T>, alloc);}
 
 	template<general_enctype S>
 	friend class adv_string_view;
@@ -318,7 +289,38 @@ class adv_string : public adv_string_view<T>{
 	friend class adv_string_buf;
 };
 
-template<typename S, typename T>
+
+template<strong_enctype T, typename U>
+adv_string<T> alloc_string(const U *b, size_t maxsiz, const terminate_func<T> &t, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){
+        return adv_string<T>{adv_string_view<T>{new_const_pt<T>(b), maxsiz, t}, alloc};
+}
+
+template<strong_enctype T, typename U>
+adv_string<T> alloc_string(const U *b, size_t maxsiz, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){
+        return adv_string<T>{adv_string_view<T>{new_const_pt<T>(b), maxsiz, zero_terminating<T>}, alloc};
+}
+
+template<strong_enctype T, typename U>
+adv_string<T> alloc_string(const U *b, size_t siz, size_t len, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){
+        return adv_string<T>{adv_string_view<T>{new_const_pt<T>(b), siz, len}, alloc};
+}
+
+template<widenc T, typename U>
+adv_string<T> alloc_string(const U *b, const EncMetric<typename T::ctype> *f, size_t maxsiz, const terminate_func<T> &t, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){
+        return adv_string<T>{adv_string_view<T>{new_const_pt<T>(b, f), maxsiz, t}, alloc};
+}
+
+template<widenc T, typename U>
+adv_string<T> alloc_string(const U *b, const EncMetric<typename T::ctype> *f, size_t maxsiz, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){
+        return adv_string<T>{adv_string_view<T>{new_const_pt<T>(b, f), maxsiz, zero_terminating<T>}, alloc};
+}
+
+template<widenc T, typename U>
+adv_string<T> alloc_string(const U *b, const EncMetric<typename T::ctype> *f, size_t siz, size_t len, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){
+        return adv_string<T>{adv_string_view<T>{new_const_pt<T>(b, f), siz, len}, alloc};
+}
+
+template<general_enctype S, general_enctype T>
 adv_string<S> operator+(const adv_string<S> &a, const adv_string<T> &b){
 	return a.template concatenate<T>(b, a.get_allocator());
 }

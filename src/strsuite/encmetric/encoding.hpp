@@ -23,20 +23,23 @@
     (for character encodings you can use Unicode). Also it must have these function member declared as 
     static:
 
-     - constexpr unsigned int unity() noexcept  => minimum number of bytes needed to detect the length of a character
+     - constexpr unsigned int min_bytes() noexcept  => minimum number of bytes needed to detect the length of a character
      - constexpr bool has_max() noexcept => the encoding fixes the maximum number of bytes per-character
      - constexpr unsigned int max_bytes() noexcept => maximum number of bytes needed to store an entire character, undefined
        if has_max is false
-     - unsigned int chLen(const byte *)  => the length in bytes of the first character pointed by (can throw
+     - unsigned int chLen(const byte *, size_t)  => the length in bytes of the first character pointed by (can throw
         an encoding_error if the length can't be recognized). The first purpouse of this function
-        is only to calculate le length of a character, not to verify it.
-     - bool validChar(const byte *, unsigned int &) noexcept  => Test is the first character is valid with 
-        respect to this encoding. This function sets also the character length in the second argument if
-        it is valid (if the character is not valid the status of this argument is undefined). 
+        is only to calculate le length of a character, not to verify it. The second character is the size of your byte array
+     - validation_result validChar(const byte *, size_t) noexcept  => Test is the first character is valid with
+        respect to this encoding. This function returns also the character length that can be retrived with get() function member.
      - unsigned int decode(T *, const byte *, size_t)  => sets the Unicode code of the first encoded characters
         and returns the number of bytes read. If there aren't enough bytes it must throw buffer_small
      - unsigned int encode(const T &, byte *, size_t)  => encode the Unicode character and writes it in the memory pointed
         and returns the number of bytes written. If there isn't enough space it must throw buffer_small
+
+        If the array size is too small in validChar function it must return false, in other functions a buffer_small exception must be thrown
+        Notice also that chLen should throw a buffer_small exception if and only if it's not possible to detect the length of the ipothetical
+        character, without testing if that character is entirely encoded. For this reason chLen mustn't throw anyway if all characters have the same length
 */
 #include <typeindex>
 #include <type_traits>
@@ -54,11 +57,11 @@ class EncMetric{
 	public:
 		using ctype=tt;
 		virtual ~EncMetric() {}
-		virtual uint d_unity() const noexcept=0;
+		virtual uint d_min_bytes() const noexcept=0;
 		virtual bool d_has_max() const noexcept=0;
 		virtual uint d_max_bytes() const=0;
-		virtual uint d_chLen(const byte *) const=0;
-		virtual bool d_validChar(const byte *, uint &chlen) const noexcept =0;
+		virtual uint d_chLen(const byte *, size_t) const=0;
+		virtual validation_result d_validChar(const byte *, size_t) const noexcept =0;
 		virtual uint d_decode(ctype *, const byte *, size_t) const =0;
 		virtual uint d_encode(const ctype &, byte *, size_t) const =0;
 		virtual bool d_fixed_size() const noexcept =0;
@@ -85,17 +88,16 @@ template<typename tt>
 class RAW{
 	public:
 		using ctype=tt;
-		static constexpr uint unity() noexcept {return 1;}
+		static constexpr uint min_bytes() noexcept {return 1;}
 		static constexpr bool has_max() noexcept {return true;}
 		static constexpr uint max_bytes() {return 1;}
 		using compare_enc=RAWcmp;
-		static uint chLen(const byte *) {return 1;}
-		static bool validChar(const byte *, uint &i) noexcept{
-			i=1;
-			return true;
+		static uint chLen(const byte *, size_t) {return 1;}
+		static validation_result validChar(const byte *, size_t i) noexcept{
+			return validation_result{i >= 1, 1};
 		}
-		static uint decode(tt *, const byte *, size_t) {throw encoding_error{"RAW encoding can't be converted"};}
-		static uint encode(const tt &, byte *, size_t) {throw encoding_error{"RAW encoding can't be converted"};}
+		static uint decode(tt *, const byte *, size_t) {throw raw_error{};}
+		static uint encode(const tt &, byte *, size_t) {throw raw_error{};}
 };
 
 using RAWchr=RAW<unicode>;
@@ -106,12 +108,12 @@ using RAWchr=RAW<unicode>;
 
 
 template<typename T>
-concept strong_enctype = requires {typename T::ctype;} && requires(const byte *a, byte *b, uint i, typename T::ctype tu, size_t sz){
-        {T::unity()} noexcept->std::convertible_to<uint>;
+concept strong_enctype = requires {typename T::ctype;} && requires(const byte *a, byte *b, typename T::ctype tu, size_t sz){
+        {T::min_bytes()} noexcept->std::convertible_to<uint>;
         {T::has_max()} noexcept->std::same_as<bool>;
         {T::max_bytes()}->std::convertible_to<uint>;
-        {T::chLen(a)}->std::convertible_to<uint>;
-        {T::validChar(a, i)}noexcept->std::same_as<bool>;
+        {T::chLen(a, sz)}->std::convertible_to<uint>;
+        {T::validChar(a, sz)}noexcept->std::same_as<validation_result>;
         {T::decode(&tu, a, sz)}->std::convertible_to<uint>;
         {T::encode(tu, b, sz)}->std::convertible_to<uint>;
     };
@@ -187,7 +189,7 @@ template<typename tt>
 inline constexpr bool safe_hasmax<WIDE<tt>> = false;
 
 template<strong_enctype T>
-inline constexpr bool fixed_size = T::has_max() && (T::unity() == T::max_bytes());
+inline constexpr bool fixed_size = T::has_max() && (T::min_bytes() == T::max_bytes());
 template<typename tt>
 inline constexpr bool fixed_size<WIDE<tt>> = false;
 
@@ -219,11 +221,11 @@ concept strong_assign = enc_raw<T> || (same_data<S, T> && (widenc<T> || same_enc
 
 template<strong_enctype T>
 constexpr int min_length(int nchr) noexcept{
-	return T::unity() * nchr;
+	return T::min_bytes() * nchr;
 }
 template<typename tt>
 int min_length(int nchr, const EncMetric<tt> &format) noexcept{
-	return format.d_unity() * nchr;
+	return format.d_min_bytes() * nchr;
 }
 
 template<strong_enctype T>
@@ -260,11 +262,11 @@ class DynEncoding : public EncMetric<typename T::ctype>{
 
 		~DynEncoding() {}
 
-		uint d_unity() const noexcept {return static_enc::unity();}
+		uint d_min_bytes() const noexcept {return static_enc::min_bytes();}
 		bool d_has_max() const noexcept {return static_enc::has_max();}
 		uint d_max_bytes() const {return static_enc::max_bytes();}
-		uint d_chLen(const byte *b) const {return static_enc::chLen(b);}
-		bool d_validChar(const byte *b, uint &chlen) const noexcept {return static_enc::validChar(b, chlen);}
+		uint d_chLen(const byte *b, size_t siz) const {return static_enc::chLen(b, siz);}
+		validation_result d_validChar(const byte *b, size_t siz) const noexcept {return static_enc::validChar(b, siz);}
 		std::type_index index() const noexcept {return index_traits<T>::index();}
 
 		uint d_decode(typename T::ctype *uni, const byte *by, size_t l) const {return static_enc::decode(uni, by, l);}
@@ -289,12 +291,12 @@ class EncMetric_info{
 		EncMetric_info() {}
 		const EncMetric<ctype> *format() const noexcept {return DynEncoding<T>::instance();}
 
-		constexpr uint unity() const noexcept {return T::unity();}
+		constexpr uint min_bytes() const noexcept {return T::min_bytes();}
 		constexpr bool has_max() const noexcept {return T::has_max();}
 		constexpr uint max_bytes() const noexcept {return T::max_bytes();}
 		constexpr bool is_fixed() const noexcept {return fixed_size<T>;}
-		uint chLen(const byte *b) const {return T::chLen(b);}
-		bool validChar(const byte *b, uint &l) const noexcept {return T::validChar(b, l);}
+		uint chLen(const byte *b, size_t siz) const {return T::chLen(b, siz);}
+		validation_result validChar(const byte *b, size_t l) const noexcept {return T::validChar(b, l);}
 		uint decode(ctype *uni, const byte *by, size_t l) const {return T::decode(uni, by, l);}
 		uint encode(const ctype &uni, byte *by, size_t l) const {return T::encode(uni, by, l);}
 		std::type_index index() const noexcept {return index_traits<T>::index();}
@@ -337,12 +339,12 @@ class EncMetric_info<WIDE<tt>>{
 		EncMetric_info(const EncMetric_info &info) : f{info.f} {}
 		const EncMetric<tt> *format() const noexcept {return f;}
 
-		uint unity() const noexcept {return f->d_unity();}
+		uint min_bytes() const noexcept {return f->d_min_bytes();}
 		bool has_max() const noexcept {return f->d_has_max();}
 		uint max_bytes() const noexcept {return f->d_max_bytes();}
 		bool is_fixed() const noexcept {return f->d_fixed_size();}
-		uint chLen(const byte *b) const {return f->d_chLen(b);}
-		bool validChar(const byte *b, uint &l) const noexcept {return f->d_validChar(b, l);}
+		uint chLen(const byte *b, size_t siz) const {return f->d_chLen(b, siz);}
+		validation_result validChar(const byte *b, size_t l) const noexcept {return f->d_validChar(b, l);}
 		uint decode(ctype *uni, const byte *by, size_t l) const {return f->d_decode(uni, by, l);}
 		uint encode(const ctype &uni, byte *by, size_t l) const {return f->d_encode(uni, by, l);}
 		std::type_index index() const noexcept {return f->index();}
@@ -378,11 +380,11 @@ class EncMetric_info<WIDE<tt>>{
 class ASCII{
 	public:
 		using ctype=unicode;
-		static constexpr uint unity() noexcept {return 1;}
+		static constexpr uint min_bytes() noexcept {return 1;}
 		static constexpr bool has_max() noexcept {return true;}
 		static constexpr uint max_bytes() noexcept {return 1;}
-		static uint chLen(const byte *);
-		static bool validChar(const byte *, uint &) noexcept;
+		static uint chLen(const byte *, size_t siz) {return 1;}
+		static validation_result validChar(const byte *, size_t) noexcept;
 		static uint decode(unicode *uni, const byte *by, size_t l);
 		static uint encode(const unicode &uni, byte *by, size_t l);
 };
@@ -390,11 +392,11 @@ class ASCII{
 class Latin1{
 	public:
 		using ctype=unicode;
-		static constexpr uint unity() noexcept {return 1;}
+		static constexpr uint min_bytes() noexcept {return 1;}
 		static constexpr bool has_max() noexcept {return true;}
 		static constexpr uint max_bytes() noexcept {return 1;}
-		static uint chLen(const byte *);
-		static bool validChar(const byte *, uint &) noexcept;
+		static uint chLen(const byte *, size_t siz) {return 1;}
+		static validation_result validChar(const byte *, size_t) noexcept;
 		static uint decode(unicode *uni, const byte *by, size_t l);
 		static uint encode(const unicode &uni, byte *by, size_t l);
 };

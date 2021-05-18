@@ -20,9 +20,9 @@
 namespace sts{
 
 template<bool be>
-uint UTF16<be>::chLen(const byte *data){
-	//non è necessario fare tutti i controlli, poiché si suppone che la stringa sia corretta
-	//usare validChar per effettuare tutti i controlli
+uint UTF16<be>::chLen(const byte *data, size_t siz){
+    if(siz < 2)
+        throw buffer_small{2};
 	if(utf16_range(data, be))
 		return 4;
 	else
@@ -30,17 +30,19 @@ uint UTF16<be>::chLen(const byte *data){
 }
 
 template<bool be>
-bool UTF16<be>::validChar(const byte *data, uint &add) noexcept{
+validation_result UTF16<be>::validChar(const byte *data, size_t siz) noexcept{
+    if(siz < 2)
+        return validation_result{false, 0};
 	if(utf16_H_range(data, be)){
-		add = 4;
 		if(!utf16_L_range(data+2, false))
-			return false;
+			return validation_result{false, 0};
+        else
+            return validation_result{true, 4};
 	}
 	else if(utf16_L_range(data, false))
-		return false;
+		return validation_result{false, 0};
 	else
-		add = 2;
-	return true;
+        return validation_result{true, 2};
 }
 
 template<bool be>
