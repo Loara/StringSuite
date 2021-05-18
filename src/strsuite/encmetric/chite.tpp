@@ -1,4 +1,3 @@
-
 /*
     This file is part of Encmetric.
     Copyright (C) 2021 Paolo De Donato.
@@ -16,7 +15,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
-
+/*
 template<strong_enctype S, general_enctype T>
 bool sameEnc(const const_tchar_pt<T> &a) noexcept{
 	if constexpr(not_widenc<T>)
@@ -42,7 +41,7 @@ bool sameEnc(const const_tchar_pt<S> &pa, const const_tchar_pt<T> &pb) noexcept{
         return sameEnc<S>(pb);
     }
 }
-
+*/
 template<general_enctype S, general_enctype T>
 tchar_pt<S> reassign(tchar_pt<T> p){
     return tchar_pt<S>{p.data(), p.raw_format().template reassign<S>()};
@@ -51,21 +50,6 @@ tchar_pt<S> reassign(tchar_pt<T> p){
 template<general_enctype S, general_enctype T>
 const_tchar_pt<S> reassign(const_tchar_pt<T> p){
     return const_tchar_pt<S>{p.data(), p.raw_format().template reassign<S>()};
-}
-
-
-template<general_enctype S, general_enctype T>  requires same_data<S, T>
-void basic_encoding_conversion(const_tchar_pt<T> in, uint inlen, tchar_pt<S> out, uint oulen){
-	typename S::ctype bias;
-	in.decode(&bias, inlen);
-	out.encode(bias, oulen);
-}
-
-template<general_enctype S, general_enctype T>  requires same_data<S, T>
-void basic_encoding_conversion(const_tchar_pt<T> in, uint inlen, tchar_pt<S> out, uint oulen, uint &inread, uint &outread){
-	typename S::ctype bias;
-	inread = in.decode(&bias, inlen);
-	outread = out.encode(bias, oulen);
 }
 
 template<general_enctype T>

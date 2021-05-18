@@ -31,6 +31,7 @@
 #include <typeindex>
 #include <cstddef>
 #include <functional>
+#include <strsuite/encmetric/config.hpp>
 #include <strsuite/encmetric/encoding.hpp>
 
 namespace sts{
@@ -173,9 +174,7 @@ class const_tchar_pt : public base_tchar_pt<T, const_tchar_pt<T>, byte const>{
 	public:
 		explicit const_tchar_pt(const byte *c, EncMetric_info<T> f) : base_tchar_pt<T, const_tchar_pt<T>, byte const>{c, f} {}
 
-
-        /*
-         Will be available with gcc >= 10.3
+        #if costructors_concepts
 		explicit const_tchar_pt(const byte *b) requires not_widenc<T> : const_tchar_pt{b, EncMetric_info<T>{}} {}
 		explicit const_tchar_pt(const char *b) requires not_widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{}} {}
 		explicit const_tchar_pt(const char8_t *b) requires not_widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{}} {}
@@ -189,7 +188,7 @@ class const_tchar_pt : public base_tchar_pt<T, const_tchar_pt<T>, byte const>{
 		explicit const_tchar_pt(const char16_t *b, const EncMetric<typename T::ctype> *f) requires widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{f}} {}
 		explicit const_tchar_pt(const char32_t *b, const EncMetric<typename T::ctype> *f) requires widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{f}} {}
 		explicit const_tchar_pt(std::nullptr_t, const EncMetric<typename T::ctype> *f) requires widenc<T> : const_tchar_pt{static_cast<const byte *>(nullptr), EncMetric_info<T>{f}} {}
-		*/
+        #endif
 
 		const_tchar_pt new_instance(const byte *c) const{return const_tchar_pt<T>{c, this->ei};}
 		const_tchar_pt new_instance(const char *c) const{return const_tchar_pt<T>{reinterpret_cast<const byte *>(c), this->ei};}
@@ -230,9 +229,7 @@ class tchar_pt : public wbase_tchar_pt<T, tchar_pt<T>>{
 	public:
 		explicit tchar_pt(byte *c, EncMetric_info<T> f) : wbase_tchar_pt<T, tchar_pt<T>>{c, f} {}
 
-        /*
-         Will be available with gcc >= 10.3
-
+        #if costructors_concepts
 		explicit tchar_pt(byte *b) requires not_widenc<T> : tchar_pt{b, EncMetric_info<T>{}} {}
 		explicit tchar_pt(char *b) requires not_widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{}} {}
 		explicit tchar_pt(char8_t *b) requires not_widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{}} {}
@@ -247,7 +244,7 @@ class tchar_pt : public wbase_tchar_pt<T, tchar_pt<T>>{
 		explicit tchar_pt(char16_t *b, const EncMetric<typename T::ctype> *f) requires widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{f}} {}
 		explicit tchar_pt(char32_t *b, const EncMetric<typename T::ctype> *f) requires widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{f}} {}
 		explicit tchar_pt(std::nullptr_t, EncMetric<typename T::ctype> *f) requires widenc<T> : tchar_pt{static_cast<byte *>(nullptr), EncMetric_info<T>{f}} {}
-        */
+        #endif
 
 		const_tchar_pt<T> cast() const noexcept{ return const_tchar_pt<T>{this->ptr, this->ei};}
 		operator const_tchar_pt<T>() const noexcept{ return cast();}
@@ -341,7 +338,7 @@ class tchar_relative{
 //---------------------------------------------
 
 template<general_enctype S, general_enctype T>
-bool sameEnc(const_tchar_pt<S> s, const_tchar_pt<T> t) noexcept{
+bool sameEnc(const const_tchar_pt<S> &s, const const_tchar_pt<T> &t) noexcept{
     return s.raw_format().equalTo(t.raw_format());
 }
 
@@ -363,15 +360,6 @@ template<typename tt>
 inline tchar_pt<WIDE<tt>> set_encoding(tchar_pt<RAW<tt>> r, const EncMetric<tt> *f) noexcept {return tchar_pt<WIDE<tt>>{r.data(), f};}
 template<typename tt>
 inline const_tchar_pt<WIDE<tt>> set_encoding(const_tchar_pt<RAW<tt>> r, const EncMetric<tt> *f) noexcept {return const_tchar_pt<WIDE<tt>>{r.data(), f};}
-
-/*
-    Make an encoding conversion between Unicode-compatible encodings using from_unicode and to_unicode functions.
-    Note: convert only the first character
-*/
-template<general_enctype S, general_enctype T> requires same_data<S, T>
-void basic_encoding_conversion(const_tchar_pt<T> in, uint inlen, tchar_pt<S> out, uint oulen);
-template<general_enctype S, general_enctype T> requires same_data<S, T>
-void basic_encoding_conversion(const_tchar_pt<T> in, uint inlen, tchar_pt<S> out, uint oulen, uint &inread, uint &outwrite);
 
 /*
     Estimate the size of a possible string with n characters

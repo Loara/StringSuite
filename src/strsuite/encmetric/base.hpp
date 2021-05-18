@@ -34,5 +34,15 @@ inline unicode read_unicode(byte b){
 
 inline constexpr unicode BOM{0xFEFF};
 
+template<typename T>
+struct conditional_result{
+    bool success;
+    T data;
+    operator bool() const noexcept{ return success;}
+    T get() const{ return data;}
+};
+
+using index_result=conditional_result<size_t>;
+
 }
 

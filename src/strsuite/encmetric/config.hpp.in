@@ -48,6 +48,16 @@
 
 #endif
 
+/*
+ * detect if compiler support concepts in costructors
+ */
+
+#ifdef __GNUC__
+#define costructors_concepts (__GNUC__ > 10 || (__GNUC__ == 10 && __GNUC_MINOR__ >= 3))
+#else
+#define costructors_concepts 0
+#endif
+
 namespace sts{
 
 constexpr bool is_windows() noexcept{

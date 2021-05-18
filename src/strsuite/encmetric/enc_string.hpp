@@ -23,6 +23,7 @@
 #include <stdexcept>
 #include <type_traits>
 #include <string>
+#include <strsuite/encmetric/config.hpp>
 #include <strsuite/encmetric/chite.hpp>
 #include <strsuite/encmetric/basic_ptr.hpp>
 
@@ -90,9 +91,7 @@ class adv_string_view{
 		*/
 		explicit adv_string_view(const_tchar_pt<T>, size_t siz, size_t len);
 
-        /*
-         Uncomment with gcc >= 10.3
-
+        #if costructors_concepts
 		explicit adv_string_view(const byte *b, EncMetric_info<T> f, const terminate_func<T> &tf = zero_terminating<T>) : adv_string_view{const_tchar_pt<T>{b, f}, tf} {}
 		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t dim, meas measure) : adv_string_view{const_tchar_pt<T>{b, f}, dim, measure} {}
 		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t siz, size_t len) : adv_string_view{const_tchar_pt<T>{b, f}, siz, len} {}
@@ -110,7 +109,8 @@ class adv_string_view{
 		explicit adv_string_view(const U *b, const EncMetric<typename T::ctype> *f, size_t dim, meas measure) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, dim, measure} {}
 		template<typename U>
 		explicit adv_string_view(const U *b, const EncMetric<typename T::ctype> *f, size_t siz, size_t len) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, siz, len} {}
-        */
+        #endif
+
 		virtual ~adv_string_view() {}
 		/*
 		    Verify the string is correctly encoded
@@ -141,14 +141,11 @@ class adv_string_view{
 		template<general_enctype S>
 		bool operator!=(const_tchar_pt<S> bin) const {return !(*this == bin);}
 
-		/*
-			Note: id found is false then can return anything
-		*/
 		template<general_enctype S>
-		size_t bytesOf(const adv_string_view<S> &, bool &found) const;
+		index_result bytesOf(const adv_string_view<S> &) const;
 
 		template<general_enctype S>
-		size_t indexOf(const adv_string_view<S> &, bool &found) const;
+		index_result indexOf(const adv_string_view<S> &) const;
 
 		template<general_enctype S>
 		bool containsChar(const_tchar_pt<S>) const;

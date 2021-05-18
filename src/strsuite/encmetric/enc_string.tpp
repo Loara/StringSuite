@@ -232,48 +232,40 @@ bool adv_string_view<T>::operator==(const_tchar_pt<S> t) const{
 }
 
 template<typename T> template<general_enctype S>
-size_t adv_string_view<T>::bytesOf(const adv_string_view<S> &sq, bool &found) const{
+index_result adv_string_view<T>::bytesOf(const adv_string_view<S> &sq) const{
 	if(!sameEnc(ptr, sq.begin())){
-		found = false;
-		return 0;
+		return index_result{false, 0};
 	}
 
 	if(sq.size() == 0){
-		found = true;
-		return 0;
+		return index_result{true, 0};
 	}
 	if(siz < sq.size()){
-		found = false;
-		return 0;
+		return index_result{false, 0};
 	}
 	size_t rem = siz - sq.size();
 	size_t byt = 0;
 	const_tchar_pt<T> newi = ptr;
 	while(byt <= rem){
 		if(compare(newi.data(), sq.begin().data(), sq.size())){
-			found = true;
-			return byt;
+            return index_result{true, byt};
 		}
 		byt += newi.next();
 	}
-	found = false;
-	return 0;
+    return index_result{false, 0};
 }
 
 template<typename T> template<general_enctype S>
-size_t adv_string_view<T>::indexOf(const adv_string_view<S> &sq, bool &found) const{
+index_result adv_string_view<T>::indexOf(const adv_string_view<S> &sq) const{
 	if(!sameEnc(ptr, sq.begin())){
-		found = false;
-		return 0;
+		return index_result{false, 0};
 	}
 
 	if(sq.size() == 0){
-		found = true;
-		return 0;
+		return index_result{true, 0};
 	}
 	if(siz < sq.size()){
-		found = false;
-		return 0;
+		return index_result{false, 0};
 	}
 	size_t rem = siz - sq.size();
 	size_t byt = 0;
@@ -281,14 +273,12 @@ size_t adv_string_view<T>::indexOf(const adv_string_view<S> &sq, bool &found) co
 	const_tchar_pt<T> newi = ptr;
 	while(byt <= rem){
 		if(compare(newi.data(), sq.begin().data(), sq.size())){
-			found = true;
-			return chr;
+            return index_result{true, chr};
 		}
 		byt += newi.next();
 		chr++;
 	}
-	found = false;
-	return 0;
+    return index_result{false, 0};
 }
 
 template<typename T> template<general_enctype S>
