@@ -23,7 +23,7 @@ namespace sts{
 /*
  * A simple class useful to divide a string into tokens
  */
-template<typename T>
+template<general_enctype T>
 class Token{
 	private:
 		const_tchar_pt<T> s, e, end;
