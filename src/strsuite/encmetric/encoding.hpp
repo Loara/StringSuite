@@ -183,18 +183,11 @@ concept enc_raw = same_enc<T, RAW<byte>>;
 template<typename S, typename T>
 concept same_data = general_enctype<S> && general_enctype<T> && (enc_raw<S> || enc_raw<T> || std::same_as<typename S::ctype, typename T::ctype>);
 
-template<strong_enctype T>
-inline constexpr bool safe_hasmax = T::has_max();
-template<typename tt>
-inline constexpr bool safe_hasmax<WIDE<tt>> = false;
-
-template<strong_enctype T>
-inline constexpr bool fixed_size = T::has_max() && (T::min_bytes() == T::max_bytes());
-template<typename tt>
-inline constexpr bool fixed_size<WIDE<tt>> = false;
+template<typename T>
+concept safe_hasmax = not_widenc<T> && T::has_max();
 
 template<typename T>
-concept is_fixed = not_widenc<T> && fixed_size<T>;
+concept fixed_size = not_widenc<T> && T::has_max() && (T::min_bytes() == T::max_bytes());
 
 /*
  * Tests if a pointer with encoding S can be assigned to a pointer with encoding T
