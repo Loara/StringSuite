@@ -22,7 +22,7 @@ namespace sts{
 template<bool be>
 uint UTF16<be>::chLen(const byte *data, size_t siz){
     if(siz < 2)
-        throw buffer_small{2};
+        throw buffer_small{2-static_cast<uint>(siz)};
 	if(utf16_range(data, be))
 		return 4;
 	else
@@ -48,8 +48,8 @@ validation_result UTF16<be>::validChar(const byte *data, size_t siz) noexcept{
 template<bool be>
 uint UTF16<be>::decode(unicode *uni, const byte *by, size_t l){
 	if(l < 2)
-		throw buffer_small{2};
-	int y_byte = 0;
+		throw buffer_small{2-static_cast<uint>(l)};
+	uint y_byte = 0;
 	*uni = unicode{0};
 	
 	if(utf16_range(by, be))
@@ -58,7 +58,7 @@ uint UTF16<be>::decode(unicode *uni, const byte *by, size_t l){
 		y_byte = 2;
 
 	if(l < y_byte)
-		throw buffer_small{(uint)y_byte};
+		throw buffer_small{y_byte-static_cast<uint>(l)};
 	if(y_byte == 4){		
 		
 		unicode p_word{(read_unicode( leave_b(access(by, be, 2, 0), 0, 1) ) << 8) + read_unicode(access(by, be, 2, 1))};
@@ -74,8 +74,8 @@ uint UTF16<be>::decode(unicode *uni, const byte *by, size_t l){
 template<bool be>
 uint UTF16<be>::encode(const unicode &unin, byte *by, size_t l){
 	if(l < 2)
-		throw buffer_small{};
-	int y_byte;
+		throw buffer_small{2-static_cast<uint>(l)};
+	uint y_byte;
 	if(unin >= 0 && unin < 0xffff){
 		y_byte = 2;
 	}
@@ -85,7 +85,7 @@ uint UTF16<be>::encode(const unicode &unin, byte *by, size_t l){
 	else throw encoding_error("Not Unicode character");
 
 	if(l < y_byte)
-		throw buffer_small{};
+		throw buffer_small{y_byte-static_cast<uint>(l)};
 	
 	if(y_byte == 4){
 		unicode uni{unin - 0x10000};

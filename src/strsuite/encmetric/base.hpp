@@ -20,6 +20,7 @@
 /*
     Base definitions
 */
+#include <concepts>
 #include <cstdint>
 #include <strsuite/encmetric/byte_tools.hpp>
 #include <type_traits>
@@ -38,12 +39,17 @@ template<typename T>
 struct conditional_result{
     bool success;
     T data;
-    operator bool() const noexcept{ return success;}
+    explicit operator bool() const noexcept{ return success;}
     T get() const{ return data;}
 };
 
 using index_result=conditional_result<size_t>;
 using validation_result=conditional_result<uint>;
+
+template<std::unsigned_integral S, std::unsigned_integral T>
+inline constexpr bool no_overflow_sum(S s, T t)noexcept{
+    return (s + t) >= s; //only one
+}
 
 }
 

@@ -35,7 +35,7 @@ validation_result UTF32<be>::validChar(const byte *data, size_t siz) noexcept{
 template<bool be>
 uint UTF32<be>::decode(unicode *uni, const byte *by, size_t l){
 	if(l < 4)
-		throw buffer_small{4};
+		throw buffer_small{4-static_cast<uint>(l)};
 	*uni = unicode{0};
 	for(int i=0; i<4; i++){
 		*uni = unicode{(*uni << 8) + read_unicode(access(by, be, 4, i))};
@@ -46,7 +46,7 @@ uint UTF32<be>::decode(unicode *uni, const byte *by, size_t l){
 template<bool be>
 uint UTF32<be>::encode(const unicode &unin, byte *by, size_t l){
 	if(l < 4)
-		throw buffer_small{4};
+		throw buffer_small{4-static_cast<uint>(l)};
 	byte temp[4];
 	unicode uni=unin;
 	for(int i=0; i<4; i++){

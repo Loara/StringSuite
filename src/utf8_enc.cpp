@@ -68,7 +68,7 @@ validation_result UTF8::validChar(const byte *data, size_t siz) noexcept{
 uint UTF8::decode(unicode *uni, const byte *by, size_t l){
 	if(l == 0)
 		throw buffer_small{1};
-	size_t y_byte = 0;
+	uint y_byte = 0;
 	byte b = *by;
 	*uni = unicode{0};
 	
@@ -93,9 +93,9 @@ uint UTF8::decode(unicode *uni, const byte *by, size_t l){
 		throw encoding_error("Invalid utf8 character");
 
 	if(l < y_byte )
-		throw buffer_small{(uint)y_byte};
+		throw buffer_small{y_byte-static_cast<uint>(l)};
 	*uni = read_unicode(b);
-	for(size_t i = 1; i < y_byte; i++){
+	for(uint i = 1; i < y_byte; i++){
 		byte temp = by[i];
 		reset_bits(temp, 6, 7);
 		*uni = unicode{(*uni << 6) + read_unicode(temp)};
@@ -106,7 +106,7 @@ uint UTF8::decode(unicode *uni, const byte *by, size_t l){
 uint UTF8::encode(const unicode &unin, byte *by, size_t l){
 	if(l == 0)
 		throw buffer_small{1};
-	size_t y_byte;
+	uint y_byte;
 	byte set_mask{0};
 	if(unin < 0x80){
 		y_byte = 1;
@@ -127,7 +127,7 @@ uint UTF8::encode(const unicode &unin, byte *by, size_t l){
 
 	unicode uni=unin;
 	if(l < y_byte )
-		throw buffer_small{(uint)y_byte};
+		throw buffer_small{y_byte - static_cast<uint>(l)};
 	for(size_t i = y_byte-1; i>=1; i--){
 		by[i] = byte{static_cast<uint8_t>(uni & 0x3f)};
 		uni=unicode{uni >> 6};

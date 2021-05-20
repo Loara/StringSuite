@@ -30,6 +30,7 @@ configure_file(strsuite/encmetric/config.hpp.in strsuite/encmetric/config.hpp)
 
 add_library(strsuite
     ${CMAKE_CURRENT_BINARY_DIR}/strsuite/encmetric/config_enc.hpp
+    basic_ptr.cpp
     encoding.cpp
     utf8_enc.cpp
     enc_c.cpp
