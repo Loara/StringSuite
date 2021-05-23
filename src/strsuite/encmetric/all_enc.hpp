@@ -23,3 +23,4 @@
 #include <strsuite/encmetric/win_codepages.hpp>
 #include <strsuite/encmetric/koi8.hpp>
 #include <strsuite/encmetric/base64.hpp>
+#include <strsuite/encmetric/endianess.hpp>
