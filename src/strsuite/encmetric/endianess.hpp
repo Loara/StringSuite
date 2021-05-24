@@ -21,8 +21,11 @@
 
 namespace sts{
 
-template<bool be, typename T, unsigned int N = sizeof(T)> requires std::unsigned_integral<T>
-class Endian_enc{
+template<bool be, typename T, unsigned int N>
+class Endian_enc_size;
+
+template<bool be, typename T, unsigned int N > requires std::unsigned_integral<T>
+class Endian_enc_size<be, T, N>{
 public:
     using ctype=T;
     static constexpr uint min_bytes() noexcept{ return N;}
@@ -67,5 +70,29 @@ public:
         }
     }
 };
+
+template<bool be, typename T, unsigned int N > requires std::signed_integral<T>
+class Endian_enc_size<be, T, N>{
+public:
+    using ctype=T;
+    using unsigned_ctype=std::make_unsigned_t<T>;
+    static constexpr uint min_bytes() noexcept{ return N;}
+    static constexpr bool has_max() noexcept {return true;}
+    static constexpr uint max_bytes() noexcept{ return N;}
+	static uint chLen(const byte *, size_t siz) {return N;}
+	static validation_result validChar(const byte *, size_t l) noexcept {return validation_result{l >= static_cast<size_t>(N), N};}
+	static uint decode(T *uni, const byte *by, size_t l){
+        unsigned_ctype iv;
+        uint ret = Endian_enc_size<be, unsigned_ctype, N>::decode(&iv, by, l);
+        *uni = static_cast<T>(iv);
+        return ret;
+    }
+	static uint encode(const T &uni, byte *by, size_t l){
+        return Endian_enc_size<be, unsigned_ctype, N>::encode(static_cast<unsigned_ctype>(uni), by, l);
+    }
+};
+
+template<bool be, typename T>
+using Endian_enc = Endian_enc_size<be, T, sizeof(T)>;
 
 }

@@ -73,9 +73,6 @@ bool encoding_terminating(const byte *data, const EncMetric_info<T> &format, siz
 
 template<general_enctype T>
 class adv_string; //forward declaration
-template<general_enctype T>
-class adv_string_buf;
-
 
 template<general_enctype T>
 class adv_string_view{
@@ -160,11 +157,19 @@ class adv_string_view{
 		template<general_enctype S>
 		adv_string<T> concatenate(const adv_string_view<S> &, std::pmr::memory_resource * = std::pmr::get_default_resource()) const;
 
-	template<general_enctype W, general_enctype S>
-	friend adv_string_view<W> reassign(const adv_string_view<S> &);
-	template<general_enctype S>
-	friend class adv_string_buf;
+	friend adv_string_view<T> direct_build(const_tchar_pt<T> ptr, size_t len, size_t siz) noexcept;
 };
+
+/*
+ * Doesn't perform any control about dimensions
+ *
+ * Use with care
+ */
+template<general_enctype T>
+adv_string_view<T> direct_build(const_tchar_pt<T> ptr, size_t len, size_t siz) noexcept{
+    return adv_string_view<T>{len, siz, ptr};
+}
+
 
 template<strong_enctype T, typename U>
 adv_string_view<T> new_string_view(const U *b, size_t maxsiz, const terminate_func<T> &t = zero_terminating<T>){

@@ -57,7 +57,9 @@ void deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz, size_t chMax, size_t &len
         }
 	}
 }
+
 //-----------------------
+
 template<typename T>
 adv_string_view<T>::adv_string_view(const_tchar_pt<T> cu, size_t maxsiz, const terminate_func<T> &terminate) : ptr{cu}, len{0}, siz{0}{
 	deduce_lens(cu, maxsiz, len, siz, terminate);
@@ -424,7 +426,7 @@ void adv_string_buf<T>::clear() noexcept{
 
 template<typename T>
 adv_string_view<T> adv_string_buf<T>::view() const noexcept{
-	return adv_string_view<T>{len, siz, const_tchar_pt<T>{buffer.memory, ei}};
+	return direct_build<T>{const_tchar_pt<T>{buffer.memory, ei}, len, siz};
 }
 
 template<typename T>

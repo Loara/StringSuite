@@ -35,6 +35,16 @@ inline unicode read_unicode(byte b){
 
 inline constexpr unicode BOM{0xFEFF};
 
+inline constexpr unicode operator"" _uni(char32_t chr) noexcept{
+    return unicode{chr};
+}
+/*
+ * Only ASCII
+ */
+inline constexpr unicode operator"" _uni(char chr) noexcept{
+    return chr >= 0 ?  static_cast<unicode>(chr) : static_cast<unicode>(-chr);
+}
+
 template<typename T>
 struct conditional_result{
     bool success;

@@ -40,7 +40,7 @@ class Token{
 		/*
          * Step token parser by one character
          */
-		bool step() noexcept {
+		bool step() {
 			if(e == end)
 				return false;
 			e.next();
@@ -49,11 +49,11 @@ class Token{
 		/*
          * Share a view of current token
          */
-		adv_string_view<T> share() const noexcept {return adv_string_view<T>(s, e-s, true);}
+		adv_string_view<T> share() const {return adv_string_view<T>(s, e-s, e-s);}
 		/*
          * Steps the token pointer until it encounter a character contained in the argumet
          */
-		bool goUp(const adv_string_view<T> &delim) noexcept{
+		bool goUp(const adv_string_view<T> &delim){
 			if(e == end)
 				return false;
 			while(!delim.containsChar(e)){
@@ -66,7 +66,7 @@ class Token{
 		/*
          * Steps the token pointer until it encounter a character NOT contained in the argumet
          */
-		bool goUntil(const adv_string_view<T> &delim) noexcept{
+		bool goUntil(const adv_string_view<T> &delim){
 			if(e == end)
 				return false;
 			while(delim.containsChar(e)){
@@ -79,7 +79,7 @@ class Token{
 		/*
          * Get a view of token delimited by any delimiter character passed in the argument
          */
-		adv_string_view<T> proceed(const adv_string_view<T> &delim) noexcept{
+		adv_string_view<T> proceed(const adv_string_view<T> &delim){
             goUntil(delim);
 			flush();
 			goUp(delim);
