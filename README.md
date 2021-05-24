@@ -36,6 +36,20 @@ Usually encoding classes should be specified as template arguments of string cla
 
     const EncMetric<unicode> *utf8 = DynEncoding<UTF8>::instance();
 
+## String dimensions
+Encoded strings have two different types of lengths:
+
+ * **size** is simply the number of bytes occupied by the encoded string, same value returned by `strlen` in C and `std::string::length()`, `std::string::size()` in C++
+ * **length** instead is the number of characters encoded in your string.
+
+For example consider the UTF8 encoded string `abè€`: it contains exactly 4 characters but if you run `strlen` or the `std::string::length()` usuallt they return 7. This difference can be explained by how UTF8 encodes these four characters:
+
+1. character `a` is an ASCII character and so in UTF8 is encoded as `0x61`;
+2. for the same reason `b` is encoded as `0x62`;
+3. character `è` is not an ASCII character, so UTF8 encodes it by using 2 bytes: `0xc3 0xa8`;
+4. also `€` is not an ASCII character, and its UTF8 encoding not uses 3 bytes: `0xe2 0x82 0xac`.
+
+Then the size of string `abè€` is exactly 1+1+2+3=7. Strings in StringSuite, despite `std::string`, allow you to detect both the size and the length of any encoded string.
 
 ## Strings and string views
 An **adv_string_view** object is simply a view of an existing character encoded string (like che C `const char *` strings) that doesn't own the pointed data, so copying an adv_string_view doesn't automatically copy also the underlying string. Instead an `adv_string` object is more similar to C++ `std::string` object: it allocates enough space in order to contain its string. Copying and initializying a new adv_string also copy the encoded string, so you should usually use adv_string_view instead of adv_string if you don't need to manipulate your strings.
@@ -46,3 +60,14 @@ You can initialize new strings and new string views with `alloc_string` and `new
     adv_string<UTF16LE> b = alloc_string<UTF16LE>(u"World");
     adv_string_view<WIDEchr> wide = new_string_view<WIDEchr>(U"Azz", DynEncoding<UTF32LE>::instance());
     adv_string_view<ASCII>{"ASCII"}; //with gcc>=11.2
+
+You can perform all tha basic string operations on an `adv_string_view`/`adv_string` class, for more informations see their class definitions in `strsuite/encmetric/enc_string.hpp` header file.
+
+## String buffer
+An **adv_string_buf** is a simple string buffer that allow you to build new strings. It can also perform **encoding conversions** so you should use it in order to perform encoding conversions (for example UTF8 from an UTF16 string).
+
+Once you create the desired string you can obtain it with one of the following methods:
+
+* `view()`: returns a view of underlying string buffer. **WARNING**: any buffer modification (for example appending new strings) invalidates all instantiated views. Use this function with extreme care;
+* `move()`: moves the underlying buffer to a new `adv_string` object. After this operation the buffer will be empty;
+* `allocate()`: allocates a new `adv_string` and copy buffer string to it. This consumes more resources than `move()` but preserves the buffer.
