@@ -28,3 +28,11 @@ size_t sts::raw_newline(){
     return raw_stdout_writebytes(ar, 4);
 }
 
+
+param_gen sts::decode_parameters(int, const char **){
+    auto pointer = GetCommandLineW();
+    int num;
+    auto ret = CommandLineToArgvW(pointer, &num);
+    return param_gen{static_cast<uint>(num), reinterpret_cast<const byte **>(ret)};
+}
+

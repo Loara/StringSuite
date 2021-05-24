@@ -75,7 +75,10 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
 install(FILES "strsuite/encmetric/chite.tpp"
     "strsuite/encmetric/enc_string.tpp" DESTINATION include/strsuite/encmetric)
 
+install(FILES "strsuite/params/param.hpp" DESTINATION include/strsuite/params)
+
 install(FILES "strsuite/encmetric.hpp" DESTINATION include/strsuite)
 install(FILES "strsuite/tokens.hpp" DESTINATION include/strsuite)
+
 install(FILES "${PROJECT_BINARY_DIR}/strsuite/encmetric/config.hpp" DESTINATION include/strsuite/encmetric)
 install(FILES "${PROJECT_BINARY_DIR}/strsuite/encmetric/config_enc.hpp" DESTINATION include/strsuite/encmetric)

@@ -10,38 +10,13 @@
 
     Encmetric is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
     GNU Lesser General Public License for more details.
 
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
-#include <strsuite/encmetric/byte_tools.hpp>
-#include <exception>
 
 namespace sts{
 
-class IOException : public std::exception{
-    public:
-        IOException() {}
-        const char *what() const noexcept {return "IO error";}
-};
-
-size_t raw_stdin_readbytes(byte *, size_t);
-size_t raw_stdout_writebytes(const byte *, size_t);
-size_t raw_stderr_writebytes(const byte *, size_t);
-
-size_t raw_newline();
-
-struct param_gen{
-    uint argn;
-    const byte **args;
-};
-
-param_gen decode_parameters(int, const char **);
-
 }
-
-
-
-
