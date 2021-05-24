@@ -426,7 +426,7 @@ void adv_string_buf<T>::clear() noexcept{
 
 template<typename T>
 adv_string_view<T> adv_string_buf<T>::view() const noexcept{
-	return direct_build<T>{const_tchar_pt<T>{buffer.memory, ei}, len, siz};
+	return direct_build<T>(const_tchar_pt<T>{buffer.memory, ei}, len, siz);
 }
 
 template<typename T>

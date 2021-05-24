@@ -157,7 +157,7 @@ class adv_string_view{
 		template<general_enctype S>
 		adv_string<T> concatenate(const adv_string_view<S> &, std::pmr::memory_resource * = std::pmr::get_default_resource()) const;
 
-	friend adv_string_view<T> direct_build(const_tchar_pt<T> ptr, size_t len, size_t siz) noexcept;
+	friend adv_string_view<T> direct_build<T>(const_tchar_pt<T> ptr, size_t len, size_t siz) noexcept;
 };
 
 /*
