@@ -18,6 +18,9 @@ To build and install the library you can run these commands:
     cmake --build .
     cmake --install .
 
+## Arch Linux
+On Arch Linux you can use package `stringsuite` in AUR, additional informations can be found at https://aur.archlinux.org/packages/stringsuite/.
+
 # Encodings currently included in this library
 * ASCII
 * Latin1 / ISO-8859-1, ISO-8859-2
