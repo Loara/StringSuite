@@ -1,21 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(StringSuite VERSION 1.1.2 DESCRIPTION "Library to manage encoded strings" LANGUAGES CXX)
+project(StringSuite VERSION 1.2 DESCRIPTION "Library to manage encoded strings" LANGUAGES CXX)
 
 #require C++20
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-
-#encoding detector
-#
-#if you are cross compiling then you cannot run the compiled command, so you have to find another way to add the selected header
-if(NOT CMAKE_CROSSCOMPILING)
-add_executable(detector detector.cpp)
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/strsuite/encmetric/config_enc.hpp
-    COMMAND detector ${CMAKE_CURRENT_BINARY_DIR}/strsuite/encmetric/config_enc.hpp
-    DEPENDS detector
-    )
-endif()
 
 #windows test
 if(CMAKE_SYSTEM_NAME MATCHES Win)
@@ -29,7 +18,6 @@ endif()
 configure_file(strsuite/encmetric/config.hpp.in strsuite/encmetric/config.hpp)
 
 add_library(strsuite
-    ${CMAKE_CURRENT_BINARY_DIR}/strsuite/encmetric/config_enc.hpp
     basic_ptr.cpp
     encoding.cpp
     utf8_enc.cpp
@@ -81,4 +69,3 @@ install(FILES "strsuite/encmetric.hpp" DESTINATION include/strsuite)
 install(FILES "strsuite/tokens.hpp" DESTINATION include/strsuite)
 
 install(FILES "${PROJECT_BINARY_DIR}/strsuite/encmetric/config.hpp" DESTINATION include/strsuite/encmetric)
-install(FILES "${PROJECT_BINARY_DIR}/strsuite/encmetric/config_enc.hpp" DESTINATION include/strsuite/encmetric)
