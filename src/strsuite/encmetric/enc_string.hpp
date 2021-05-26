@@ -83,26 +83,33 @@ class adv_string_view{
 	protected:
 		explicit adv_string_view(size_t length, size_t size, const_tchar_pt<T> bin) noexcept : ptr{bin}, len{length}, siz{size} {}
 	public:
-		explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz, const terminate_func<T> & = zero_terminating<T>);
+        explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz);
+		explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz, const terminate_func<T> &);
 		/*
 		    read at least len characters and/or siz bytes
 		*/
 		explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz, size_t maxlen);
 
-		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz, const terminate_func<T> &tf = zero_terminating<T>) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, tf} {}
+
+        explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz} {}
+		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz, const terminate_func<T> &tf) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, tf} {}
 		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz, size_t maxlen) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, maxlen} {}
 
-        #if costructors_concepts
+
 		template<typename U>
-		explicit adv_string_view(const U *b, size_t maxsiz, const terminate_func<T> &tf = zero_terminating<T>) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, maxsiz, tf} {}
+        explicit adv_string_view(const U *b, size_t maxsiz) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, maxsiz} {}
+		template<typename U>
+		explicit adv_string_view(const U *b, size_t maxsiz, const terminate_func<T> &tf) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, maxsiz, tf} {}
 		template<typename U>
 		explicit adv_string_view(const U *b, size_t siz, size_t len) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, siz, len} {}
 
+
 		template<typename U>
-		explicit adv_string_view(const U *b, size_t maxsiz, const EncMetric<typename T::ctype> *f, const terminate_func<T> &tf = zero_terminating<T>) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, tf} {}
+        explicit adv_string_view(const_tchar_pt<T> b, size_t maxsiz, const EncMetric<typename T::ctype> *f) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz} {}
+		template<typename U>
+		explicit adv_string_view(const U *b, size_t maxsiz, const EncMetric<typename T::ctype> *f, const terminate_func<T> &tf) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, tf} {}
 		template<typename U>
 		explicit adv_string_view(const U *b, const EncMetric<typename T::ctype> *f, size_t siz, size_t len) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, siz, len} {}
-        #endif
 
 		virtual ~adv_string_view() {}
 		/*
@@ -170,31 +177,50 @@ adv_string_view<T> direct_build(const_tchar_pt<T> ptr, size_t len, size_t siz) n
     return adv_string_view<T>{len, siz, ptr};
 }
 
+/*
+ * Basic string comparator
+ */
 
-template<strong_enctype T, typename U>
-adv_string_view<T> new_string_view(const U *b, size_t maxsiz, const terminate_func<T> &t = zero_terminating<T>){
-        return adv_string_view{new_const_pt<T>(b), maxsiz, t};
-}
+template<general_enctype S, general_enctype T>
+class adv_string_comparator{
+public:
+    static bool cmp(const adv_string_view<S> &a1, const adv_string_view<T> &a2){
+        if(!sameEnc(a1.begin(), a2.begin()))
+            return false;
+        const byte *b1 = a1.data();
+        const byte *b2 = a2.data();
+        size_t smin = a1.size() > a2.size() ? a2.size() : a1.size();
+        for(size_t i = 0; i < smin; i++){
+            if(byte_less(b1[i], b2[i]))
+                return true;
+            if(byte_less(b2[i], b1[i]))
+                return false;
+        }
+        return a1.size() < a2.size();
+    }
+    static bool cmp_rev(const adv_string_view<T> &a1, const adv_string_view<S> &a2){
+        if(!sameEnc(a1.begin(), a2.begin()))
+            return false;
+        const byte *b1 = a1.data();
+        const byte *b2 = a2.data();
+        size_t smin = a1.size() > a2.size() ? a2.size() : a1.size();
+        for(size_t i = 0; i < smin; i++){
+            if(byte_less(b1[i], b2[i]))
+                return true;
+            if(byte_less(b2[i], b1[i]))
+                return false;
+        }
+        return a1.size() < a2.size();
+    }
+};
 
-template<strong_enctype T, typename U>
-adv_string_view<T> new_string_view(const U *b, size_t siz, size_t len){
-        return adv_string_view{new_const_pt<T>(b), siz, len};
-}
-
-template<widenc T, typename U>
-adv_string_view<T> new_string_view(const U *b, const EncMetric<typename T::ctype> *f, size_t maxsiz, const terminate_func<T> &t = zero_terminating<T>){
-        return adv_string_view{new_const_pt<T>(b, f), maxsiz, t};
-}
-
-template<widenc T, typename U>
-adv_string_view<T> new_string_view(const U *b, const EncMetric<typename T::ctype> *f, size_t siz, size_t len){
-        return adv_string_view{new_const_pt<T>(b, f), siz, len};
-}
-
-template<typename T, typename S>
-bool sameEnc(const adv_string_view<T> &a, const adv_string_view<S> &b) noexcept{
-	return sameEnc(a.begin(), b.begin());
-}
+template<general_enctype T>
+class strless{
+public:
+    bool operator()(const adv_string_view<T> &a1, const adv_string_view<T> &a2) const{
+        return adv_string_comparator<T, T>::cmp(a1, a2);
+    }
+};
 
 
 template<general_enctype T>

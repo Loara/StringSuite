@@ -135,22 +135,9 @@ inline constexpr int acc(bool be, int dim, int i){
 template<typename T>
 constexpr T& access(T *by, bool be, int dim, int i){ return by[acc(be, dim, i)];}
 
-/*
-    Copy an array in with length len in array out with length len
-    The array in is threaten as if vas composed of (len/dim) items each of dimension dim
-    if be=false each item is copied in reverse order.
-
-inline constexpr void copy_end(const byte *in, int len, bool be, byte *out, int dim){
-	if((len % dim) != 0)
-		return;
-	int steps = len / dim;
-	for(int i=0; i<steps; i++){
-		for(int j=0; j<dim; j++)
-			out[i*dim + j] = access(in+(i*dim), be, dim, j);
-	}
+inline constexpr bool byte_less(byte a, byte b) noexcept{
+    return static_cast<uint>(a) < static_cast<uint>(b);
 }
-
-*/
 
 }
 

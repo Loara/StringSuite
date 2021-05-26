@@ -16,7 +16,15 @@
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
+#include <strsuite/encmetric/enc_io.hpp>
 
 namespace sts{
-
+    class ParamManager{
+    private:
+        param_gen parameters;
+        adv_string_view<IOenc> *datas;
+    public:
+        ParamManager(int, const char **);
+        iostr_view getParam(const iostr_view &);
+        bool findParam(const iostr_view &);
 }

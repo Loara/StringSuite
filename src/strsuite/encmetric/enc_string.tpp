@@ -17,6 +17,22 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 template<typename T>
+void deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz, size_t &len, size_t &siz){
+	len=0;
+	siz=0;
+	uint add=0;
+
+	while(maxsiz > 0){
+        try{
+            add = ptr.next_update(maxsiz);
+            siz += add;
+            len++;
+        }
+        catch(buffer_small &){break;}
+	}
+}
+
+template<typename T>
 void deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz, size_t &len, size_t &siz, const terminate_func<T> &terminate){
 	len=0;
 	siz=0;
@@ -59,6 +75,11 @@ void deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz, size_t chMax, size_t &len
 }
 
 //-----------------------
+
+template<typename T>
+adv_string_view<T>::adv_string_view(const_tchar_pt<T> cu, size_t maxsiz) : ptr{cu}, len{0}, siz{0}{
+	deduce_lens(cu, maxsiz, len, siz);
+}
 
 template<typename T>
 adv_string_view<T>::adv_string_view(const_tchar_pt<T> cu, size_t maxsiz, const terminate_func<T> &terminate) : ptr{cu}, len{0}, siz{0}{

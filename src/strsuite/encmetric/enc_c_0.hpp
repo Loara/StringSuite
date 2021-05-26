@@ -35,20 +35,25 @@ using c_achar_pt = const_tchar_pt<CENC>;
 using astr_view = adv_string_view<CENC>;
 using astr = adv_string<CENC>;
 
+using u8char_pt = tchar_pt<UTF8>;
+using c_u8char_pt = const_tchar_pt<UTF8>;
+using u8str_view = adv_string_view<UTF8>;
+using u8str = adv_string<UTF8>;
+
 inline astr_view getstring(const char *c, size_t maxsiz){
-	return new_string_view<CENC>(c, maxsiz);
+	return adv_string_view<CENC>{c, maxsiz};
 }
 
 inline adv_string_view<UTF8> getstring(const char8_t *c, size_t maxsiz){
-	return new_string_view<UTF8>(reinterpret_cast<const byte *>(c), maxsiz);
+	return adv_string_view<UTF8>{c, maxsiz};
 }
 
 inline adv_string_view<UTF16<bend>> getstring(const char16_t *c, size_t maxsiz){
-	return new_string_view<UTF16<bend>>(reinterpret_cast<const byte *>(c), maxsiz);
+	return adv_string_view<UTF16<bend>>{c, maxsiz};
 }
 
 inline adv_string_view<UTF32<bend>> getstring(const char32_t *c, size_t maxsiz){
-	return new_string_view<UTF32<bend>>(reinterpret_cast<const byte *>(c), maxsiz);
+	return adv_string_view<UTF32<bend>>{c, maxsiz};
 }
 
 /*
@@ -71,25 +76,27 @@ inline const EncMetric<unicode> *detect_bom(adv_string_view<RAW<unicode>> t){
 }
 
 inline namespace literals{
-inline namespace astr_literals{
-inline const byte * operator"" _raw(const char *c, std::size_t){
+
+inline const byte * operator""_raw(const char *c, std::size_t){
 	return reinterpret_cast<const byte *>(c);
 }
 
-inline astr_view operator"" _asv(const char *b, std::size_t st){
-	return new_string_view<CENC>(b, st);
-}
-inline adv_string_view<UTF8> operator"" _asv(const char8_t *b, std::size_t st){
-	return new_string_view<UTF8>(reinterpret_cast<const byte *>(b), st);
-}
-inline adv_string_view<UTF16<bend>> operator"" _asv(const char16_t *b, std::size_t st){
-	return new_string_view<UTF16<bend>>(reinterpret_cast<const byte *>(b), st * 2);
-}
-inline adv_string_view<UTF32<bend>> operator"" _asv(const char32_t *b, std::size_t st){
-	return new_string_view<UTF32<bend>>(reinterpret_cast<const byte *>(b), st * 4);
+inline astr_view operator""_asv(const char *b, std::size_t st){
+	return adv_string_view<CENC>{b, st};
 }
 
+inline adv_string_view<UTF8> operator""_asv(const char8_t *b, std::size_t st){
+	return adv_string_view<UTF8>{b, st};
 }
+
+inline adv_string_view<UTF16<bend>> operator""_asv(const char16_t *b, std::size_t st){
+	return adv_string_view<UTF16<bend>>{b, st * 2};
+}
+
+inline adv_string_view<UTF32<bend>> operator""_asv(const char32_t *b, std::size_t st){
+	return adv_string_view<UTF32<bend>>{b, st * 4};
+}
+
 }
 
 }
