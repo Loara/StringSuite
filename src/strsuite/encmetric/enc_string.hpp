@@ -163,6 +163,14 @@ adv_string_view<T> direct_build(const_tchar_pt<T> ptr, size_t len, size_t siz) n
 }
 
 /*
+ * Initialize from a null-terminating string
+ *
+ * Use only with legacy C strings, use only with UTF encodings
+ */
+template<typename T> requires general_enctype_of<T, unicode>
+adv_string_view<T> c_string(const_tchar_pt<T>);
+
+/*
  * Basic string comparator
  */
 

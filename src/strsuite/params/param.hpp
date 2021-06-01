@@ -17,14 +17,15 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 #include <strsuite/encmetric/enc_io.hpp>
+#include <vector>
 
 namespace sts{
     class ParamManager{
     private:
         param_gen parameters;
-        adv_string_view<IOenc> *datas;
     public:
-        ParamManager(int, const char **);
-        iostr_view getParam(const iostr_view &);
-        bool findParam(const iostr_view &);
+        ParamManager(int argn, const char **args) : parameters = decode_parameters(argn, args) {}
+        iostr_view get_param(int i) const{
+            if(i < 0 || i > argn)
+                throw encoding_error{"Invalid index"};
 }
