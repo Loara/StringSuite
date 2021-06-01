@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(StringSuite VERSION 1.2 DESCRIPTION "Library to manage encoded strings" LANGUAGES CXX)
+project(StringSuite VERSION 2 DESCRIPTION "Library to manage encoded strings" LANGUAGES CXX)
 
 #require C++20
 set(CMAKE_CXX_STANDARD 20)
@@ -49,6 +49,7 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
     "strsuite/encmetric/enc_io_core.hpp"
     "strsuite/encmetric/enc_io.hpp"
     "strsuite/encmetric/enc_string.hpp"
+    "strsuite/encmetric/stringbuild.hpp"
     "strsuite/encmetric/encoding.hpp"
     "strsuite/encmetric/exceptions.hpp"
     "strsuite/encmetric/iso8859_enc.hpp"
@@ -61,7 +62,8 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
     "strsuite/encmetric/win_codepages.hpp" DESTINATION include/strsuite/encmetric)
 
 install(FILES "strsuite/encmetric/chite.tpp"
-    "strsuite/encmetric/enc_string.tpp" DESTINATION include/strsuite/encmetric)
+    "strsuite/encmetric/enc_string.tpp"
+    "strsuite/encmetric/stringbuild.tpp" DESTINATION include/strsuite/encmetric)
 
 install(FILES "strsuite/params/param.hpp" DESTINATION include/strsuite/params)
 
