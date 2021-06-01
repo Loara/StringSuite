@@ -33,15 +33,17 @@ size_t raw_stderr_writebytes(const byte *, size_t);
 
 size_t raw_newline();
 
-struct param_gen{
-    uint argn;
-    const byte **args;
+class param_helper{
+    private:
+        int argn;
+        const byte **args;
+    public:
+        param_helper(int, const char **);
+        ~param_helper();
+        int npar() const noexcept {return argn;}
+        const byte *get(int i) const noexcept {return args[i];}
 };
-
-param_gen decode_parameters(int, const char **);
-
 }
-
 
 
 

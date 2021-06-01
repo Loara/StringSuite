@@ -36,3 +36,13 @@ param_gen sts::decode_parameters(int, const char **){
     return param_gen{static_cast<uint>(num), reinterpret_cast<const byte **>(ret)};
 }
 
+sts::param_helper::param_helper(int, const char **) : argn{0}, args{nullptr} {
+    auto pointer = GetCommandLineW();
+    auto ret = CommandLineToArgvW(pointer, &argn);
+    args = reinterpret_cast<const byte **>(ret);
+}
+
+sts::param_helper::~param_helper() {
+    LocalFree(args);
+}
+

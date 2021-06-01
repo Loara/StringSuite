@@ -65,8 +65,6 @@ install(FILES "strsuite/encmetric/chite.tpp"
     "strsuite/encmetric/enc_string.tpp"
     "strsuite/encmetric/stringbuild.tpp" DESTINATION include/strsuite/encmetric)
 
-install(FILES "strsuite/params/param.hpp" DESTINATION include/strsuite/params)
-
 install(FILES "strsuite/encmetric.hpp" DESTINATION include/strsuite)
 install(FILES "strsuite/tokens.hpp" DESTINATION include/strsuite)
 
