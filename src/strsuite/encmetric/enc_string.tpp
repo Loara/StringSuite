@@ -17,78 +17,84 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 template<typename T>
-void deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz, size_t &len, size_t &siz){
-	len=0;
-	siz=0;
+dimensions deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz){
+    dimensions ret{};
 	uint add=0;
 
 	while(maxsiz > 0){
         try{
             add = ptr.next_update(maxsiz);
-            siz += add;
-            len++;
+            ret.siz += add;
+            ret.len++;
         }
         catch(buffer_small &){break;}
 	}
+	return ret;
 }
 
 template<typename T>
-void deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz, size_t &len, size_t &siz, const terminate_func<T> &terminate){
-	len=0;
-	siz=0;
+dimensions deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz, const terminate_func<T> &terminate){
+    dimensions ret{};
 	uint add=0;
 
 	while(maxsiz > 0 && !terminate(ptr.data(), ptr.raw_format(), maxsiz)){
         try{
             add = ptr.next_update(maxsiz);
-            siz += add;
-            len++;
+            ret.siz += add;
+            ret.len++;
         }
         catch(buffer_small &){break;}
 	}
+	return ret;
 }
 
 template<typename T>
-void deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz, size_t chMax, size_t &len, size_t &siz){
-	len = 0;
-	siz = 0;
+dimensions deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz, size_t chMax){
+	dimensions ret{};
 	if constexpr(fixed_size<T>){
         /*
          * Let i the max integer such that T::min_bytes() * i <= maxsiz
          */
         size_t i = maxsiz / T::min_bytes();
-        len = i;
-        siz = T::min_bytes() * i;
+        ret.len = i;
+        ret.siz = T::min_bytes() * i;
 	}
 	else{
         uint add=0;
         while(maxsiz > 0 && chMax > 0){
             try{
                 add = ptr.next_update(maxsiz);
-                siz += add;
-                len++;
+                ret.siz += add;
+                ret.len++;
                 chMax--;
             }
             catch(buffer_small &){break;}
         }
 	}
+	return ret;
 }
 
 //-----------------------
 
 template<typename T>
 adv_string_view<T>::adv_string_view(const_tchar_pt<T> cu, size_t maxsiz) : ptr{cu}, len{0}, siz{0}{
-	deduce_lens(cu, maxsiz, len, siz);
+	dimensions d = deduce_lens(cu, maxsiz);
+    len = d.len;
+    siz = d.siz;
 }
 
 template<typename T>
 adv_string_view<T>::adv_string_view(const_tchar_pt<T> cu, size_t maxsiz, const terminate_func<T> &terminate) : ptr{cu}, len{0}, siz{0}{
-	deduce_lens(cu, maxsiz, len, siz, terminate);
+	dimensions d = deduce_lens(cu, maxsiz, terminate);
+    len = d.len;
+    siz = d.siz;
 }
 
 template<typename T>
 adv_string_view<T>::adv_string_view(const_tchar_pt<T> cu, size_t maxsiz, size_t maxlen) : ptr{cu}, len{0}, siz{0}{
-	deduce_lens(cu, maxsiz, maxlen, len, siz);
+	dimensions d = deduce_lens(cu, maxsiz, maxlen);
+    len = d.len;
+    siz = d.siz;
 }
 
 template<typename T>

@@ -29,6 +29,11 @@ class ByteIStream{
     public:
         virtual ~ByteIStream() {}
         size_t read(byte *b, size_t s){return do_read(b, s);}
+        void read_exactly(byte *b, size_t s){
+            size_t r = read(b, s);
+            if(r != s)
+                throw IOIncomplete{};
+        }
         void close(){ return do_close();}
         void flush(){return do_flush();}
 };
@@ -41,6 +46,11 @@ class ByteOStream{
     public:
         virtual ~ByteOStream() {}
         size_t write(const byte *b, size_t s){return do_write(b, s);}
+        void write_exactly(const byte *b, size_t s){
+            size_t r = write(b, s);
+            if(r != s)
+                throw IOIncomplete{};
+        }
         void close(){ return do_close();}
         void flush(){return do_flush();}
 };

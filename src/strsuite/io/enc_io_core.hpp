@@ -17,6 +17,8 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 #include <strsuite/encmetric/byte_tools.hpp>
+#include <strsuite/io/enc_io_exc.hpp>
+#include <strsuite/io/byte_stream.hpp>
 
 namespace sts{
 
@@ -25,6 +27,15 @@ size_t def_strlen(const byte *);
 size_t raw_stdin_readbytes(byte *, size_t);
 size_t raw_stdout_writebytes(const byte *, size_t);
 size_t raw_stderr_writebytes(const byte *, size_t);
+
+class raw_stdin_byte : public ByteIStream{
+protected:
+    size_t do_read(byte *to, size_t sl) {return raw_stdin_readbytes(to, sl);}
+    void do_close() {}
+    void do_flush() {}
+public:
+    raw_stdin_byte() {}
+};
 
 size_t raw_newline();
 

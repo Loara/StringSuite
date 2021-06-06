@@ -18,6 +18,7 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 #include <strsuite/encmetric/enc_string.hpp>
+#include <strsuite/encmetric/raw_buffer.hpp>
 
 namespace sts{
 
@@ -49,21 +50,28 @@ class adv_string : public adv_string_view<T>{
 };
 
 template<general_enctype T>
-class adv_string_buf{
+class adv_string_buf : private raw_buf{
 	private:
-		basic_ptr buffer;
 		EncMetric_info<T> ei;
-		size_t siz, len;
 	public:
-		adv_string_buf(EncMetric_info<T> f, std::pmr::memory_resource *alloc=std::pmr::get_default_resource()) : buffer{alloc}, ei{f}, siz{0}, len{0} {}
-		adv_string_buf(EncMetric_info<T> f, size_t siz, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()) : buffer{siz, alloc}, ei{f}, siz{0}, len{0} {}
+		adv_string_buf(EncMetric_info<T> f, std::pmr::memory_resource *alloc=std::pmr::get_default_resource()) : raw_buf{alloc}, ei{f} {}
+		adv_string_buf(EncMetric_info<T> f, size_t dim, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()) : raw_buf{dim, alloc}, ei{f} {}
+
+		adv_string_buf(std::pmr::memory_resource *alloc=std::pmr::get_default_resource()) requires strong_enctype<T> : adv_string_buf{EncMetric_info<T>{}, alloc} {}
+		adv_string_buf(size_t dim, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()) requires strong_enctype<T> : adv_string_buf{EncMetric_info<T>{}, dim, alloc} {}
+
+		adv_string_buf(const EncMetric<typename T::ctype> *f, std::pmr::memory_resource *alloc=std::pmr::get_default_resource()) requires widenc<T> : adv_string_buf{EncMetric_info<T>{f}, alloc} {}
+		adv_string_buf(const EncMetric<typename T::ctype> *f, size_t dim, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()) requires widenc<T> : adv_string_buf{EncMetric_info<T>{f}, dim, alloc} {}
+
+
 		adv_string_buf(const adv_string_view<T> &str, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()) : adv_string_buf{str.begin().raw_format(), str.size(), alloc} {
 			append_string(str);
 		}
 
 		size_t size() const noexcept { return siz;}
 		size_t length() const noexcept {return len;}
-		const byte *raw() {return buffer.memory;}
+		size_t capacity() const noexcept {return raw_capacity();}
+		const byte *raw() {return raw_first();}
 
 		/*
          * Only if encoding is the same
@@ -95,7 +103,7 @@ class adv_string_buf{
 };
 
 //---------------------
-
+/*
 template<strong_enctype T>
 adv_string_buf<T> new_str_buf(std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){
     return adv_string_buf<T>{EncMetric_info<T>{}, alloc};
@@ -118,7 +126,7 @@ template<typename T>
 adv_string_buf<T> new_str_buf(adv_string_view<T> str, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){
     return adv_string_buf<T>{str, alloc};
 }
-
+*/
 //------------------------
 
 template<strong_enctype T, typename U>
@@ -156,8 +164,8 @@ adv_string<S> operator+(const adv_string<S> &a, const adv_string<T> &b){
 	return a.template concatenate<T>(b, a.get_allocator());
 }
 
-using wstr = adv_string<WIDE<unicode>>;
-
+using wstr = adv_string<WIDEchr>;
+using wstr_buf = adv_string_buf<WIDEchr>;
 
 #include <strsuite/encmetric/stringbuild.tpp>
 }

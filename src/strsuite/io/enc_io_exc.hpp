@@ -42,14 +42,24 @@ class IOFail : public IOException{
         IOFail() : IOException{"IO failure"} {}
 };
 
-class EOF : public IOInfo{
+class IOEOF : public IOInfo{
     public:
-        EOF() : IOInfo{"End of file"} {}
+        IOEOF() : IOInfo{"End of file"} {}
 };
 
-class EAGAIN : public IOInfo{
+class IOAGAIN : public IOInfo{
     public:
-        EAGAIN() : IOInfo{"Nonblocking empty reading"} {}
+        IOAGAIN() : IOInfo{"Nonblocking empty reading"} {}
+};
+
+class IOBufsmall : public IOException{
+    public:
+        IOBufsmall() : IOException{"Buffer too small to contain next character"} {}
+};
+
+class IOIncomplete : public IOFail{
+    public:
+        IOIncomplete() : IOFail{"Incomplete read/write operation"} {}
 };
 
 class InvalidOP : public IOFail{

@@ -48,6 +48,7 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
     "strsuite/encmetric/enc_c.hpp"
     "strsuite/encmetric/enc_string.hpp"
     "strsuite/encmetric/stringbuild.hpp"
+    "strsuite/encmetric/raw_buffer.hpp"
     "strsuite/encmetric/encoding.hpp"
     "strsuite/encmetric/exceptions.hpp"
     "strsuite/encmetric/iso8859_enc.hpp"
@@ -61,11 +62,14 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
 
 install(FILES "strsuite/io/enc_io_core.hpp"
     "strsuite/io/enc_io.hpp"
-    "strsuite/io/byte_stream.hpp" DESTINATION include/strsuite/io)
+    "strsuite/io/byte_stream.hpp"
+    "strsuite/io/char_stream.hpp" DESTINATION include/strsuite/io)
 
 install(FILES "strsuite/encmetric/chite.tpp"
     "strsuite/encmetric/enc_string.tpp"
     "strsuite/encmetric/stringbuild.tpp" DESTINATION include/strsuite/encmetric)
+
+install(FILES "strsuite/io/char_stream.tpp" DESTINATION include/strsuite/io)
 
 install(FILES "strsuite/encmetric.hpp" DESTINATION include/strsuite)
 install(FILES "strsuite/tokens.hpp" DESTINATION include/strsuite)

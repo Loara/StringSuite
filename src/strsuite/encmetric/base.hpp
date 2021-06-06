@@ -58,6 +58,12 @@ struct conditional_result{
 using index_result=conditional_result<size_t>;
 using validation_result=conditional_result<uint>;
 
+struct dimensions{
+    size_t len;
+    size_t siz;
+    dimensions() : len{0}, siz{0} {}
+};
+
 template<std::unsigned_integral S, std::unsigned_integral T>
 inline constexpr bool no_overflow_sum(S s, T t)noexcept{
     return (s + t) >= s; //only one

@@ -28,6 +28,8 @@ namespace sts{
  * if you want to use UTF8 characters use instead u8 string literals
  */
 using CENC = ASCII;
+using UTF16SYS = UTF16<bend>;
+using UTF32SYS = UTF32<bend>;
 
 //better names
 using achar_pt = tchar_pt<CENC>;
@@ -39,6 +41,16 @@ using u8char_pt = tchar_pt<UTF8>;
 using c_u8char_pt = const_tchar_pt<UTF8>;
 using u8str_view = adv_string_view<UTF8>;
 using u8str = adv_string<UTF8>;
+
+using u16char_pt = tchar_pt<UTF16SYS>;
+using c_u16char_pt = const_tchar_pt<UTF16SYS>;
+using u16str_view = adv_string_view<UTF16SYS>;
+using u16str = adv_string<UTF16SYS>;
+
+using u32char_pt = tchar_pt<UTF32SYS>;
+using c_u32char_pt = const_tchar_pt<UTF32SYS>;
+using u32str_view = adv_string_view<UTF32SYS>;
+using u32str = adv_string<UTF32SYS>;
 
 inline astr_view getstring(const char *c, size_t maxsiz){
 	return adv_string_view<CENC>{c, maxsiz};
@@ -89,12 +101,12 @@ inline adv_string_view<UTF8> operator""_asv(const char8_t *b, std::size_t st){
 	return adv_string_view<UTF8>{b, st};
 }
 
-inline adv_string_view<UTF16<bend>> operator""_asv(const char16_t *b, std::size_t st){
-	return adv_string_view<UTF16<bend>>{b, st * 2};
+inline adv_string_view<UTF16SYS> operator""_asv(const char16_t *b, std::size_t st){
+	return adv_string_view<UTF16SYS>{b, st * 2};
 }
 
-inline adv_string_view<UTF32<bend>> operator""_asv(const char32_t *b, std::size_t st){
-	return adv_string_view<UTF32<bend>>{b, st * 4};
+inline adv_string_view<UTF32SYS> operator""_asv(const char32_t *b, std::size_t st){
+	return adv_string_view<UTF32SYS>{b, st * 4};
 }
 
 }

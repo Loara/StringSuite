@@ -22,9 +22,12 @@ size_t adv_string_buf<T>::append_string(const adv_string_view<S> &str){
         throw encoding_error{"Use append_string_c"};
 	size_t ret = str.size();
 	const byte *ptr = str.data();
+    raw_append_chrs(ptr, ret, str.length());
+    /*
 	append(buffer, siz, ptr, ret);
 	siz += ret;
 	len += str.length();
+	*/
 	return ret;
 } 
 
@@ -34,9 +37,12 @@ bool adv_string_buf<T>::append_chr_v(const_tchar_pt<T> ptr, size_t psiz){
 	if(!valid)
 		return false;
 	const byte *dat = ptr.data();
+    raw_append_chr(dat, valid.get());
+    /*
 	append(buffer, siz, dat, valid.get());
 	siz += valid.get();
 	len++;
+    */
 	return true;
 }
 
@@ -51,28 +57,13 @@ bool adv_string_buf<T>::append_chrs_v(const_tchar_pt<T> ptr, size_t psiz, size_t
         totalsize += valid.get();
     }
     const byte *data = ptr.data();
+    raw_append_chrs(data, totalsize, nchr);
+    /*
     append(buffer, siz, data, totalsize);
     siz += totalsize;
     len += nchr;
-    return true;
-    /*
-	uint lbuf;
-	size_t siztotal=0;
-	const_tchar_pt<T> verify = ptr;
-	for(size_t i=0; i<nchr; i++){
-		if(!verify.validChar(lbuf))
-			return false;
-		siztotal += lbuf;
-		if(siztotal > siz)
-			return false;
-		verify.next();
-	}
-	const byte *lay=ptr.data();
-	append(buffer, siz, lay, siztotal);
-	siz += siztotal;
-	len += nchr;
-	return true;
     */
+    return true;
 }
 
 template<typename T>
@@ -90,7 +81,6 @@ size_t adv_string_buf<T>::append_string_c(const adv_string_view<S> &str){
 	size_t nchr=str.length();
 
 	tchar_pt<T> base{buffer.memory, ei};
-	size_t to_r = buffer.dimension -siz;
     tchar_relative<T> to{base, siz};
 
 	size_t return_r = 0;
@@ -103,18 +93,20 @@ size_t adv_string_buf<T>::append_string_c(const adv_string_view<S> &str){
         uint wrt=0;
 		while(!written){
 			try{
-				wrt=to.encode_next_update(tempo, to_r);
+				wrt=to.encode_next(tempo, raw_rem());
 				written=true;
 			}
 			catch(const buffer_small &err){
+                /*
                 size_t olddim = buffer.dimension; //total occupied memory
                 buffer.exp_fit(olddim + err.get_required_size() +1);
                 to_r += buffer.dimension - olddim;
+                */
+                raw_increase(err.get_required_size());
                 base = base.new_instance(buffer.memory);
 			}
 		}
-		siz += wrt;
-		len ++;
+		raw_newchar(wrt);
 		return_r += wrt;
 	}
 	return return_r;
@@ -122,8 +114,7 @@ size_t adv_string_buf<T>::append_string_c(const adv_string_view<S> &str){
 
 template<typename T>
 void adv_string_buf<T>::clear() noexcept{
-	siz=0;
-	len=0;
+	raw_clear();
 }
 
 template<typename T>
@@ -136,9 +127,7 @@ adv_string<T> adv_string_buf<T>::move(){
 	size_t l=len;
 	size_t s=siz;
 	basic_ptr to = std::move(buffer);
-	buffer.leave();
-	len=0;
-	siz=0;
+	raw_leave();
 	return adv_string<T>{const_tchar_pt<T>{nullptr, ei}, l, s, std::move(to), 0};
 }
 
