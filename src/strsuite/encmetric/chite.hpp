@@ -65,7 +65,7 @@ class base_tchar_pt{
 		*/
 		data_type *data() const {return ptr;}
 		EncMetric_info<T> raw_format() const noexcept{ return ei;}
-		const EncMetric<ctype> &format() const noexcept {return ei.format();}
+		const EncMetric<ctype> *format() const noexcept {return ei.format();}
 		/*
 		    Informations about relative EncMetric
 		*/

@@ -1,4 +1,4 @@
-#include <strsuite/encmetric/enc_io.hpp>
+#include <strsuite/io/enc_io.hpp>
 using namespace sts;
 
 size_t sts::stdin_getChrs(iochar_pt ptr, size_t len){

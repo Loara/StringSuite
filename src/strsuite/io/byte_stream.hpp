@@ -21,28 +21,30 @@
 
 namespace sts{
 
-class IOException : public std::exception{
+class ByteIStream{
+    protected:
+        virtual size_t do_read(byte *, size_t)=0;
+        virtual void do_close()=0;
+        virtual void do_flush()=0;
     public:
-        IOException() {}
-        const char *what() const noexcept {return "IO error";}
+        virtual ~ByteIStream() {}
+        size_t read(byte *b, size_t s){return do_read(b, s);}
+        void close(){ return do_close();}
+        void flush(){return do_flush();}
 };
 
-size_t raw_stdin_readbytes(byte *, size_t);
-size_t raw_stdout_writebytes(const byte *, size_t);
-size_t raw_stderr_writebytes(const byte *, size_t);
-
-size_t raw_newline();
-
-class param_helper{
-    private:
-        int argn;
-        const byte **args;
+class ByteOStream{
+    protected:
+        virtual size_t do_write(const byte *, size_t)=0;
+        virtual void do_close()=0;
+        virtual void do_flush()=0;
     public:
-        param_helper(int, const char **);
-        ~param_helper();
-        int npar() const noexcept {return argn;}
-        const byte *get(int i) const noexcept {return args[i];}
+        virtual ~ByteOStream() {}
+        size_t write(const byte *b, size_t s){return do_write(b, s);}
+        void close(){ return do_close();}
+        void flush(){return do_flush();}
 };
+
 }
 
 

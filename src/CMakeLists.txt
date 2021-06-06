@@ -46,8 +46,6 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
     "strsuite/encmetric/chite.hpp"
     "strsuite/encmetric/enc_c_0.hpp"
     "strsuite/encmetric/enc_c.hpp"
-    "strsuite/encmetric/enc_io_core.hpp"
-    "strsuite/encmetric/enc_io.hpp"
     "strsuite/encmetric/enc_string.hpp"
     "strsuite/encmetric/stringbuild.hpp"
     "strsuite/encmetric/encoding.hpp"
@@ -60,6 +58,10 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
     "strsuite/encmetric/utf32_enc_0.hpp"
     "strsuite/encmetric/utf32_enc.hpp"
     "strsuite/encmetric/win_codepages.hpp" DESTINATION include/strsuite/encmetric)
+
+install(FILES "strsuite/io/enc_io_core.hpp"
+    "strsuite/io/enc_io.hpp"
+    "strsuite/io/byte_stream.hpp" DESTINATION include/strsuite/io)
 
 install(FILES "strsuite/encmetric/chite.tpp"
     "strsuite/encmetric/enc_string.tpp"

@@ -19,7 +19,7 @@
 #include <strsuite/encmetric/stringbuild.hpp>
 #include <strsuite/encmetric/all_enc.hpp>
 #include <strsuite/encmetric/config.hpp>
-#include <strsuite/encmetric/enc_io_core.hpp>
+#include <strsuite/io/enc_io_core.hpp>
 #include <type_traits>
 
 namespace sts{

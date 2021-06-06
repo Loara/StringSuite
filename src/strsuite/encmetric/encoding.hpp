@@ -222,8 +222,8 @@ constexpr int min_length(int nchr) noexcept{
 	return T::min_bytes() * nchr;
 }
 template<typename tt>
-int min_length(int nchr, const EncMetric<tt> &format) noexcept{
-	return format.d_min_bytes() * nchr;
+int min_length(int nchr, const EncMetric<tt> *format) noexcept{
+	return format->d_min_bytes() * nchr;
 }
 
 template<strong_enctype T>
@@ -232,9 +232,9 @@ constexpr int max_length(uint nchr){
 	return T::max_bytes() * nchr;
 }
 template<typename tt>
-int max_length(uint nchr, const EncMetric<tt> &format){
-	if(format.d_has_max())
-		return format.d_max_bytes() * nchr;
+int max_length(uint nchr, const EncMetric<tt> *format){
+	if(format->d_has_max())
+		return format->d_max_bytes() * nchr;
 	else
 		throw encoding_error{"This encoding has no superior limit"};
 }

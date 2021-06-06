@@ -74,21 +74,6 @@ void deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz, size_t chMax, size_t &len
 	}
 }
 
-template<typename T> requires general_enctype_of<T, unicode>
-adv_string_view<T> c_string(const_tchar_pt<T> pt){
-    size_t len=0, siz=0;
-    uint step;
-    unicode chrs;
-    const_tchar_pt<T> dec = pt;
-    step = dec.decode_next(&chrs, 100);
-    while(chrs != '\0'_uni){
-        len++;
-        siz += step;
-        step = dec.decode_next(&chrs, 100);
-    }
-    return direct_build<T>(pt, len, siz);
-}
-
 //-----------------------
 
 template<typename T>

@@ -1,8 +1,15 @@
 extern "C"{
 #include <windows.h>
 }
-#include <strsuite/encmetric/enc_io_core.hpp>
-using namespace sts;
+#include <strsuite/io/enc_io_core.hpp>
+
+size_t sts::def_strlen(const byte *b){
+    int i = lstrlenW(reinterpret_cast<LPCWSTR>(b));
+    if(i >= 0)
+        return static_cast<size_t>(i);
+    else
+        return IOException{};
+}
 
 size_t sts::raw_stdin_readbytes(byte *b, size_t siz){
 	DWORD y;
@@ -28,18 +35,10 @@ size_t sts::raw_newline(){
     return raw_stdout_writebytes(ar, 4);
 }
 
-
-param_gen sts::decode_parameters(int, const char **){
-    auto pointer = GetCommandLineW();
-    int num;
-    auto ret = CommandLineToArgvW(pointer, &num);
-    return param_gen{static_cast<uint>(num), reinterpret_cast<const byte **>(ret)};
-}
-
 sts::param_helper::param_helper(int, const char **) : argn{0}, args{nullptr} {
     auto pointer = GetCommandLineW();
     auto ret = CommandLineToArgvW(pointer, &argn);
-    args = reinterpret_cast<const byte **>(ret);
+    args = const_cast<const byte **>(reinterpret_cast<byte **>(ret));
 }
 
 sts::param_helper::~param_helper() {
