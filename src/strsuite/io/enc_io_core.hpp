@@ -17,15 +17,8 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 #include <strsuite/encmetric/byte_tools.hpp>
-#include <exception>
 
 namespace sts{
-
-class IOException : public std::exception{
-    public:
-        IOException() {}
-        const char *what() const noexcept {return "IO error";}
-};
 
 size_t def_strlen(const byte *);
 
