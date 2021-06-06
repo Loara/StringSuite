@@ -62,6 +62,7 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
 
 install(FILES "strsuite/io/enc_io_core.hpp"
     "strsuite/io/enc_io.hpp"
+    "strsuite/io/enc_io_exc.hpp"
     "strsuite/io/byte_stream.hpp"
     "strsuite/io/char_stream.hpp" DESTINATION include/strsuite/io)
 

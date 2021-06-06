@@ -97,7 +97,10 @@ class C_B_IStream : public CharIStream<T>{
     protected:
         virtual uint do_char_read(tchar_pt<T> pt, size_t buf);
         virtual void do_close() {input->close();}
-        virtual void do_flush() {input->flush();}
+        virtual void do_flush() {
+            input->flush();
+            c_buffer.raw_clear();
+        }
         virtual EncMetric_info<T> do_encmetric() const noexcept {return enc;}
     public:
         C_B_IStream(ByteIStream *in, EncMetric_info<T> e, std::pmr::memory_resource *all = std::pmr::get_default_resource()) : c_buffer{all}, input{in}, enc{e} {}

@@ -22,7 +22,7 @@ uint C_B_IStream<T>::do_char_read(tchar_pt<T> pt, size_t buf){
     byte *raw = pt.data();
     if(c_buffer.siz == 0){
         c_buffer.raw_increase(pt.min_bytes());
-        input->read_exactly(c_buffer.raw_first(), pt.min_bytes());
+        input->read_exactly(c_buffer.raw_last(), pt.min_bytes());
         c_buffer.siz += pt.min_bytes();
         uint chl = 0;
         bool readed = false;
@@ -32,6 +32,7 @@ uint C_B_IStream<T>::do_char_read(tchar_pt<T> pt, size_t buf){
                 if(chl > c_buffer.siz){
                     c_buffer.raw_fit(chl);
                     input->read_exactly(c_buffer.raw_last(), chl - c_buffer.siz);
+                    c_buffer.siz = chl;
                 }
                 readed = true;
             }
@@ -40,11 +41,13 @@ uint C_B_IStream<T>::do_char_read(tchar_pt<T> pt, size_t buf){
             }
         }
         while(!readed);
+        c_buffer.len = 1;
     }
     if(buf >= c_buffer.siz){
         c_buffer.raw_copy_to(raw);
+        uint ret = c_buffer.siz;
         c_buffer.raw_clear();
-        return c_buffer.siz;
+        return ret;
     }
     else
         throw IOBufsmall{};

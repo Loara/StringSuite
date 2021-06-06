@@ -34,6 +34,8 @@ using c_iochar_pt = const_tchar_pt<IOenc>;
 using iostr_view = adv_string_view<IOenc>;
 using iostr = adv_string<IOenc>;
 
+using CharByteIStream = C_B_IStream<IOenc>;
+
 /*
  * Read/write up to n characters (not n bytes)
  *

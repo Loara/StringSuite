@@ -1,6 +1,6 @@
 #include <strsuite/io/enc_io.hpp>
 using namespace sts;
-
+/*
 size_t sts::stdin_getChrs(iochar_pt ptr, size_t len){
 	if(len == 0)
 		return 0;
@@ -129,3 +129,4 @@ size_t sts::stderr_putChrs(c_iochar_pt ptr, size_t len){
 	while(!eof && chrWrite != len);
 	return chrWrite;
 }
+*/

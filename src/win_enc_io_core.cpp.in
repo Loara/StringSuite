@@ -11,12 +11,19 @@ size_t sts::def_strlen(const byte *b){
         return IOException{};
 }
 
-size_t sts::raw_stdin_readbytes(byte *b, size_t siz){
+sts::raw_stdin_byte::raw_stdin_byte() {}
+
+size_t sts::raw_stdin_byte::do_read(byte *b, size_t siz){
 	DWORD y;
 	if(ReadConsoleW(GetStdHandle(STD_INPUT_HANDLE), b, static_cast<DWORD>(siz/2), &y, NULL) == 0)
 		throw IOException{};
 	return 2*y;
 }
+
+void sts::raw_stdin_byte::do_close() {}
+
+void sts::raw_stdin_byte::do_flush() {}
+
 size_t sts::raw_stdout_writebytes(const byte *b, size_t siz){
 	DWORD y;
 	if(WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), b, static_cast<DWORD>(siz/2), &y, NULL) == 0)

@@ -1,24 +1,45 @@
 extern "C"{
 #include <unistd.h>
+#include <stdio.h>
 #include <string.h>
 }
 #include <strsuite/io/enc_io_core.hpp>
-using namespace sts;
 
 size_t sts::def_strlen(const byte *b){
     return strlen(reinterpret_cast<const char *>(b));
 }
 
-size_t sts::raw_stdin_readbytes(byte *b, size_t siz){
-	ssize_t tret = read(STDIN_FILENO, b, siz);
+ssize_t read_wrap(int fd, void *v, size_t l){
+    return read(fd, v, l);
+}
+
+sts::raw_stdin_byte::raw_stdin_byte() {}
+
+size_t sts::raw_stdin_byte::do_read(byte *b, size_t siz){
+	ssize_t tret = read_wrap(STDIN_FILENO, b, siz);
 	if(tret < 0){
         if(errno == EAGAIN || errno == EWOULDBLOCK)
-            return 0;
+            throw IOAGAIN{};
         else
-            throw IOException{};
+            throw IOFail{};
 	}
+	else if(tret == 0)
+        throw IOEOF{};
 	return static_cast<size_t>(tret);
 }
+
+void sts::raw_stdin_byte::do_close() {}
+
+void sts::raw_stdin_byte::do_flush() {
+    byte chr;
+    do{
+        auto r = read_wrap(STDIN_FILENO, &chr, 1);
+        if(r <= 0)
+            return;
+    }
+    while(chr != byte{'\n'});
+}
+
 size_t sts::raw_stdout_writebytes(const byte *b, size_t siz){
 	ssize_t tret = write(STDOUT_FILENO, b, siz);
 	if(tret < 0)

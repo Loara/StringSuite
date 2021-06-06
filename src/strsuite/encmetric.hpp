@@ -18,4 +18,4 @@
 */
 
 #include <strsuite/encmetric/enc_c.hpp>
-#include <strsuite/encmetric/enc_io.hpp>
+#include <strsuite/io/enc_io.hpp>
