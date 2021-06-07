@@ -4,6 +4,9 @@ extern "C"{
 #include <string.h>
 }
 #include <strsuite/io/enc_io_core.hpp>
+#include <strsuite/encmetric/raw_buffer.hpp>
+
+using sts::byte;
 
 size_t sts::def_strlen(const byte *b){
     return strlen(reinterpret_cast<const char *>(b));
@@ -13,31 +16,121 @@ ssize_t read_wrap(int fd, void *v, size_t l){
     return read(fd, v, l);
 }
 
-sts::raw_stdin_byte::raw_stdin_byte() {}
+class in_buffer : private sts::stat_buf<64>{
+    private:
+        int fd;
+        void refresh_empty(){
+            if(siz != 0)
+                return;
+            fir=0;
+            ssize_t wt = read_wrap(fd, raw_last(), raw_contiguous_last());
+            if(wt < 0){
+                if(errno == EAGAIN || errno == EWOULDBLOCK)
+                    throw sts::IOAGAIN{};
+                else
+                    throw sts::IOFail{};
+            }
+            else if(wt == 0)
+                throw sts::IOEOF{};
+            raw_set(static_cast<size_t>(wt));
+        }
+    public:
+        /*
+         * Read exactly len bytes, throw exception (IOEOF for example) if there are less
+         */
+        void copy_to(byte *to, size_t len){
+            byte *inc = to;
+            while(len > 0){
+                size_t buf_wrt = raw_contiguous_first();
+                if(buf_wrt > 0){
+                    size_t min = buf_wrt > len ? len : buf_wrt;
+                    std::memcpy(inc, raw_first(), min);
+                    inc += min;
+                    raw_get(min);
+                    len -= min;
+                }
+                else
+                    refresh_empty();
+            }
+        }
+        /*
+         * don't remove that byte from buffer
+         */
+        byte test_byte(){
+            if(siz == 0)
+                refresh_empty();
+            return *raw_first();
+        }
 
-size_t sts::raw_stdin_byte::do_read(byte *b, size_t siz){
-	ssize_t tret = read_wrap(STDIN_FILENO, b, siz);
-	if(tret < 0){
-        if(errno == EAGAIN || errno == EWOULDBLOCK)
-            throw IOAGAIN{};
-        else
-            throw IOFail{};
-	}
-	else if(tret == 0)
-        throw IOEOF{};
-	return static_cast<size_t>(tret);
-}
+        in_buffer(int f) : fd{f} {}
+};
 
-void sts::raw_stdin_byte::do_close() {}
 
-void sts::raw_stdin_byte::do_flush() {
-    byte chr;
-    do{
-        auto r = read_wrap(STDIN_FILENO, &chr, 1);
-        if(r <= 0)
-            return;
-    }
-    while(chr != byte{'\n'});
+class Linux_istream : public sts::CharIStream<sts::UTF8>{
+    private:
+        in_buffer buffer;
+    protected:
+        uint do_char_read(sts::tchar_pt<sts::UTF8> pt, size_t siz){
+            if(siz == 0)
+                return 0;
+            byte test = buffer.test_byte();
+            uint totl = sts::UTF8::chLen(&test, 1);
+            if(totl > siz)
+                throw sts::IOBufsmall{};
+            buffer.copy_to(pt.data(), totl);
+            return totl;
+            /*
+            if(lbuf == 0){
+                ssize_t tret = read_wrap(STDIN_FILENO, chbuf, 1);
+                if(tret < 0){
+                    if(errno == EAGAIN || errno == EWOULDBLOCK)
+                        throw sts::IOAGAIN{};
+                    else
+                        throw sts::IOFail{};
+                }
+                else if(tret == 0)
+                    throw sts::IOEOF{};
+                lbuf = sts::UTF8::chLen(chbuf, 1);
+                if(lbuf > 1){
+                    tret = read_wrap(STDIN_FILENO, chbuf+1, lbuf-1);
+                    if(tret <= 0)
+                        throw sts::IOFail{};//incomplete character
+                }
+            }
+            if(siz >= lbuf){
+                std::memcpy(pt.data(), chbuf, lbuf);
+                uint ret = lbuf;
+                lbuf = 0;
+                return ret;
+            }
+            else throw sts::IOBufsmall{};
+            */
+        }
+
+        void do_close() {}
+
+        void do_flush(){
+            byte chr[4];
+            sts::tchar_pt<sts::UTF8> o{chr};
+            do{
+                try{
+                    do_char_read(o, 4);
+                }
+                catch(...){
+                    return;
+                }
+            }
+            while(chr[0] != byte{'\n'});
+        }
+
+        sts::EncMetric_info<sts::UTF8> do_encmetric() const noexcept{ return sts::EncMetric_info<sts::UTF8>{};}
+    public:
+        Linux_istream () : buffer{STDIN_FILENO} {}
+};
+
+sts::CharIStream<sts::UTF8> *sts::get_console_stdin(){
+    static Linux_istream input{};
+    return &input;
 }
 
 size_t sts::raw_stdout_writebytes(const byte *b, size_t siz){

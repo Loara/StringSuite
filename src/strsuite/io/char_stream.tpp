@@ -22,7 +22,7 @@ uint C_B_IStream<T>::do_char_read(tchar_pt<T> pt, size_t buf){
     byte *raw = pt.data();
     if(c_buffer.siz == 0){
         c_buffer.raw_increase(pt.min_bytes());
-        input->read_exactly(c_buffer.raw_last(), pt.min_bytes());
+        input->read_exactly(c_buffer.raw_first(), pt.min_bytes());
         c_buffer.siz += pt.min_bytes();
         uint chl = 0;
         bool readed = false;

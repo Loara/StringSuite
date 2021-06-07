@@ -16,13 +16,36 @@ sts::raw_stdin_byte::raw_stdin_byte() {}
 size_t sts::raw_stdin_byte::do_read(byte *b, size_t siz){
 	DWORD y;
 	if(ReadConsoleW(GetStdHandle(STD_INPUT_HANDLE), b, static_cast<DWORD>(siz/2), &y, NULL) == 0)
-		throw IOException{};
+		throw IOFail{};
+    if(y == 0)
+        throw IOEOF{};
 	return 2*y;
 }
 
 void sts::raw_stdin_byte::do_close() {}
 
-void sts::raw_stdin_byte::do_flush() {}
+void sts::raw_stdin_byte::do_flush() {
+    byte rc[] = {byte{0x0d}, byte{0x00}};
+    byte nl[] = {byte{0x0a}, byte{0x00}};
+    byte buf[2];
+    bool hr=false, hn=false;
+    DWORD y;
+    do{
+        if(ReadConsoleW(GetStdHandle(STD_INPUT_HANDLE), &buf, static_cast<DWORD>(1), &y, NULL) == 0)
+            return;
+        if(y == 0)
+            return;
+        if(buf[0] == rc[0] && buf[1] == rc[1])
+            hr = true;
+        else if(hr && buf[0] == nl[0] && buf[1] == nl[1])
+            hn = true;
+        else{
+            hr = false;
+            hn= false;
+        }
+    }
+    while(hr && hn);
+}
 
 size_t sts::raw_stdout_writebytes(const byte *b, size_t siz){
 	DWORD y;

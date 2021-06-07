@@ -17,24 +17,22 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 #include <strsuite/encmetric/byte_tools.hpp>
+#include <strsuite/encmetric/config.hpp>
+#include <strsuite/encmetric/all_enc.hpp>
 #include <strsuite/io/enc_io_exc.hpp>
-#include <strsuite/io/byte_stream.hpp>
+#include <strsuite/io/char_stream.hpp>
 
 namespace sts{
+
+//System encoding for IO operations
+using IOenc = std::conditional_t<is_windows(), UTF16LE, UTF8>;
 
 size_t def_strlen(const byte *);
 
 size_t raw_stdout_writebytes(const byte *, size_t);
 size_t raw_stderr_writebytes(const byte *, size_t);
 
-class raw_stdin_byte : public ByteIStream{
-protected:
-    size_t do_read(byte *to, size_t sl);
-    void do_close();
-    void do_flush();
-public:
-    raw_stdin_byte();
-};
+CharIStream<IOenc> *get_console_stdin();
 
 size_t raw_newline();
 

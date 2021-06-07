@@ -65,4 +65,43 @@ namespace sts{
             std::memcpy(to, buffer.memory, siz);
         }
     };
+
+    /*
+     * N must be <2^64/2 in order to avoid integer overflow
+     */
+    template<size_t N>
+    struct stat_buf{
+        byte buf[N];
+        size_t fir, siz;
+        stat_buf() : fir{0}, siz{0} {}
+        size_t raw_freespace(){
+            return N-siz;
+        }
+        byte *raw_first(){
+            return buf+fir;
+        }
+        byte *raw_last(){
+            return buf + ((fir+siz) % N);
+        }
+        size_t raw_contiguous_first(){
+            if((fir+siz) <= N)
+                return siz;
+            else
+                return N - fir;
+        }
+        size_t raw_contiguous_last(){
+            if((fir+siz) < N)
+                return N - (fir+siz);
+            else
+                return N-siz;
+        }
+        void raw_get(size_t l){
+            fir = (fir + l) % N;
+            siz -= l;
+        }
+        void raw_set(size_t l){
+            siz += l;
+        }
+    };
+
 }
