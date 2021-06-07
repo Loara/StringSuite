@@ -1,16 +1,127 @@
 extern "C"{
 #include <windows.h>
 }
+#include <strsuite/encmetric/base.hpp>
 #include <strsuite/io/enc_io_core.hpp>
 
-size_t sts::def_strlen(const byte *b){
+size_t sts::def_strlen(const sts::byte *b){
     int i = lstrlenW(reinterpret_cast<LPCWSTR>(b));
     if(i >= 0)
         return static_cast<size_t>(i);
     else
-        return IOException{};
+        throw sts::IOFail{};
 }
 
+
+class in_buffer : private sts::stat_buf<64>{
+    private:
+        HANDLE fd;
+        void refresh_empty(){
+            if(siz != 0)
+                return;
+            fir=0;
+            DWORD chrr;
+            auto err = ReadConsoleW(fd, raw_last(), raw_contiguous_last()/2, &chrr, NULL);
+            if(err == 0){
+                auto errnoo = GetLastError();
+                if(errnoo == ERROR_IO_PENDING)
+                    throw sts::IOAGAIN{};
+                else
+                    throw sts::IOFail{};
+            }
+            else if(chrr == 0)
+                throw sts::IOEOF{};
+            raw_set(static_cast<size_t>(2*chrr));
+        }
+    public:
+        /*
+         * Read exactly len bytes, throw exception (IOEOF for example) if there are less
+         */
+        void copy_to(sts::byte *to, size_t len){
+            //even
+            len = len - (len % 2);
+            sts::byte *inc = to;
+            while(len > 0){
+                size_t buf_wrt = raw_contiguous_first();
+                if(buf_wrt > 0){
+                    size_t min = buf_wrt > len ? len : buf_wrt;
+                    std::memcpy(inc, raw_first(), min);
+                    inc += min;
+                    raw_get(min);
+                    len -= min;
+                }
+                else
+                    refresh_empty();
+            }
+        }
+        /*
+         * don't remove that byte from buffer
+         */
+        void test_byte(sts::byte *to){
+            if(siz == 0)
+                refresh_empty();
+            to[0] = *raw_first();
+            to[1] = *(raw_first()+1);
+        }
+
+        in_buffer(HANDLE f) : fd{f} {}
+};
+
+
+class Windows_istream : public sts::CharIStream<sts::UTF16LE>{
+    private:
+        in_buffer buffer;
+    protected:
+        sts::uint do_char_read(sts::tchar_pt<sts::UTF16LE> pt, size_t siz){
+            if(siz == 0)
+                return 0;
+            sts::byte cht[2];
+            buffer.test_byte(cht);
+            sts::uint totl = sts::UTF16LE::chLen(cht, 2);
+            if(totl > siz)
+                throw sts::IOBufsmall{};
+            buffer.copy_to(pt.data(), totl);
+            return totl;
+        }
+
+        void do_close() {}
+
+        void do_flush(){
+            sts::byte rc[] = {sts::byte{0x0d}, sts::byte{0x00}};
+            sts::byte nl[] = {sts::byte{0x0a}, sts::byte{0x00}};
+            sts::byte buf[4];
+            sts::tchar_pt<sts::UTF16LE> o{buf};
+            bool hr=false, hn=false;
+            do{
+                try{
+                    do_char_read(o, 4);
+                }
+                catch(...){
+                    return;
+                }
+                if(buf[0] == rc[0] && buf[1] == rc[1])
+                    hr = true;
+                else if(hr && buf[0] == nl[0] && buf[1] == nl[1])
+                    hn = true;
+                else{
+                    hr = false;
+                    hn= false;
+                }
+            }
+            while(!hr || !hn);
+        }
+
+        sts::EncMetric_info<sts::UTF16LE> do_encmetric() const noexcept{ return sts::EncMetric_info<sts::UTF16LE>{};}
+    public:
+        Windows_istream () : buffer{GetStdHandle(STD_INPUT_HANDLE)} {}
+};
+
+sts::CharIStream<sts::UTF16LE> *sts::get_console_stdin(){
+    static Windows_istream input{};
+    return &input;
+}
+
+/*
 sts::raw_stdin_byte::raw_stdin_byte() {}
 
 size_t sts::raw_stdin_byte::do_read(byte *b, size_t siz){
@@ -46,14 +157,14 @@ void sts::raw_stdin_byte::do_flush() {
     }
     while(hr && hn);
 }
-
-size_t sts::raw_stdout_writebytes(const byte *b, size_t siz){
+*/
+size_t sts::raw_stdout_writebytes(const sts::byte *b, size_t siz){
 	DWORD y;
 	if(WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), b, static_cast<DWORD>(siz/2), &y, NULL) == 0)
 		throw IOException{};
 	return 2*y;
 }
-size_t sts::raw_stderr_writebytes(const byte *b, size_t siz){
+size_t sts::raw_stderr_writebytes(const sts::byte *b, size_t siz){
 	DWORD y;
 	if(WriteConsoleW(GetStdHandle(STD_ERROR_HANDLE), b, static_cast<DWORD>(siz/2), &y, NULL) == 0)
 		throw IOException{};
@@ -61,14 +172,14 @@ size_t sts::raw_stderr_writebytes(const byte *b, size_t siz){
 }
 
 size_t sts::raw_newline(){
-    byte ar[] = {byte{0x0d}, byte{0x00}, byte{0x0a}, byte{0x00}};
+    sts::byte ar[] = {sts::byte{0x0d}, sts::byte{0x00}, sts::byte{0x0a}, sts::byte{0x00}};
     return raw_stdout_writebytes(ar, 4);
 }
 
 sts::param_helper::param_helper(int, const char **) : argn{0}, args{nullptr} {
     auto pointer = GetCommandLineW();
     auto ret = CommandLineToArgvW(pointer, &argn);
-    args = const_cast<const byte **>(reinterpret_cast<byte **>(ret));
+    args = const_cast<const sts::byte **>(reinterpret_cast<sts::byte **>(ret));
 }
 
 sts::param_helper::~param_helper() {
