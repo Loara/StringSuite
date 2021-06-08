@@ -83,12 +83,18 @@ namespace sts{
         byte *raw_last(){
             return buf + ((fir+siz) % N);
         }
+        /*
+         * This returns 0 if and only if buffer is empty
+         */
         size_t raw_contiguous_first(){
             if((fir+siz) <= N)
                 return siz;
             else
                 return N - fir;
         }
+        /*
+         * This returns 0 if and only if buffer is full
+         */
         size_t raw_contiguous_last(){
             if((fir+siz) < N)
                 return N - (fir+siz);

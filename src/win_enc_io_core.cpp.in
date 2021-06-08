@@ -31,7 +31,7 @@ class in_buffer : private sts::stat_buf<64>{
             }
             else if(chrr == 0)
                 throw sts::IOEOF{};
-            raw_set(static_cast<size_t>(2*chrr));
+            raw_set(2 * static_cast<size_t>(chrr));
         }
     public:
         /*
@@ -67,6 +67,47 @@ class in_buffer : private sts::stat_buf<64>{
         in_buffer(HANDLE f) : fd{f} {}
 };
 
+class out_buffer : private sts::stat_buf<64> {
+    private:
+        HANDLE fd;
+    public:
+        void svuota(){
+            while(raw_contiguous_first() > 0){
+                DWORD chrr;
+                auto err = WriteConsoleW(fd, raw_first(), raw_contiguous_first()/2, &chrr, NULL);
+                if(err == 0){
+                    auto errnoo = GetLastError();
+                    if(errnoo == ERROR_IO_PENDING)
+                        throw sts::IOAGAIN{};
+                    else
+                        throw sts::IOFail{};
+                }
+                else if(chrr == 0)
+                    throw sts::IOEOF{};
+                raw_get(2 * static_cast<size_t>(chrr));
+            }
+        }
+        /*
+         * Read exactly len bytes, throw exception (IOEOF for example) if there are less
+         */
+        void copy_from(const sts::byte *to, size_t len){
+            const sts::byte *inc = to;
+            while(len > 0){
+                size_t buf_wrt = raw_contiguous_last();
+                if(buf_wrt > 0){
+                    size_t min = buf_wrt > len ? len : buf_wrt;
+                    std::memcpy(raw_last(), inc, min);
+                    inc += min;
+                    raw_set(min);
+                    len -= min;
+                }
+                else
+                    svuota();
+            }
+        }
+
+        out_buffer(HANDLE f) : fd{f} {}
+};
 
 class Windows_istream : public sts::CharIStream<sts::UTF16LE>{
     private:
@@ -116,8 +157,43 @@ class Windows_istream : public sts::CharIStream<sts::UTF16LE>{
         Windows_istream () : buffer{GetStdHandle(STD_INPUT_HANDLE)} {}
 };
 
+class Windows_ostream : public sts::CharOStream<sts::UTF16LE>{
+    private:
+        out_buffer buffer;
+    protected:
+        sts::uint do_char_write(sts::const_tchar_pt<sts::UTF16LE> pt, size_t siz){
+            if(siz == 0)
+                return 0;
+            sts::uint totl = pt.chLen(siz);
+            if(totl > siz)
+                throw sts::IOBufsmall{};
+            buffer.copy_from(pt.data(), totl);
+            return totl;
+        }
+
+        void do_close() {}
+
+        void do_flush(){
+            buffer.svuota();
+        }
+
+        sts::EncMetric_info<sts::UTF16LE> do_encmetric() const noexcept{ return sts::EncMetric_info<sts::UTF16LE>{};}
+    public:
+        Windows_ostream (HANDLE f) : buffer{f} {}
+};
+
 sts::CharIStream<sts::UTF16LE> *sts::get_console_stdin(){
     static Windows_istream input{};
+    return &input;
+}
+
+sts::CharOStream<sts::UTF16LE> *sts::get_console_stdout(){
+    static Windows_ostream input{GetStdHandle(STD_OUTPUT_HANDLE)};
+    return &input;
+}
+
+sts::CharOStream<sts::UTF16LE> *sts::get_console_stderr(){
+    static Windows_ostream input{GetStdHandle(STD_ERROR_HANDLE)};
     return &input;
 }
 
@@ -158,23 +234,6 @@ void sts::raw_stdin_byte::do_flush() {
     while(hr && hn);
 }
 */
-size_t sts::raw_stdout_writebytes(const sts::byte *b, size_t siz){
-	DWORD y;
-	if(WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), b, static_cast<DWORD>(siz/2), &y, NULL) == 0)
-		throw IOException{};
-	return 2*y;
-}
-size_t sts::raw_stderr_writebytes(const sts::byte *b, size_t siz){
-	DWORD y;
-	if(WriteConsoleW(GetStdHandle(STD_ERROR_HANDLE), b, static_cast<DWORD>(siz/2), &y, NULL) == 0)
-		throw IOException{};
-	return 2*y;
-}
-
-size_t sts::raw_newline(){
-    sts::byte ar[] = {sts::byte{0x0d}, sts::byte{0x00}, sts::byte{0x0a}, sts::byte{0x00}};
-    return raw_stdout_writebytes(ar, 4);
-}
 
 sts::param_helper::param_helper(int, const char **) : argn{0}, args{nullptr} {
     auto pointer = GetCommandLineW();

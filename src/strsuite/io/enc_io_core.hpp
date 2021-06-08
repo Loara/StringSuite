@@ -33,8 +33,10 @@ size_t raw_stdout_writebytes(const byte *, size_t);
 size_t raw_stderr_writebytes(const byte *, size_t);
 
 CharIStream<IOenc> *get_console_stdin();
+CharOStream<IOenc> *get_console_stdout();
+CharOStream<IOenc> *get_console_stderr();
 
-size_t raw_newline();
+//size_t raw_newline();
 
 class param_helper{
     private:

@@ -30,22 +30,6 @@ using c_iochar_pt = const_tchar_pt<IOenc>;
 using iostr_view = adv_string_view<IOenc>;
 using iostr = adv_string<IOenc>;
 
-using CharByteIStream = C_B_IStream<IOenc>;
-
-/*
- * Read/write up to n characters (not n bytes)
- *
- * stdin_getChrs_verify verify each character and throws an incorrect_encoding exception if a character is not valid
- */
-size_t stdin_getChrs(iochar_pt, size_t);
-size_t stdin_getChrs_validate(iochar_pt, size_t);
-size_t stdout_putChrs(c_iochar_pt, size_t);
-size_t stderr_putChrs(c_iochar_pt, size_t);
-inline size_t stdout_putStr(iostr_view str) {return stdout_putChrs(str.begin(), str.length());}
-inline size_t stderr_putStr(iostr_view str) {return stderr_putChrs(str.begin(), str.length());}
-
-inline size_t stdout_endline(){return raw_newline();};
-
 }
 
 
