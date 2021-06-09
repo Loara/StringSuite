@@ -128,7 +128,7 @@ adv_string<T> adv_string_buf<T>::move(){
 	size_t s=siz;
 	basic_ptr to = std::move(buffer);
 	raw_leave();
-	return adv_string<T>{const_tchar_pt<T>{nullptr, ei}, l, s, std::move(to), 0};
+	return adv_string<T>{ei, l, s, std::move(to)};
 }
 
 template<typename T>
@@ -142,14 +142,13 @@ adv_string<T> adv_string_buf<T>::allocate(std::pmr::memory_resource *all) const{
 template<typename T>
 adv_string<T>::adv_string(const_tchar_pt<T> ptr, size_t len, size_t siz, basic_ptr by) : adv_string_view<T>{len, siz, ptr}, bind{std::move(by)} {}
 
-//ignore the memory pointed bu ptr, use the memory pointed by by
 template<typename T>
-adv_string<T>::adv_string(const_tchar_pt<T> ptr, size_t len, size_t siz, basic_ptr by, [[maybe_unused]] int ignore) : adv_string_view<T>{len, siz, ptr.new_instance(by.memory)}, bind{std::move(by)} {}
+adv_string<T>::adv_string(EncMetric_info<T> enc, size_t len, size_t siz, basic_ptr by) : adv_string_view<T>{len, siz, const_tchar_pt<T>{by.memory, enc}}, bind{std::move(by)} {}
 
 
 template<typename T>
 adv_string<T>::adv_string(const adv_string_view<T> &st, std::pmr::memory_resource *alloc)
-	 : adv_string{st.begin(), st.length(), st.size(), basic_ptr{st.data(), (std::size_t)st.size(), alloc}, 0} {}
+	 : adv_string{st.raw_format(), st.length(), st.size(), basic_ptr{st.data(), (std::size_t)st.size(), alloc}} {}
 
 
 

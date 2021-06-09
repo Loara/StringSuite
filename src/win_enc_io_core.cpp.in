@@ -1,8 +1,10 @@
 extern "C"{
 #include <windows.h>
 }
-#include <strsuite/encmetric/base.hpp>
+#include <strsuite/encmetric/enc_c.hpp>
 #include <strsuite/io/enc_io_core.hpp>
+
+using namespace sts::literals;
 
 size_t sts::def_strlen(const sts::byte *b){
     int i = lstrlenW(reinterpret_cast<LPCWSTR>(b));
@@ -109,18 +111,19 @@ class out_buffer : private sts::stat_buf<64> {
         out_buffer(HANDLE f) : fd{f} {}
 };
 
-class Windows_istream : public sts::CharIStream<sts::UTF16LE>{
+class Windows_istream : public sts::NewlineIStream<sts::UTF16LE>{
     private:
         in_buffer buffer;
     protected:
+        sts::adv_string_view<sts::UTF16LE> do_newline() const noexcept{ return u"\r\n"_asv;}
         sts::uint do_char_read(sts::tchar_pt<sts::UTF16LE> pt, size_t siz){
-            if(siz == 0)
-                return 0;
+            if(siz < 2)
+                throw sts::IOBufsmall{2-siz};
             sts::byte cht[2];
             buffer.test_byte(cht);
             sts::uint totl = sts::UTF16LE::chLen(cht, 2);
             if(totl > siz)
-                throw sts::IOBufsmall{};
+                throw sts::IOBufsmall{totl-siz};
             buffer.copy_to(pt.data(), totl);
             return totl;
         }
@@ -157,16 +160,17 @@ class Windows_istream : public sts::CharIStream<sts::UTF16LE>{
         Windows_istream () : buffer{GetStdHandle(STD_INPUT_HANDLE)} {}
 };
 
-class Windows_ostream : public sts::CharOStream<sts::UTF16LE>{
+class Windows_ostream : public sts::NewlineOStream<sts::UTF16LE>{
     private:
         out_buffer buffer;
     protected:
+        sts::adv_string_view<sts::UTF16LE> do_newline() const noexcept{ return u"\r\n"_asv;}
         sts::uint do_char_write(sts::const_tchar_pt<sts::UTF16LE> pt, size_t siz){
-            if(siz == 0)
-                return 0;
+            if(siz < 2)
+                throw sts::IOBufsmall{2-siz};
             sts::uint totl = pt.chLen(siz);
             if(totl > siz)
-                throw sts::IOBufsmall{};
+                throw sts::IOBufsmall{totl-siz};
             buffer.copy_from(pt.data(), totl);
             return totl;
         }
@@ -182,17 +186,17 @@ class Windows_ostream : public sts::CharOStream<sts::UTF16LE>{
         Windows_ostream (HANDLE f) : buffer{f} {}
 };
 
-sts::CharIStream<sts::UTF16LE> *sts::get_console_stdin(){
+sts::NewlineIStream<sts::UTF16LE> *sts::get_console_stdin(){
     static Windows_istream input{};
     return &input;
 }
 
-sts::CharOStream<sts::UTF16LE> *sts::get_console_stdout(){
+sts::NewlineOStream<sts::UTF16LE> *sts::get_console_stdout(){
     static Windows_ostream input{GetStdHandle(STD_OUTPUT_HANDLE)};
     return &input;
 }
 
-sts::CharOStream<sts::UTF16LE> *sts::get_console_stderr(){
+sts::NewlineOStream<sts::UTF16LE> *sts::get_console_stderr(){
     static Windows_ostream input{GetStdHandle(STD_ERROR_HANDLE)};
     return &input;
 }

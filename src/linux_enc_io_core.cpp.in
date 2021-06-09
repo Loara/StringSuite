@@ -4,11 +4,10 @@ extern "C"{
 #include <string.h>
 }
 #include <strsuite/io/enc_io_core.hpp>
-#include <strsuite/encmetric/raw_buffer.hpp>
-
-//#include <iostream>
+#include <strsuite/encmetric/enc_c.hpp>
 
 using sts::byte;
+using namespace sts::literals;
 
 size_t sts::def_strlen(const byte *b){
     return strlen(reinterpret_cast<const char *>(b));
@@ -112,17 +111,18 @@ class out_buffer : private sts::stat_buf<64> {
 };
 
 
-class Linux_istream : public sts::CharIStream<sts::UTF8>{
+class Linux_istream : public sts::NewlineIStream<sts::UTF8>{
     private:
         in_buffer buffer;
     protected:
+        sts::adv_string_view<sts::UTF8> do_newline() const noexcept{ return u8"\n"_asv;}
         uint do_char_read(sts::tchar_pt<sts::UTF8> pt, size_t siz){
             if(siz == 0)
-                return 0;
+                throw sts::IOBufsmall{1};
             byte test = buffer.test_byte();
             uint totl = sts::UTF8::chLen(&test, 1);
             if(totl > siz)
-                throw sts::IOBufsmall{};
+                throw sts::IOBufsmall{totl-siz};
             buffer.copy_to(pt.data(), totl);
             return totl;
             /*
@@ -174,16 +174,17 @@ class Linux_istream : public sts::CharIStream<sts::UTF8>{
         Linux_istream () : buffer{STDIN_FILENO} {}
 };
 
-class Linux_ostream : public sts::CharOStream<sts::UTF8>{
+class Linux_ostream : public sts::NewlineOStream<sts::UTF8>{
     private:
         out_buffer buffer;
     protected:
+        sts::adv_string_view<sts::UTF8> do_newline() const noexcept{ return u8"\n"_asv;}
         uint do_char_write(sts::const_tchar_pt<sts::UTF8> pt, size_t siz){
             if(siz == 0)
-                return 0;
+                throw sts::IOBufsmall{1};
             uint totl = pt.chLen(siz);
             if(totl > siz)
-                throw sts::IOBufsmall{};
+                throw sts::IOBufsmall{totl-siz};
             buffer.copy_from(pt.data(), totl);
             return totl;
         }
@@ -199,17 +200,17 @@ class Linux_ostream : public sts::CharOStream<sts::UTF8>{
         Linux_ostream (int f) : buffer{f} {}
 };
 
-sts::CharIStream<sts::UTF8> *sts::get_console_stdin(){
+sts::NewlineIStream<sts::UTF8> *sts::get_console_stdin(){
     static Linux_istream input{};
     return &input;
 }
 
-sts::CharOStream<sts::UTF8> *sts::get_console_stdout(){
+sts::NewlineOStream<sts::UTF8> *sts::get_console_stdout(){
     static Linux_ostream input{STDOUT_FILENO};
     return &input;
 }
 
-sts::CharOStream<sts::UTF8> *sts::get_console_stderr(){
+sts::NewlineOStream<sts::UTF8> *sts::get_console_stderr(){
     static Linux_ostream input{STDERR_FILENO};
     return &input;
 }

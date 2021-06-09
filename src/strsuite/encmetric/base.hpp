@@ -49,8 +49,9 @@ inline constexpr unicode operator"" _uni(char chr) noexcept{
 
 template<typename T>
 struct conditional_result{
-    bool success;
     T data;
+    bool success;
+    conditional_result(bool s, const T &d) : data{d}, success{s} {}
     explicit operator bool() const noexcept{ return success;}
     T get() const{ return data;}
 };

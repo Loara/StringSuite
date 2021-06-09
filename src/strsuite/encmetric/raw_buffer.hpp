@@ -66,10 +66,13 @@ namespace sts{
         }
     };
 
+    template<size_t N>
+    concept buffer_len = N > 1 && N < (static_cast<size_t>(1) << (sizeof(size_t) * 8 -1));
+
     /*
      * N must be <2^64/2 in order to avoid integer overflow
      */
-    template<size_t N>
+    template<size_t N> requires buffer_len<N>
     struct stat_buf{
         byte buf[N];
         size_t fir, siz;

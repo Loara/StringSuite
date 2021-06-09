@@ -15,6 +15,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
+/*
 template<general_enctype T>
 uint C_B_IStream<T>::do_char_read(tchar_pt<T> pt, size_t buf){
     if(!enc.equalTo(pt.raw_format()))
@@ -52,3 +53,4 @@ uint C_B_IStream<T>::do_char_read(tchar_pt<T> pt, size_t buf){
     else
         throw IOBufsmall{};
 }
+*/

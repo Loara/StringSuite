@@ -16,7 +16,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
-#include <strsuite/encmetric/enc_string.hpp>
+#include <strsuite/encmetric/stringbuild.hpp>
 #include <strsuite/encmetric/raw_buffer.hpp>
 #include <strsuite/io/byte_stream.hpp>
 
@@ -84,9 +84,80 @@ class CharOStream{
         const EncMetric<typename T::ctype> *format() const noexcept{ return raw_format().format();}
 };
 
+template<general_enctype T>
+class NewlineIStream : public CharIStream<T>{
+    protected:
+        virtual adv_string_view<T> do_newline() const noexcept=0;
+        virtual index_result do_is_endl(const byte *b, size_t siz)const noexcept{
+            auto nl = do_newline();
+            if(siz < nl.size())
+                return index_result{false, 0};
+            const byte *last = b + (siz - nl.size());
+            return index_result{std::memcmp(last, nl.data(), nl.size()) == 0, nl.size()};
+        }
+        virtual adv_string<T> do_getline(std::pmr::memory_resource *all){
+            raw_buf ptda{all};
+            tchar_pt<T> base{ptda.raw_first(), this->raw_format()};
+            tchar_relative<T> to{base};
+            adv_string_view<T> nl = do_newline();
+            bool endl = false;
+            while(!endl){
+                try{
+                    uint chl = this->char_read(to.convert(), ptda.raw_rem());
+                    to.next(ptda.raw_rem());
+                    ptda.raw_newchar(chl);
+                    endl = do_is_endl(ptda.raw_first(), ptda.siz).success;
+                }
+                catch(IOBufsmall &bs){
+                    ptda.raw_increase(bs.get_required_size());
+                    base = base.new_instance(ptda.raw_first());
+                }
+            }
+            return direct_build_dyn<T>(std::move(ptda.buffer), ptda.len, ptda.siz, this->raw_format());
+        }
+    public:
+        adv_string_view<T> newline() const noexcept{return do_newline();}
+        index_result is_endl(const byte *b, size_t siz)const noexcept{ return do_is_endl(b, siz);}
+        adv_string<T> getline(std::pmr::memory_resource *all=std::pmr::get_default_resource()){ return do_getline(all);}
+};
+
+template<general_enctype T>
+class NewlineOStream : public CharOStream<T>{
+    protected:
+        virtual adv_string_view<T> do_newline() const noexcept=0;
+        virtual index_result do_is_endl(const byte *b, size_t siz)const noexcept{
+            auto nl = do_newline();
+            if(siz < nl.size())
+                return index_result{false, 0};
+            const byte *last = b + (siz - nl.size());
+            return index_result{std::memcmp(last, nl.data(), nl.size()) == 0, nl.size()};
+        }
+        virtual size_t do_putnl(){
+            auto nl = do_newline();
+            return this->char_write(nl.begin(), nl.size());
+        }
+    public:
+        adv_string_view<T> newline() const noexcept{return do_newline();}
+        index_result is_endl(const byte *b, size_t siz)const noexcept{ return do_is_endl(b, siz);}
+        size_t putNL(){ return do_putnl();}
+        size_t endl(){
+            auto ret = do_putnl();
+            this->do_flush();
+            return ret;
+        }
+        size_t print(const adv_string_view<T> &str){
+            return this->chars_write(str.begin(), str.size(), str.length());
+        }
+        size_t println(const adv_string_view<T> &str){
+            size_t par = this->chars_write(str.begin(), str.size(), str.length());
+            par += endl();
+            return par;
+        }
+};
+
 /*
  * Threat bytestreams as char streams
- */
+
 
 template<general_enctype T>
 class C_B_IStream : public CharIStream<T>{
@@ -108,7 +179,7 @@ class C_B_IStream : public CharIStream<T>{
         C_B_IStream(ByteIStream *in, std::pmr::memory_resource *all = std::pmr::get_default_resource()) requires strong_enctype<T> : C_B_IStream{in, EncMetric_info<T>{}, all} {}
         C_B_IStream(ByteIStream *in, const EncMetric<typename T::ctype> *e, std::pmr::memory_resource *all = std::pmr::get_default_resource()) requires widenc<T> : C_B_IStream{in, EncMetric_info<T>{e}, all} {}
 };
-/*
+
 template<general_enctype T>
 class C_B_OStream : public CharOStream<T>{
     protected:

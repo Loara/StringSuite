@@ -17,7 +17,7 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 #include <strsuite/encmetric/byte_tools.hpp>
-#include <exception>
+#include <strsuite/encmetric/exceptions.hpp>
 
 namespace sts{
 
@@ -53,8 +53,15 @@ class IOAGAIN : public IOInfo{
 };
 
 class IOBufsmall : public IOException{
+    private:
+        size_t min;
     public:
-        IOBufsmall() : IOException{"Buffer too small to contain next character"} {}
+        IOBufsmall() : IOException{"Buffer too small to contain next character"}, min{0} {}
+        IOBufsmall(size_t m) : IOException{"Buffer too small to contain next character"}, min{m} {}
+        IOBufsmall(const buffer_small &bs) : IOException{"Buffer too small to contain next character"}, min{bs.get_required_size()} {}
+		size_t get_required_size() const noexcept{
+			return min;
+		}
 };
 
 class IOIncomplete : public IOFail{

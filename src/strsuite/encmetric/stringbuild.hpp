@@ -31,10 +31,8 @@ class adv_string : public adv_string_view<T>{
 
 		/*
 			USE WITH EXTREME CARE
-			init with memory pointed by data and ignore ptr, use it only to detect encoding
-			ignore is ignored
 		*/
-		adv_string(const_tchar_pt<T> ptr, size_t len, size_t siz, basic_ptr data, int ignore);
+		adv_string(EncMetric_info<T>, size_t len, size_t siz, basic_ptr data);
 	public:
 		adv_string(const adv_string_view<T> &, std::pmr::memory_resource *alloc);
 		adv_string(const adv_string<T> &me) : adv_string{static_cast<const adv_string_view<T> &>(me), me.get_allocator()} {}
@@ -47,7 +45,13 @@ class adv_string : public adv_string_view<T>{
 	friend class adv_string_view;
 	template<general_enctype S>
 	friend class adv_string_buf;
+    friend adv_string<T> direct_build_dyn<T>(basic_ptr, size_t , size_t, EncMetric_info<T>);
 };
+
+template<general_enctype T>
+adv_string<T> direct_build_dyn(basic_ptr data, size_t len, size_t siz, EncMetric_info<T> enc){
+    return adv_string<T>{enc, len, siz, std::move(data)};
+}
 
 template<general_enctype T>
 class adv_string_buf : private raw_buf{
