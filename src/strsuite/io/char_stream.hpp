@@ -134,7 +134,7 @@ class NewlineOStream : public CharOStream<T>{
         }
         virtual size_t do_putnl(){
             auto nl = do_newline();
-            return this->char_write(nl.begin(), nl.size());
+            return this->chars_write(nl.begin(), nl.size(), nl.length());
         }
     public:
         adv_string_view<T> newline() const noexcept{return do_newline();}

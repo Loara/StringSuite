@@ -30,6 +30,12 @@ using c_iochar_pt = const_tchar_pt<IOenc>;
 using iostr_view = adv_string_view<IOenc>;
 using iostr = adv_string<IOenc>;
 
+/*
+ * in order to define IOenc string literals you should use STS_IO_asv macro, for example
+ * iostr_view v = STS_IO_asv("Hello")
+ *initializes a system-aware "Hello" string
+ */
+
 }
 
 

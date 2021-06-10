@@ -66,6 +66,7 @@ namespace sts{
         }
     };
 
+
     template<size_t N>
     concept buffer_len = N > 1 && N < (static_cast<size_t>(1) << (sizeof(size_t) * 8 -1));
 

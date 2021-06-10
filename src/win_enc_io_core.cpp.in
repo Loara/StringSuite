@@ -69,7 +69,10 @@ class in_buffer : private sts::stat_buf<64>{
         in_buffer(HANDLE f) : fd{f} {}
 };
 
-class out_buffer : private sts::stat_buf<64> {
+/*
+ * little bug: endline \r\n in order to end a line must be printed all toghether, it must not be stripped away
+ */
+class out_buffer : public sts::stat_buf<64> {
     private:
         HANDLE fd;
     public:

@@ -27,7 +27,6 @@ add_library(strsuite
     iso8859_enc.cpp
     koi8.cpp
     win_codepages.cpp
-    enc_io.cpp
     enc_io_core.cpp
     base64.cpp)
 
@@ -61,7 +60,7 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
     "strsuite/encmetric/win_codepages.hpp" DESTINATION include/strsuite/encmetric)
 
 install(FILES "strsuite/io/enc_io_core.hpp"
-    "strsuite/io/enc_io.hpp"
+    "strsuite/io/enc_io_core.hpp"
     "strsuite/io/enc_io_exc.hpp"
     "strsuite/io/byte_stream.hpp"
     "strsuite/io/char_stream.hpp" DESTINATION include/strsuite/io)
@@ -74,5 +73,6 @@ install(FILES "strsuite/io/char_stream.tpp" DESTINATION include/strsuite/io)
 
 install(FILES "strsuite/encmetric.hpp" DESTINATION include/strsuite)
 install(FILES "strsuite/tokens.hpp" DESTINATION include/strsuite)
+install(FILES "strsuite/enc_io.hpp" DESTINATION include/strsuite)
 
 install(FILES "${PROJECT_BINARY_DIR}/strsuite/encmetric/config.hpp" DESTINATION include/strsuite/encmetric)
