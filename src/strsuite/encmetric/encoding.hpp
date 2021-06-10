@@ -106,7 +106,6 @@ using RAWchr=RAW<unicode>;
  * Concepts
  */
 
-
 template<typename T>
 concept strong_enctype = requires {typename T::ctype;} && requires(const byte *a, byte *b, typename T::ctype tu, size_t sz){
         {T::min_bytes()} noexcept->std::convertible_to<uint>;
@@ -130,6 +129,12 @@ concept not_widenc = strong_enctype<T> && !is_wide<T>::value;
 
 template<typename T>
 concept general_enctype = widenc<T> || strong_enctype<T>;
+
+template<typename T, typename tt>
+concept strong_enctype_of = strong_enctype<T> && std::same_as<typename T::ctype, tt>;
+
+template<typename T, typename tt>
+concept general_enctype_of = general_enctype<T> && std::same_as<typename T::ctype, tt>;
 
 /*
     index_traits control if encoding class ovverides the index
@@ -217,8 +222,8 @@ constexpr int min_length(int nchr) noexcept{
 	return T::min_bytes() * nchr;
 }
 template<typename tt>
-int min_length(int nchr, const EncMetric<tt> &format) noexcept{
-	return format.d_min_bytes() * nchr;
+int min_length(int nchr, const EncMetric<tt> *format) noexcept{
+	return format->d_min_bytes() * nchr;
 }
 
 template<strong_enctype T>
@@ -227,9 +232,9 @@ constexpr int max_length(uint nchr){
 	return T::max_bytes() * nchr;
 }
 template<typename tt>
-int max_length(uint nchr, const EncMetric<tt> &format){
-	if(format.d_has_max())
-		return format.d_max_bytes() * nchr;
+int max_length(uint nchr, const EncMetric<tt> *format){
+	if(format->d_has_max())
+		return format->d_max_bytes() * nchr;
 	else
 		throw encoding_error{"This encoding has no superior limit"};
 }

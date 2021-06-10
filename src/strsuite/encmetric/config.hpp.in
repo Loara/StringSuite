@@ -58,6 +58,15 @@
 #define costructors_concepts 0
 #endif
 
+/*
+ * System-dependent string literals
+ */
+#ifdef using_windows
+#define STS_IO_asv(str) u##str##_asv
+#else
+#define STS_IO_asv(str) u8##str##_asv
+#endif
+
 namespace sts{
 
 constexpr bool is_windows() noexcept{
@@ -68,18 +77,10 @@ constexpr bool is_windows() noexcept{
 	#endif
 }
 
-constexpr bool is_be() noexcept{
-	#ifdef Encmetric_end
-		return true;
-	#else
-		return false;
-	#endif
-}
-
-#ifdef using_windows
-
+#ifdef Encmetric_end
+inline constexpr bool bend = true;
 #else
-
+inline constexpr bool bend = false;
 #endif
 
 }

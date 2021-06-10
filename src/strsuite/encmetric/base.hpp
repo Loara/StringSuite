@@ -35,6 +35,7 @@ inline unicode read_unicode(byte b){
 
 inline constexpr unicode BOM{0xFEFF};
 
+inline namespace literals{
 inline constexpr unicode operator"" _uni(char32_t chr) noexcept{
     return unicode{chr};
 }
@@ -44,17 +45,25 @@ inline constexpr unicode operator"" _uni(char32_t chr) noexcept{
 inline constexpr unicode operator"" _uni(char chr) noexcept{
     return chr >= 0 ?  static_cast<unicode>(chr) : static_cast<unicode>(-chr);
 }
+}
 
 template<typename T>
 struct conditional_result{
-    bool success;
     T data;
+    bool success;
+    conditional_result(bool s, const T &d) : data{d}, success{s} {}
     explicit operator bool() const noexcept{ return success;}
     T get() const{ return data;}
 };
 
 using index_result=conditional_result<size_t>;
 using validation_result=conditional_result<uint>;
+
+struct dimensions{
+    size_t len;
+    size_t siz;
+    dimensions() : len{0}, siz{0} {}
+};
 
 template<std::unsigned_integral S, std::unsigned_integral T>
 inline constexpr bool no_overflow_sum(S s, T t)noexcept{

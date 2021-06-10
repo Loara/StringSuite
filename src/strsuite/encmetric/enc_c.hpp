@@ -23,6 +23,7 @@ namespace sts{
 extern template class tchar_pt<CENC>;
 extern template class const_tchar_pt<CENC>;
 extern template class adv_string_view<CENC>;
+extern template class adv_string_buf<CENC>;
 extern template class adv_string<CENC>;
 
 }
