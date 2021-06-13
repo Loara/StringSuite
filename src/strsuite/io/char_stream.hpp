@@ -16,9 +16,9 @@
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
-#include <strsuite/encmetric/stringbuild.hpp>
+#include <strsuite/encmetric/dynstring.hpp>
 #include <strsuite/encmetric/raw_buffer.hpp>
-#include <strsuite/io/byte_stream.hpp>
+#include <strsuite/io/enc_io_exc.hpp>
 
 namespace sts{
 
@@ -26,27 +26,28 @@ template<general_enctype T>
 class CharIStream{
     protected:
         virtual uint do_char_read(tchar_pt<T>, size_t)=0;
-        virtual size_t do_chars_read(tchar_pt<T> pt, size_t buf, size_t nchr){
-            if(nchr==0)
-                return 0;
-            size_t ret=0;
-            uint read=0;
-            for(size_t i=0; i<nchr; i++){
-                read = do_char_read(pt, buf);
-                ret += read;
-                buf-= read;
-                pt += read;
-            }
-            return ret;
-        }
+        virtual uint do_ghost_read(tchar_pt<T>, size_t)=0;
         virtual void do_close()=0;
         virtual void do_flush()=0;
         virtual EncMetric_info<T> do_encmetric() const noexcept=0;
     public:
         using ctype = typename T::ctype;
         virtual ~CharIStream() {}
-        uint char_read(tchar_pt<T> pt, size_t buf) {return do_char_read(pt, buf);}
-        size_t chars_read(tchar_pt<T> pt, size_t buf, size_t nchr) {return do_chars_read(pt, buf, nchr);}
+        template<general_enctype S>
+        uint char_read(tchar_pt<S> pt, size_t buf) {
+            auto enc=do_encmetric();
+            enc.assert_base_for(pt.raw_format());
+            return do_char_read(tchar_pt<T>{pt.data(), enc}, buf);
+        }
+        /*
+         * Read single character but don't update stream state: next read will read the same character
+         */
+        template<general_enctype S>
+        uint ghost_read(tchar_pt<S> pt, size_t buf) {
+            auto enc=do_encmetric();
+            enc.assert_base_for(pt.raw_format());
+            return do_ghost_read(tchar_pt<T>{pt.data(), enc}, buf);
+        }
         void close() {return do_close();}
         void flush() {return do_flush();}
         EncMetric_info<T> raw_format() const noexcept{ return do_encmetric();}
@@ -70,14 +71,33 @@ class CharOStream{
             }
             return ret;
         }
+        virtual size_t do_string_write(const adv_string_view<T> &str){
+            return do_chars_write(str.begin(), str.size(), str.length());
+        }
         virtual void do_close()=0;
         virtual void do_flush()=0;
         virtual EncMetric_info<T> do_encmetric() const noexcept=0;
     public:
         using ctype = typename T::ctype;
         virtual ~CharOStream() {}
-        uint char_write(const_tchar_pt<T> pt, size_t buf) {return do_char_write(pt, buf);}
-        size_t chars_write(const_tchar_pt<T> pt, size_t buf, size_t nchr) {return do_chars_write(pt, buf, nchr);}
+        template<general_enctype S>
+        uint char_write(const_tchar_pt<S> pt, size_t buf) {
+            auto enc = do_encmetric();
+            pt.raw_format().assert_base_for(enc);
+            return do_char_write(const_tchar_pt<T>{pt.data(), enc}, buf);
+        }
+        template<general_enctype S>
+        uint char_write(tchar_pt<S> pt, size_t buf) {
+            return char_write(pt.cast(), buf);
+        }
+        template<general_enctype S>
+        size_t chars_write(const_tchar_pt<S> pt, size_t buf, size_t nchr) {
+            auto enc = do_encmetric();
+            pt.raw_format().assert_base_for(enc);
+            return do_chars_write(const_tchar_pt<T>{pt.data(), enc}, buf, nchr);
+        }
+        template<general_enctype S>
+        size_t string_write(const adv_string_view<S> &str) {return do_string_write(str.rebase(do_encmetric()));}
         void close() {return do_close();}
         void flush() {return do_flush();}
         EncMetric_info<T> raw_format() const noexcept{ return do_encmetric();}
@@ -96,24 +116,26 @@ class NewlineIStream : public CharIStream<T>{
             return index_result{std::memcmp(last, nl.data(), nl.size()) == 0, nl.size()};
         }
         virtual adv_string<T> do_getline(std::pmr::memory_resource *all){
-            raw_buf ptda{all};
-            tchar_pt<T> base{ptda.raw_first(), this->raw_format()};
+            basic_ptr ptda{all};
+            size_t retsiz=0, retlen=0;
+            tchar_pt<T> base{ptda.memory, this->raw_format()};
             tchar_relative<T> to{base};
             adv_string_view<T> nl = do_newline();
             bool endl = false;
             while(!endl){
                 try{
-                    uint chl = this->char_read(to.convert(), ptda.raw_rem());
-                    to.next(ptda.raw_rem());
-                    ptda.raw_newchar(chl);
-                    endl = do_is_endl(ptda.raw_first(), ptda.siz).success;
+                    uint chl = this->char_read(to.convert(), ptda.dimension - retsiz);
+                    to.next(ptda.dimension - retsiz);
+                    retsiz += chl;
+                    retlen++;
+                    endl = do_is_endl(ptda.memory, retsiz).success;
                 }
                 catch(IOBufsmall &bs){
-                    ptda.raw_increase(bs.get_required_size());
-                    base = base.new_instance(ptda.raw_first());
+                    ptda.exp_fit(ptda.dimension + bs.get_required_size());
+                    base = base.new_instance(ptda.memory);
                 }
             }
-            return direct_build_dyn<T>(std::move(ptda.buffer), ptda.len, ptda.siz, this->raw_format());
+            return direct_build_dyn<T>(std::move(ptda), retlen, retsiz, this->raw_format());
         }
     public:
         adv_string_view<T> newline() const noexcept{return do_newline();}
@@ -134,22 +156,24 @@ class NewlineOStream : public CharOStream<T>{
         }
         virtual size_t do_putnl(){
             auto nl = do_newline();
-            return this->chars_write(nl.begin(), nl.size(), nl.length());
+            return this->do_string_write(nl);
         }
     public:
         adv_string_view<T> newline() const noexcept{return do_newline();}
         index_result is_endl(const byte *b, size_t siz)const noexcept{ return do_is_endl(b, siz);}
         size_t putNL(){ return do_putnl();}
         size_t endl(){
-            auto ret = do_putnl();
+            auto ret = this->do_putnl();
             this->do_flush();
             return ret;
         }
-        size_t print(const adv_string_view<T> &str){
-            return this->chars_write(str.begin(), str.size(), str.length());
+        template<general_enctype S>
+        size_t print(const adv_string_view<S> &str){
+            return this->string_write(str);
         }
-        size_t println(const adv_string_view<T> &str){
-            size_t par = this->chars_write(str.begin(), str.size(), str.length());
+        template<general_enctype S>
+        size_t println(const adv_string_view<S> &str){
+            size_t par = this->string_write(str);
             par += endl();
             return par;
         }

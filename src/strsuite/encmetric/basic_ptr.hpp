@@ -19,10 +19,9 @@
 #include <new>
 #include <memory_resource>
 #include <cstring>
+#include <strsuite/encmetric/base.hpp>
 
 namespace sts{
-
-using std::byte;
 
 /*
     A basic unique_ptr that uses memory resources
@@ -47,6 +46,12 @@ class basic_ptr{
 		basic_ptr &operator=(const basic_ptr &)=delete;
 
 		void reallocate(std::size_t dim);
+        /*
+         * shift n bytes from first to 0
+         *
+         * WARNING: you should be sure that first + n is lesser or equal than dimension
+         */
+        void shift(std::size_t first, std::size_t n);
 		void exp_fit(std::size_t fit);
 		byte* leave() noexcept;
 

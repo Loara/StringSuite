@@ -9,6 +9,15 @@ extern "C"{
 using sts::byte;
 using namespace sts::literals;
 
+/*
+ * If EWOULDBLOCK != EAGAIN redefine it as case EWOULDBLOCK:
+ */
+#define case_EWOULDBLOCK
+
+constexpr size_t buffer_size=64;
+
+static_assert(buffer_size > sts::UTF8::max_bytes(), "buffer too small");
+
 size_t sts::def_strlen(const byte *b){
     return strlen(reinterpret_cast<const char *>(b));
 }
@@ -20,96 +29,168 @@ ssize_t read_wrap(int fd, void *v, size_t l){
 ssize_t write_wrap(int fd, const void *v, size_t l){
     return write(fd, v, l);
 }
-
-class in_buffer : private sts::stat_buf<64>{
+class in_buffer{
     private:
         int fd;
-        void refresh_empty(){
-            if(siz != 0)
-                return;
+        byte buf[buffer_size];
+        size_t siz, fir;
+        void refresh(){
             fir=0;
-            ssize_t wt = read_wrap(fd, raw_last(), raw_contiguous_last());
-            if(wt < 0){
-                if(errno == EAGAIN || errno == EWOULDBLOCK)
-                    throw sts::IOAGAIN{};
-                else
-                    throw sts::IOFail{};
-            }
-            else if(wt == 0)
-                throw sts::IOEOF{};
-            raw_set(static_cast<size_t>(wt));
+            siz=0;
+        }
+        void fill(){
+            ssize_t wt;
+            bool repeat;
+            do{
+                repeat=false;
+                wt= read_wrap(fd, buf + siz, buffer_size - siz);
+                if(wt < 0){
+                    switch(errno){
+                        case EAGAIN:
+                        case_EWOULDBLOCK
+                            throw sts::IOAGAIN{};
+                        case EINTR:
+                            repeat = true;
+                            break;
+                        default:
+                            throw sts::IOFail{};
+                    }
+                }
+                else if(wt == 0)
+                    throw sts::IOEOF{};
+            }while(repeat);
+            siz += static_cast<size_t>(wt);
+        }
+        void shift(size_t &tmp){
+            if(fir == 0)
+                return;
+            siz = siz - fir;
+            tmp = tmp - fir;
+            std::memmove(buf, buf + fir, siz);
+            fir = 0;
         }
     public:
         /*
          * Read exactly len bytes, throw exception (IOEOF for example) if there are less
+         *
+         * Since it reads only single character we have len <= 4
+         * so tmp - fir <= 4 and if siz = tmp then
+         * buffer_size > 4 >= siz - fir and  buffer_size - (siz - fir) > 0, this implies that shift + fill will read at least 1 byte
          */
         void copy_to(byte *to, size_t len){
+            size_t tmp = fir;
             byte *inc = to;
             while(len > 0){
-                size_t buf_wrt = raw_contiguous_first();
+                size_t buf_wrt = siz - tmp;
                 if(buf_wrt > 0){
                     size_t min = buf_wrt > len ? len : buf_wrt;
-                    std::memcpy(inc, raw_first(), min);
+                    std::memcpy(inc, buf + tmp, min);
+                    tmp += min;
                     inc += min;
-                    raw_get(min);
                     len -= min;
                 }
-                else
-                    refresh_empty();
+                else{
+                    shift(tmp);
+                    fill();
+                }
             }
+            fir = tmp;
         }
-        /*
-         * don't remove that byte from buffer
-         */
-        byte test_byte(){
-            if(siz == 0)
-                refresh_empty();
-            return *raw_first();
+        void ghost_copy(byte *to, size_t len){
+            size_t tmp = fir;
+            byte *inc = to;
+            while(len > 0){
+                size_t buf_wrt = siz - tmp;
+                if(buf_wrt > 0){
+                    size_t min = buf_wrt > len ? len : buf_wrt;
+                    std::memcpy(inc, buf + tmp, min);
+                    tmp += min;
+                    inc += min;
+                    len -= min;
+                }
+                else{
+                    shift(tmp);
+                    fill();
+                }
+            }
+            //Nope
+            //fir = tmp;
         }
 
         in_buffer(int f) : fd{f} {}
 };
 
-class out_buffer : private sts::stat_buf<64> {
+class out_buffer{
     private:
         int fd;
-    public:
-        void svuota(){
-            while(raw_contiguous_first() > 0){
-                ssize_t wt = write_wrap(fd, raw_first(), raw_contiguous_first());
+        byte buf[buffer_size];
+        size_t pt1, pt2; // 0 < pt1 < pt2 < tmp < buffer_size
+        void refresh(){
+            pt1=0;
+            pt2=0;
+        }
+        void push(){
+            ssize_t wt;
+            bool repeat;
+            do{
+                repeat=false;
+                wt= write_wrap(fd, buf + pt1, pt2 - pt1);
                 if(wt < 0){
-                    if(errno == EAGAIN || errno == EWOULDBLOCK)
-                        throw sts::IOAGAIN{};
-                    else
-                        throw sts::IOFail{};
+                    switch(errno){
+                        case EAGAIN:
+                        case_EWOULDBLOCK
+                            throw sts::IOAGAIN{};
+                        case EINTR:
+                            repeat = true;
+                            break;
+                        case EDQUOT:
+                        case EFBIG:
+                            throw sts::IOEOF{};
+                        default:
+                            throw sts::IOFail{};
+                    }
                 }
                 else if(wt == 0)
                     throw sts::IOEOF{};
-                raw_get(static_cast<size_t>(wt));
-            }
+            }while(repeat);
+            pt1 += static_cast<size_t>(wt);
         }
-        /*
-         * Read exactly len bytes, throw exception (IOEOF for example) if there are less
-         */
-        void copy_from(const byte *to, size_t len){
-            const byte *inc = to;
+        void shift(){
+            std::memmove(buf, buf + pt1, pt2 - pt1);
+            pt2 = pt2 - pt1;
+            pt1 = 0;
+        }
+    public:
+        void copy_from(const byte *from, size_t len){
+            const byte *inc = from;
             while(len > 0){
-                size_t buf_wrt = raw_contiguous_last();
+                size_t buf_wrt = buffer_size - pt2;
                 if(buf_wrt > 0){
                     size_t min = buf_wrt > len ? len : buf_wrt;
-                    std::memcpy(raw_last(), inc, min);
+                    std::memcpy(buf+pt2, inc, min);
+                    pt2 += min;
                     inc += min;
-                    raw_set(min);
                     len -= min;
                 }
-                else
-                    svuota();
+                else{
+                    push();
+                    shift();
+                    //pt1 will always be 0
+                }
+            }
+        }
+
+        void flush(){
+            while(true){
+                shift();
+                if(pt2 == 0)
+                    break;
+                push();
             }
         }
 
         out_buffer(int f) : fd{f} {}
 };
-
 
 class Linux_istream : public sts::NewlineIStream<sts::UTF8>{
     private:
@@ -119,38 +200,23 @@ class Linux_istream : public sts::NewlineIStream<sts::UTF8>{
         uint do_char_read(sts::tchar_pt<sts::UTF8> pt, size_t siz){
             if(siz == 0)
                 throw sts::IOBufsmall{1};
-            byte test = buffer.test_byte();
-            uint totl = sts::UTF8::chLen(&test, 1);
+            buffer.ghost_copy(pt.data(), 1);
+            uint totl = pt.chLen(1);
             if(totl > siz)
                 throw sts::IOBufsmall{totl-siz};
             buffer.copy_to(pt.data(), totl);
             return totl;
-            /*
-            if(lbuf == 0){
-                ssize_t tret = read_wrap(STDIN_FILENO, chbuf, 1);
-                if(tret < 0){
-                    if(errno == EAGAIN || errno == EWOULDBLOCK)
-                        throw sts::IOAGAIN{};
-                    else
-                        throw sts::IOFail{};
-                }
-                else if(tret == 0)
-                    throw sts::IOEOF{};
-                lbuf = sts::UTF8::chLen(chbuf, 1);
-                if(lbuf > 1){
-                    tret = read_wrap(STDIN_FILENO, chbuf+1, lbuf-1);
-                    if(tret <= 0)
-                        throw sts::IOFail{};//incomplete character
-                }
-            }
-            if(siz >= lbuf){
-                std::memcpy(pt.data(), chbuf, lbuf);
-                uint ret = lbuf;
-                lbuf = 0;
-                return ret;
-            }
-            else throw sts::IOBufsmall{};
-            */
+        }
+
+        uint do_ghost_read(sts::tchar_pt<sts::UTF8> pt, size_t siz){
+            if(siz == 0)
+                throw sts::IOBufsmall{1};
+            buffer.ghost_copy(pt.data(), 1);
+            uint totl = pt.chLen(1);
+            if(totl > siz)
+                throw sts::IOBufsmall{totl-siz};
+            buffer.ghost_copy(pt.data(), totl);
+            return totl;
         }
 
         void do_close() {}
@@ -188,11 +254,15 @@ class Linux_ostream : public sts::NewlineOStream<sts::UTF8>{
             buffer.copy_from(pt.data(), totl);
             return totl;
         }
+        size_t do_string_write(sts::adv_string_view<sts::UTF8> &str){
+            buffer.copy_from(str.data(), str.size());
+            return str.size();
+        }
 
         void do_close() {}
 
         void do_flush(){
-            buffer.svuota();
+            buffer.flush();
         }
 
         sts::EncMetric_info<sts::UTF8> do_encmetric() const noexcept{ return sts::EncMetric_info<sts::UTF8>{};}

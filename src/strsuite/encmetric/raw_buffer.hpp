@@ -24,49 +24,6 @@
 #include <strsuite/encmetric/basic_ptr.hpp>
 
 namespace sts{
-    struct raw_buf{
-        basic_ptr buffer;
-        size_t len;
-        size_t siz;
-        raw_buf(std::pmr::memory_resource *all) : buffer{all}, len{0}, siz{0} {}
-        raw_buf(size_t dim, std::pmr::memory_resource *all) : buffer{dim, all}, len{0}, siz{0} {}
-        size_t raw_capacity() const noexcept {return buffer.dimension;}
-        size_t raw_rem() const noexcept {return buffer.dimension-siz;}
-        byte *raw_first() const noexcept {return buffer.memory;}
-        byte *raw_last() const noexcept {return buffer.memory + siz;}
-        void raw_clear() noexcept{
-            len=0;
-            siz=0;
-        }
-        void raw_leave(){
-            buffer.leave();
-            raw_clear();
-        }
-
-        void raw_fit(size_t fit){
-            buffer.exp_fit(fit);
-        }
-        void raw_increase(size_t inc){
-            buffer.exp_fit(buffer.dimension + inc);
-        }
-        void raw_newchar(uint chl) noexcept{
-            len++;
-            siz += chl;
-        }
-        void raw_append_chrs(const byte *from, size_t fs, size_t fl){
-            append(buffer, siz, from, fs);
-            siz += fs;
-            len += fl;
-        }
-        void raw_append_chr(const byte *from, size_t fs){
-            raw_append_chrs(from, fs, 1);
-        }
-        void raw_copy_to(byte *to) const{
-            std::memcpy(to, buffer.memory, siz);
-        }
-    };
-
-
     template<size_t N>
     concept buffer_len = N > 1 && N < (static_cast<size_t>(1) << (sizeof(size_t) * 8 -1));
 
@@ -77,20 +34,28 @@ namespace sts{
     struct stat_buf{
         byte buf[N];
         size_t fir, siz;
+
         stat_buf() : fir{0}, siz{0} {}
-        size_t raw_freespace(){
+
+        size_t raw_freespace() const noexcept{
             return N-siz;
         }
-        byte *raw_first(){
+        byte *raw_first() noexcept{
             return buf+fir;
         }
-        byte *raw_last(){
+        byte *raw_last() noexcept{
+            return buf + ((fir+siz) % N);
+        }
+        const byte *raw_first() const noexcept{
+            return buf+fir;
+        }
+        const byte *raw_last() const noexcept{
             return buf + ((fir+siz) % N);
         }
         /*
          * This returns 0 if and only if buffer is empty
          */
-        size_t raw_contiguous_first(){
+        size_t raw_contiguous_first() const noexcept{
             if((fir+siz) <= N)
                 return siz;
             else
@@ -99,7 +64,7 @@ namespace sts{
         /*
          * This returns 0 if and only if buffer is full
          */
-        size_t raw_contiguous_last(){
+        size_t raw_contiguous_last() const noexcept{
             if((fir+siz) < N)
                 return N - (fir+siz);
             else
@@ -114,4 +79,43 @@ namespace sts{
         }
     };
 
+    /*
+     * Useful for ghost reads
+     */
+
+    template<size_t N> requires buffer_len<N>
+    struct tmp_buf{
+        stat_buf<N> &ref;
+        size_t tfir, tsiz;
+
+        tmp_buf(stat_buf<N> &a) : ref{a}, tfir{a.fir}, tsiz{a.siz} {}
+        /*
+         * Should always be fir + siz = tfir + tsiz
+         */
+        byte *raw_first() const noexcept{
+            return ref.buf+tfir;
+        }
+        byte *raw_last() const noexcept{
+            return ref.raw_last();
+        }
+        size_t raw_contiguous_first() const noexcept{
+            if((tfir+tsiz) <= N)
+                return tsiz;
+            else
+                return N - tfir;
+        }
+        /*
+         * Mustn't override written memory shadowed by tfir
+         */
+        size_t raw_contiguous_last() const noexcept{
+            return ref.raw_contiguous_last();
+        }
+        void raw_get(size_t l){
+            tfir = (tfir + l) % N;
+            tsiz -= l;
+        }
+        void raw_set(size_t l){
+            tsiz += l;
+        }
+    };
 }

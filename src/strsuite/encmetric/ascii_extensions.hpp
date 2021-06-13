@@ -22,7 +22,7 @@
 namespace sts{
 
 /*
-    Base class for any single-byte ASCII extension
+    Base class for any single-byte ASCII extensions
 
     Enc is the class specialization, must have a public static array of unicode
     member table for each character from 80 to FF
@@ -31,6 +31,7 @@ template<typename Enc>
 class ASCII_extension{
 	public:
 		using ctype=unicode;
+        using alias=ASCII;
 		static constexpr uint min_bytes() noexcept {return 1;}
 		static constexpr bool has_max() noexcept {return true;}
 		static constexpr uint max_bytes() noexcept {return 1;}

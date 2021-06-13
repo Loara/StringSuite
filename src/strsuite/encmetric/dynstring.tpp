@@ -1,4 +1,3 @@
-#pragma once
 /*
     This file is part of Encmetric.
     Copyright (C) 2021 Paolo De Donato.
@@ -16,20 +15,17 @@
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
-#include <strsuite/encmetric/encoding.hpp>
 
-namespace sts{
-class UTF8{
-	public:
-		using ctype=unicode;
-        using alias=ASCII;
-		static constexpr uint min_bytes() noexcept {return 1;}
-		static constexpr bool has_max() noexcept {return true;}
-		static constexpr uint max_bytes() noexcept {return 4;}
-		static uint chLen(const byte *, size_t);
-		static validation_result validChar(const byte *, size_t) noexcept;
-		static uint decode(unicode *uni, const byte *by, size_t l);
-		static uint encode(const unicode &uni, byte *by, size_t l);
-};
+template<typename T>
+adv_string<T>::adv_string(const_tchar_pt<T> ptr, size_t len, size_t siz, basic_ptr by) : adv_string_view<T>{len, siz, ptr}, bind{std::move(by)} {}
 
-}
+template<typename T>
+adv_string<T>::adv_string(EncMetric_info<T> enc, size_t len, size_t siz, basic_ptr by) : adv_string_view<T>{len, siz, const_tchar_pt<T>{by.memory, enc}}, bind{std::move(by)} {}
+
+
+template<typename T>
+adv_string<T>::adv_string(const adv_string_view<T> &st, std::pmr::memory_resource *alloc)
+	 : adv_string{st.raw_format(), st.length(), st.size(), basic_ptr{st.data(), (std::size_t)st.size(), alloc}} {}
+
+
+

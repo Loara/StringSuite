@@ -82,6 +82,14 @@ void basic_ptr::reallocate(std::size_t dim){
     dimension = dim;
 }
 
+void basic_ptr::shift(std::size_t first, std::size_t n){
+    if(memory == nullptr || first == 0 || n == 0)
+        return;
+    if(first + n > dimension || !no_overflow_sum(first, n))
+        return;
+    std::memmove(memory, memory+first, n);
+}
+
 void basic_ptr::exp_fit(std::size_t fit){
     if(fit == 0)
         return;

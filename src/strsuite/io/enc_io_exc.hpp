@@ -42,16 +42,29 @@ class IOFail : public IOException{
         IOFail() : IOException{"IO failure"} {}
 };
 
+/*
+ * End of file
+ * thrown by an istream: there is no data to read
+ * thrown by an ostream: lesser bytes than expected are written due to limited output space
+ */
 class IOEOF : public IOInfo{
     public:
         IOEOF() : IOInfo{"End of file"} {}
 };
 
+/*
+ * Thrown by nonblocking terminal/sockets with an read/write operation that would block
+ *
+ * No data will be written / read
+ */
 class IOAGAIN : public IOInfo{
     public:
         IOAGAIN() : IOInfo{"Nonblocking empty reading"} {}
 };
 
+/*
+ * The size of passed buffer is not sufficient to contain a character
+ */
 class IOBufsmall : public IOException{
     private:
         size_t min;
@@ -64,11 +77,17 @@ class IOBufsmall : public IOException{
 		}
 };
 
+/*
+ * Character with invalid encoding
+ */
 class IOIncomplete : public IOFail{
     public:
         IOIncomplete() : IOFail{"Incomplete read/write operation"} {}
 };
 
+/*
+ * Operation not supported
+ */
 class InvalidOP : public IOFail{
     public:
         InvalidOP() : IOFail{"Invalid operation for this stream"} {}

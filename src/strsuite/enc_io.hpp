@@ -16,7 +16,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
-#include <strsuite/encmetric/stringbuild.hpp>
+#include <strsuite/encmetric/dynstring.hpp>
 #include <strsuite/encmetric/all_enc.hpp>
 #include <strsuite/encmetric/config.hpp>
 #include <strsuite/io/enc_io_core.hpp>

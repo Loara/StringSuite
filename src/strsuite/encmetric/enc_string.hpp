@@ -18,7 +18,7 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 #include <memory_resource>
-#include <string>
+//#include <string>
 #include <strsuite/encmetric/config.hpp>
 #include <strsuite/encmetric/chite.hpp>
 #include <strsuite/encmetric/basic_ptr.hpp>
@@ -67,6 +67,7 @@ class adv_string_view{
 	protected:
 		explicit adv_string_view(size_t length, size_t size, const_tchar_pt<T> bin) noexcept : ptr{bin}, len{length}, siz{size} {}
 	public:
+        using ctype = typename T::ctype;
         explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz);
 		explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz, const terminate_func<T> &);
 		/*
@@ -101,6 +102,21 @@ class adv_string_view{
 		*/
 		void verify() const;
 		bool verify_safe() const noexcept;
+
+		EncMetric_info<T> raw_format() const noexcept{ return ptr.raw_format();}
+		const EncMetric<ctype> *format() const noexcept{ return ptr.format();}
+
+        /*
+         * Returns the same string but with a compatible new encoding
+         * For example if T=ASCII then S can be UTF8, Latin1, Windows codepages, ....
+         */
+        template<general_enctype S>
+        adv_string_view<S> rebase(EncMetric_info<S>) const;
+        template<strong_enctype S>
+        adv_string_view<S> rebase() const {return rebase(EncMetric_info<S>{});}
+        adv_string_view<WIDE<ctype>> rebase(const EncMetric<ctype> *denc) const {return rebase(EncMetric_info<WIDE<ctype>>{denc});}
+        template<general_enctype S>
+        adv_string_view<S> rebase_as(const adv_string_view<S> &as) const{ return rebase(as.raw_format());}
 		
 		adv_string_view<T> substring(size_t b, size_t e, bool endstr) const;
 		adv_string_view<T> substring(size_t b, size_t e) const {return substring(b, e, false);}
@@ -109,35 +125,25 @@ class adv_string_view{
 		size_t size() const noexcept {return siz;}
 		size_t size(size_t a, size_t n) const;//bytes of first n character starting from the (a+1)-st character
 		size_t size(size_t n) const {return size(0, n);}
-		EncMetric_info<T> raw_format() const noexcept{ return ptr.raw_format();}
 
-		template<general_enctype S>
-		bool equal_to(const adv_string_view<S> &, size_t n) const;//compare only the first n character
+		bool equal_to(const adv_string_view<T> &, size_t n) const;//compare only the first n character
 
-		template<general_enctype S>
-		bool operator==(const adv_string_view<S> &) const;
+		bool operator==(const adv_string_view<T> &) const;
 
-		template<general_enctype S>
-		bool operator!=(const adv_string_view<S> &bin) const {return !(*this == bin);}
+		bool operator!=(const adv_string_view<T> &bin) const {return !(*this == bin);}
 
-		template<general_enctype S>
-		index_result bytesOf(const adv_string_view<S> &) const;
+		index_result bytesOf(const adv_string_view<T> &) const;
 
-		template<general_enctype S>
-		index_result indexOf(const adv_string_view<S> &) const;
+		index_result indexOf(const adv_string_view<T> &) const;
 
-		template<general_enctype S>
-		bool containsChar(const adv_string_view<S> &) const;
+		index_result containsChar(const adv_string_view<T> &) const;
 
-		template<general_enctype S>
-		bool startsWith(const adv_string_view<S> &) const;
+		bool startsWith(const adv_string_view<T> &) const;
 
-		template<general_enctype S>
-		bool endsWith(const adv_string_view<S> &) const;
+		bool endsWith(const adv_string_view<T> &) const;
 
 		const byte *data() const noexcept {return ptr.data();}
 		const char *raw() const noexcept {return (const char *)(ptr.data());}
-		std::string toString() const noexcept {return std::string{(const char *)(ptr.data()), siz};}
 		/*
 			Mustn't throw any exception if 0 <= a <= len
 		*/

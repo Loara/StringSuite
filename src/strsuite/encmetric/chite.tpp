@@ -15,42 +15,111 @@
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
-/*
-template<strong_enctype S, general_enctype T>
-bool sameEnc(const const_tchar_pt<T> &a) noexcept{
-	if constexpr(not_widenc<T>)
-		return same_enc<S, T>;
-	else{
-		const EncMetric<typename T::ctype> &f = a.format();
-		return f.index() == index_traits<S>::index();
-	}
+template<general_enctype T, typename U, typename B>
+uint base_tchar_pt<T, U, B>::next(size_t siz){
+    uint add = chLen(siz);
+    if(add > siz)
+        throw buffer_small{add - static_cast<uint>(siz)};
+    ptr += add;
+    return add;
 }
 
-template<general_enctype S, general_enctype T>
-bool sameEnc(const const_tchar_pt<S> &pa, const const_tchar_pt<T> &pb) noexcept{
-	if constexpr(widenc<S>){
-        if constexpr(widenc<T>){
-            auto fa = pa.format();
-            auto fb = pb.format();
-            return fa.index() == fb.index();
-        }
-        else
-            return sameEnc<T>(pa);
-    }
-    else{
-        return sameEnc<S>(pb);
-    }
-}
-*/
-template<general_enctype S, general_enctype T>
-tchar_pt<S> reassign(tchar_pt<T> p){
-    return tchar_pt<S>{p.data(), p.raw_format().template reassign<S>()};
+template<general_enctype T, typename U, typename B>
+uint base_tchar_pt<T, U, B>::next_update(size_t &siz){
+    uint skip = next(siz);
+    siz -= skip;
+    return skip;
 }
 
-template<general_enctype S, general_enctype T>
-const_tchar_pt<S> reassign(const_tchar_pt<T> p){
-    return const_tchar_pt<S>{p.data(), p.raw_format().template reassign<S>()};
+template<general_enctype T, typename U, typename B>
+validation_result base_tchar_pt<T, U, B>::valid_next(size_t siz) noexcept{
+    validation_result ret = validChar(siz);
+    if(ret)
+        ptr += ret.get();
+    return ret;
 }
+
+template<general_enctype T, typename U, typename B>
+validation_result base_tchar_pt<T, U, B>::valid_next_update(size_t &siz) noexcept{
+    validation_result ret = valid_next(siz);
+    if(ret)
+        siz -= ret.get();
+    return ret;
+}
+
+template<general_enctype T, typename U, typename B>
+uint base_tchar_pt<T, U, B>::decode_next(ctype *uni, size_t l){
+    uint ret = decode(uni, l);
+    ptr += ret;
+    return ret;
+}
+
+template<general_enctype T, typename U, typename B>
+uint base_tchar_pt<T, U, B>::decode_next_update(ctype *uni, size_t &l){
+    uint ret = decode_next(uni, l);
+    l -= ret;
+    return ret;
+}
+
+template<general_enctype T, typename U>
+uint wbase_tchar_pt<T, U>::encode_next(const typename base_tchar_pt<T, U, byte>::ctype &uni, size_t l) {
+    uint ret = encode(uni, l);
+    this->ptr += ret;
+    return ret;
+}
+
+template<general_enctype T, typename U>
+uint wbase_tchar_pt<T, U>::encode_next_update(const typename base_tchar_pt<T, U, byte>::ctype &uni, size_t &l) {
+    uint ret = encode_next(uni, l);
+    l -= ret;
+    return ret;
+}
+
+template<general_enctype T>
+uint tchar_relative<T>::decode_next(ctype *uni, size_t l) {
+    uint ret = decode(uni, l);
+    dif += ret;
+    return ret;
+}
+
+template<general_enctype T>
+uint tchar_relative<T>::encode_next(const ctype &uni, size_t l) {
+    uint ret = encode(uni, l);
+    dif += ret;
+    return ret;
+}
+
+template<general_enctype T>
+uint tchar_relative<T>::decode_next_update(ctype *uni, size_t &l) {
+    uint ret = decode_next(uni, l);
+    l -= ret;
+    return ret;
+}
+
+template<general_enctype T>
+uint tchar_relative<T>::encode_next_update(const ctype &uni, size_t &l) {
+    uint ret = encode_next(uni, l);
+    l -= ret;
+    return ret;
+}
+
+template<general_enctype T>
+uint tchar_relative<T>::next(size_t siz){
+    uint add = raw_format().chLen(data(), siz);
+    if(add > siz)
+        throw buffer_small{add};
+    dif += add;
+    return add;
+}
+
+template<general_enctype T>
+uint tchar_relative<T>::next_update(size_t &siz){
+    uint ret = next(siz);
+    siz -= ret;
+    return ret;
+}
+
+//-----------------------------------------
 
 template<general_enctype T>
 uint min_size_estimate(const_tchar_pt<T> ptr, uint nchr) noexcept{
@@ -65,14 +134,6 @@ uint max_size_estimate(const_tchar_pt<T> ptr, uint nchr){
 		return max_length<T>(nchr);
 	else
 		return max_length(nchr, ptr.format());
-}
-
-template<general_enctype T>
-bool dynamic_fixed_size(const_tchar_pt<T> ptr) noexcept{
-	if constexpr(widenc<T>)
-		return ptr.format().d_fixed_size();
-	else
-		return fixed_size<T>;
 }
 
 

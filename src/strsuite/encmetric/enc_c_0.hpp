@@ -16,7 +16,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
-#include <strsuite/encmetric/stringbuild.hpp>
+#include <strsuite/encmetric/dynstring.hpp>
 #include <strsuite/encmetric/all_enc.hpp>
 #include <strsuite/encmetric/config.hpp>
 #include <type_traits>
@@ -30,6 +30,10 @@ namespace sts{
 using CENC = ASCII;
 using UTF16SYS = UTF16<bend>;
 using UTF32SYS = UTF32<bend>;
+/*
+ * Default wchar_t encoding
+ */
+using WCENC = std::conditional_t<is_windows(), UTF16LE, UTF32SYS>;
 
 //better names
 using achar_pt = tchar_pt<CENC>;
@@ -56,15 +60,15 @@ inline astr_view getstring(const char *c, size_t maxsiz){
 	return adv_string_view<CENC>{c, maxsiz};
 }
 
-inline adv_string_view<UTF8> getstring(const char8_t *c, size_t maxsiz){
+inline u8str_view getstring(const char8_t *c, size_t maxsiz){
 	return adv_string_view<UTF8>{c, maxsiz};
 }
 
-inline adv_string_view<UTF16<bend>> getstring(const char16_t *c, size_t maxsiz){
+inline u16str_view getstring(const char16_t *c, size_t maxsiz){
 	return adv_string_view<UTF16<bend>>{c, maxsiz};
 }
 
-inline adv_string_view<UTF32<bend>> getstring(const char32_t *c, size_t maxsiz){
+inline u32str_view getstring(const char32_t *c, size_t maxsiz){
 	return adv_string_view<UTF32<bend>>{c, maxsiz};
 }
 
@@ -107,6 +111,10 @@ inline adv_string_view<UTF16SYS> operator""_asv(const char16_t *b, std::size_t s
 
 inline adv_string_view<UTF32SYS> operator""_asv(const char32_t *b, std::size_t st){
 	return adv_string_view<UTF32SYS>{b, st * 4};
+}
+
+inline adv_string_view<WCENC> operator""_asv(const wchar_t *b, std::size_t st){
+	return adv_string_view<WCENC>{reinterpret_cast<const byte *>(b), st * sizeof(wchar_t)};
 }
 
 }

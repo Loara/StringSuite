@@ -19,8 +19,8 @@
 /*
  * Never include directly this header, use instead utf32_enc.hpp
  */
-#include <strsuite/encmetric/chite.hpp>
 #include <strsuite/encmetric/byte_tools.hpp>
+#include <strsuite/encmetric/encoding.hpp>
 
 namespace sts{
 

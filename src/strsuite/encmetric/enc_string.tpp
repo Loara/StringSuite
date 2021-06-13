@@ -120,6 +120,14 @@ bool adv_string_view<T>::verify_safe() const noexcept{
 	}
 }
 
+template<general_enctype T>
+template<general_enctype S>
+adv_string_view<S> adv_string_view<T>::rebase(EncMetric_info<S> o) const{
+    raw_format().assert_base_for(o);
+    return direct_build(const_tchar_pt<S>{ptr.data(), o}, len, siz);
+}
+
+
 template<typename T>
 const_tchar_pt<T> adv_string_view<T>::at(size_t chr) const{
 	if(chr > len)
@@ -185,8 +193,8 @@ adv_string_view<T> adv_string_view<T>::substring(size_t b, size_t e, bool ign) c
 	}
 }
 
-template<typename T> template<general_enctype S>
-bool adv_string_view<T>::equal_to(const adv_string_view<S> &t, size_t ch) const{
+template<typename T>
+bool adv_string_view<T>::equal_to(const adv_string_view<T> &t, size_t ch) const{
 	if(!sameEnc(ptr, t.begin()))
 		return false;
 	size_t l1 = size(ch);
@@ -196,8 +204,8 @@ bool adv_string_view<T>::equal_to(const adv_string_view<S> &t, size_t ch) const{
 	return compare(data(), t.data(), l1);
 }
 
-template<typename T> template<general_enctype S>
-bool adv_string_view<T>::operator==(const adv_string_view<S> &t) const{
+template<typename T>
+bool adv_string_view<T>::operator==(const adv_string_view<T> &t) const{
 	if(!sameEnc(ptr, t.begin()))
 		return false;
 	if(siz != t.size())
@@ -207,8 +215,8 @@ bool adv_string_view<T>::operator==(const adv_string_view<S> &t) const{
 	return compare(data(), t.data(), siz);
 }
 
-template<typename T> template<general_enctype S>
-index_result adv_string_view<T>::bytesOf(const adv_string_view<S> &sq) const{
+template<typename T>
+index_result adv_string_view<T>::bytesOf(const adv_string_view<T> &sq) const{
 	if(!sameEnc(ptr, sq.begin())){
 		return index_result{false, 0};
 	}
@@ -231,8 +239,8 @@ index_result adv_string_view<T>::bytesOf(const adv_string_view<S> &sq) const{
     return index_result{false, 0};
 }
 
-template<typename T> template<general_enctype S>
-index_result adv_string_view<T>::indexOf(const adv_string_view<S> &sq) const{
+template<typename T>
+index_result adv_string_view<T>::indexOf(const adv_string_view<T> &sq) const{
 	if(!sameEnc(ptr, sq.begin())){
 		return index_result{false, 0};
 	}
@@ -257,11 +265,11 @@ index_result adv_string_view<T>::indexOf(const adv_string_view<S> &sq) const{
     return index_result{false, 0};
 }
 
-template<typename T> template<general_enctype S>
-bool adv_string_view<T>::containsChar(const adv_string_view<S> &cu) const{
+template<typename T>
+index_result adv_string_view<T>::containsChar(const adv_string_view<T> &cu) const{
     if(cu.length() == 0)
-        return true;
-    adv_string_view<S> strip = cu.substring(0, 1);
+        return index_result{true, 0};
+    adv_string_view<T> strip = cu.substring(0, 1);
     return indexOf(strip);
     /*
 	if(!sameEnc(ptr, cu))
@@ -283,8 +291,8 @@ bool adv_string_view<T>::containsChar(const adv_string_view<S> &cu) const{
     */
 }
 
-template<typename T> template<general_enctype S>
-bool adv_string_view<T>::startsWith(const adv_string_view<S> &sq) const{
+template<typename T>
+bool adv_string_view<T>::startsWith(const adv_string_view<T> &sq) const{
 	if(!sameEnc(ptr, sq.begin())){
 		return false;
 	}
@@ -298,8 +306,8 @@ bool adv_string_view<T>::startsWith(const adv_string_view<S> &sq) const{
 	return compare(ptr.data(), sq.begin().data(), sq.size());
 }
 
-template<typename T> template<general_enctype S>
-bool adv_string_view<T>::endsWith(const adv_string_view<S> &sq) const{
+template<typename T>
+bool adv_string_view<T>::endsWith(const adv_string_view<T> &sq) const{
 	if(!sameEnc(ptr, sq.begin())){
 		return false;
 	}
@@ -310,7 +318,7 @@ bool adv_string_view<T>::endsWith(const adv_string_view<S> &sq) const{
 	if(siz < sq.size()){
 		return false;
 	}
-	const_tchar_pt<T> poi = ptr + siz - sq.size();
+	const_tchar_pt<T> poi = ptr + (siz - sq.size());
 	return compare(poi.data(), sq.begin().data(), sq.size());
 }
 /*

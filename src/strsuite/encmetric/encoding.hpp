@@ -64,8 +64,13 @@ class EncMetric{
 		virtual validation_result d_validChar(const byte *, size_t) const noexcept =0;
 		virtual uint d_decode(ctype *, const byte *, size_t) const =0;
 		virtual uint d_encode(const ctype &, byte *, size_t) const =0;
+
 		virtual bool d_fixed_size() const noexcept =0;
 		virtual std::type_index index() const noexcept=0;
+        /*
+         * If it doesn't have alias must return nullptr
+         */
+        virtual const EncMetric<tt> *d_alias() const noexcept =0;
 };
 
 /*
@@ -122,10 +127,18 @@ struct is_wide : public std::false_type {};
 template<typename tt>
 struct is_wide<WIDE<tt>> : public std::true_type {};
 
+template<typename U>
+struct is_raw : public std::false_type {};
+template<typename tt>
+struct is_raw<RAW<tt>> : public std::true_type {};
+
 template<typename T>
 concept widenc = is_wide<T>::value;
 template<typename T>
 concept not_widenc = strong_enctype<T> && !is_wide<T>::value;
+
+template<typename T>
+concept enc_raw = is_raw<T>::value;
 
 template<typename T>
 concept general_enctype = widenc<T> || strong_enctype<T>;
@@ -137,15 +150,57 @@ template<typename T, typename tt>
 concept general_enctype_of = general_enctype<T> && std::same_as<typename T::ctype, tt>;
 
 /*
-    index_traits control if encoding class ovverides the index
+    Test if types refer to the same encoding
+*/
+
+template<typename S, typename T>
+concept same_enc = not_widenc<S> && not_widenc<T> && std::same_as<S, T>;
+
+/*
+ * Test if both encodings work on the same data type
+ */
+
+template<typename S, typename T>
+concept same_data = general_enctype<S> && general_enctype<T> && (enc_raw<S> || enc_raw<T> || std::same_as<typename S::ctype, typename T::ctype>);
+
+/*
+    Removing alias mechanism, substituted with assigment rules.
+
+    We say an encoding A is a BASE for B if and only if any A encoded string is also a B valid encoded string
+    with the same meaning. A well-known application on unicode strings is when A is ASCII and B is UTF8, Latin1, ISO8859, Win codepages, ...
+
+    In order to make A a BASE for B you need to include inside B an "alias" class typedef of A. Look Latin1 class declaration.
+
+    You should not use aliases to RAW encodingd, and you mustn't create crossed aliases in order to make two encodings equivalent.
 */
 template<typename T>
-concept default_aliases = not_widenc<T> && !requires {typename T::compare_enc;} && !requires {typename T::equivalent_enc;};
-template<typename T>
-concept compare_aliases = not_widenc<T> && requires {typename T::compare_enc;};
-template<typename T>
-concept equivalence_aliases = not_widenc<T> && !requires {typename T::compare_enc;} && requires {typename T::equivalent_enc;};
+concept has_alias = strong_enctype<T> && requires {typename T::alias;} && strong_enctype_of<typename T::alias, typename T::ctype>;
 
+template<typename T>
+concept has_not_alias = strong_enctype<T> && !requires {typename T::alias;};
+
+template<typename A, typename B>
+struct base_ale_0;
+
+template<strong_enctype A, has_not_alias B>
+struct base_ale_0<A, B> : public std::bool_constant<std::same_as<A, B>> {};
+
+template<strong_enctype A, has_alias B>
+struct base_ale_0<A, B> : public std::bool_constant<std::same_as<A, B> || base_ale_0<A, typename B::alias>::value> {};
+
+template<typename A, typename B>
+concept is_base_for = strong_enctype<A> && strong_enctype<B> && (enc_raw<B> || (std::same_as<typename A::ctype, typename B::ctype> && base_ale_0<A, B>::value));
+
+template<typename tt>
+bool is_base_for_d(const EncMetric<tt> *a, const EncMetric<tt> *b) noexcept{
+    if(a == nullptr || b == nullptr)
+        return false;
+    if(a->index() == b->index())
+        return true;
+    return is_base_for_d(a, b->d_alias());
+}
+
+/*
 template<typename T>
 struct index_traits_0;
 
@@ -171,50 +226,13 @@ struct index_traits : public index_traits_0<T> {
 	static std::type_index index() noexcept {return std::type_index{typeid(typename index_traits_0<T>::type_enc)};}
 };
 
-/*
-    Test if types refer to the same encoding
 */
-
-template<typename S, typename T>
-concept same_enc = not_widenc<S> && not_widenc<T> && std::same_as<typename index_traits<S>::type_enc, typename index_traits<T>::type_enc>;
-
-template<typename T>
-concept enc_raw = same_enc<T, RAW<byte>>;
-
-/*
- * Test if both encodings work on the same data type
- */
-
-template<typename S, typename T>
-concept same_data = general_enctype<S> && general_enctype<T> && (enc_raw<S> || enc_raw<T> || std::same_as<typename S::ctype, typename T::ctype>);
 
 template<typename T>
 concept safe_hasmax = not_widenc<T> && T::has_max();
 
 template<typename T>
 concept fixed_size = not_widenc<T> && T::has_max() && (T::min_bytes() == T::max_bytes());
-
-/*
- * Tests if a pointer with encoding S can be assigned to a pointer with encoding T
- *
- * Notice in particular their behavior when:
- * 1 - T is raw
- * Both returns true automatically, since a RAW encoding means undefined encoding, so can accept any encoding class also with a different ctype. Clearly
- * a RAW encoding cannot be easily converted to another encoding
- * 2 - T is wide
- * Both returns true when T and S have the same ctype and false otherwise: in fact when T=WIDE<tt> the dynamically defined encoding is taken from S (that can
- * be both wide or not) so the only limitation is due to their underlying ctype
- * 3 - S is wide
- * in this case weak_assign returns true if S has the same ctype of T, whereas strong_assign returns true only when S is equal to T (in particuar have same
- * ctype) or T is raw.
- * This different behaviour is due to different goals: weak_assign will only test statically the types before performing runtime checks; instead strong_assign
- * have to determine at compile-time if a string can be reassigned to a new class encoding.
- */
-template<typename S, typename T>
-concept weak_assign = enc_raw<T> || (same_data<S, T> && (widenc<S> || widenc<T> || same_enc<S, T>));
-
-template<typename S, typename T>
-concept strong_assign = enc_raw<T> || (same_data<S, T> && (widenc<T> || same_enc<S, T>));
 
 
 template<strong_enctype T>
@@ -242,21 +260,19 @@ int max_length(uint nchr, const EncMetric<tt> *format){
 template<strong_enctype T>
 constexpr void assert_raw(){static_assert(!enc_raw<T>, "Using RAW format");}
 
-template<typename tt>
-void assert_raw(const EncMetric<tt> &f){
-	if(f.index() == index_traits<RAW<tt>>::index())
-		throw encoding_error("Using RAW format");
-}
-
 /*
     Wrapper of an encoding T in order to save it in a class field of WIDENC classes
+
+    WARNING: T will be never RAW
 */
 template<strong_enctype T>
 class DynEncoding : public EncMetric<typename T::ctype>{
 	private:		
 		DynEncoding() {}
 	public:
+        static_assert(!enc_raw<T>, "EncMetric cannot hold a RAW encoding");
 		using static_enc = T;
+        using ctype = typename T::ctype;
 
 		~DynEncoding() {}
 
@@ -265,17 +281,24 @@ class DynEncoding : public EncMetric<typename T::ctype>{
 		uint d_max_bytes() const {return static_enc::max_bytes();}
 		uint d_chLen(const byte *b, size_t siz) const {return static_enc::chLen(b, siz);}
 		validation_result d_validChar(const byte *b, size_t siz) const noexcept {return static_enc::validChar(b, siz);}
-		std::type_index index() const noexcept {return index_traits<T>::index();}
+		std::type_index index() const noexcept {return std::type_index{typeid(T)};}
 
-		uint d_decode(typename T::ctype *uni, const byte *by, size_t l) const {return static_enc::decode(uni, by, l);}
-		uint d_encode(const typename T::ctype &uni, byte *by, size_t l) const {return static_enc::encode(uni, by, l);}
+		uint d_decode(ctype *uni, const byte *by, size_t l) const {return static_enc::decode(uni, by, l);}
+		uint d_encode(const ctype &uni, byte *by, size_t l) const {return static_enc::encode(uni, by, l);}
 
 		bool d_fixed_size() const noexcept {return fixed_size<T>;}
 
-		static const EncMetric<typename T::ctype> *instance() noexcept{
+		static const EncMetric<ctype> *instance() noexcept{
 			static DynEncoding<T> t{};
 			return &t;
 		}
+
+        const EncMetric<ctype> *d_alias() const noexcept{
+            if constexpr(has_alias<T>)
+                return DynEncoding<typename T::alias>::instance();
+            else
+                return nullptr;
+        }
 };
 
 /*
@@ -293,11 +316,12 @@ class EncMetric_info{
 		constexpr bool has_max() const noexcept {return T::has_max();}
 		constexpr uint max_bytes() const noexcept {return T::max_bytes();}
 		constexpr bool is_fixed() const noexcept {return fixed_size<T>;}
+
 		uint chLen(const byte *b, size_t siz) const {return T::chLen(b, siz);}
 		validation_result validChar(const byte *b, size_t l) const noexcept {return T::validChar(b, l);}
 		uint decode(ctype *uni, const byte *by, size_t l) const {return T::decode(uni, by, l);}
 		uint encode(const ctype &uni, byte *by, size_t l) const {return T::encode(uni, by, l);}
-		std::type_index index() const noexcept {return index_traits<T>::index();}
+		std::type_index index() const noexcept {return DynEncoding<T>::index();}
 
 		template<general_enctype S>
 		bool equalTo(EncMetric_info<S> o) const noexcept{
@@ -307,23 +331,37 @@ class EncMetric_info{
                 return index() == o.index();
         }
         template<general_enctype S>
-        bool can_reassign_to() const noexcept{
-            if constexpr(enc_raw<S>)
-                return true;
-            else if constexpr(widenc<S>)
-                return same_data<T, S>;
-            else
-                return same_enc<T, S>;
+        void assert_same_enc(EncMetric_info<S> o) const{
+            if constexpr(strong_enctype<S>){
+                static_assert(same_enc<T, S>, "Different encodings");
+            }
+            else{
+                if(index() != o.index())
+                    throw incorrect_encoding{"Different encodings"};
+            }
         }
-        template<general_enctype S>
-        EncMetric_info<S> reassign() const{
-            static_assert(weak_assign<T, S>, "Cannot reassign these encodings");
-            if(!can_reassign_to<S>())
-                throw encoding_error{"Cannot reassign these encodings"};
-            if constexpr(widenc<S>)
-                return EncMetric_info<S>{DynEncoding<T>::instance()};
+        template<general_enctype S> requires same_data<T, S>
+        bool base_for(EncMetric_info<S> b) const noexcept{
+            if constexpr(strong_enctype<S>)
+                return is_base_for<T, S>;
             else
-                return EncMetric_info<S>{};
+                return is_base_for_d(format(), b.format());
+        }
+        template<general_enctype S> requires same_data<T, S>
+        void assert_base_for(EncMetric_info<S> b) const{
+            if constexpr(strong_enctype<S>)
+                static_assert(is_base_for<T, S>, "Cannot convert encoding T to encoding S (see above)");
+            else{
+                if(!is_base_for_d(format(), b.format()))
+                    throw incorrect_encoding{"Cannot convert these encodings"};
+            }
+        }
+        template<general_enctype S> requires same_data<T, S>
+        bool stc_can_reassign() const noexcept{
+            if constexpr(widenc<S>)
+                return true;
+            else
+                return base_for(EncMetric_info<S>{});
         }
 };
 
@@ -341,6 +379,7 @@ class EncMetric_info<WIDE<tt>>{
 		bool has_max() const noexcept {return f->d_has_max();}
 		uint max_bytes() const noexcept {return f->d_max_bytes();}
 		bool is_fixed() const noexcept {return f->d_fixed_size();}
+
 		uint chLen(const byte *b, size_t siz) const {return f->d_chLen(b, siz);}
 		validation_result validChar(const byte *b, size_t l) const noexcept {return f->d_validChar(b, l);}
 		uint decode(ctype *uni, const byte *by, size_t l) const {return f->d_decode(uni, by, l);}
@@ -352,23 +391,25 @@ class EncMetric_info<WIDE<tt>>{
             return index() == o.index();
         }
         template<general_enctype S>
-        bool can_reassign_to() const noexcept{
-            if constexpr(enc_raw<S>)
-                return true;
-            else if constexpr(widenc<S>)
-                return same_data<WIDE<tt>, S>;
-            else
-                return index() == index_traits<S>::index();
+        void assert_same_enc(EncMetric_info<S> o) const{
+            if(index() != o.index())
+                throw incorrect_encoding{"Different encodings"};
         }
-        template<general_enctype S>
-        EncMetric_info<S> reassign() const{
-            static_assert(weak_assign<WIDE<tt>, S>, "Cannot reassign these encodings");
-            if(!can_reassign_to<S>())
-                throw encoding_error{"Cannot reassign these encodings"};
+        template<typename S> requires general_enctype_of<S, tt>
+        bool base_for(EncMetric_info<S> b) const noexcept{
+            return is_base_for_d(format(), b.format());
+        }
+        template<typename S> requires general_enctype_of<S, tt>
+        void assert_base_for(EncMetric_info<S> b) const{
+            if(!is_base_for_d(format(), b.format()))
+                throw incorrect_encoding{"Cannot convert these encodings"};
+        }
+        template<typename S> requires general_enctype_of<S, tt>
+        bool stc_can_reassign() const noexcept{
             if constexpr(widenc<S>)
-                return EncMetric_info<S>{f};
+                return true;
             else
-                return EncMetric_info<S>{};
+                return base_for(EncMetric_info<S>{});
         }
 };
 
@@ -390,6 +431,7 @@ class ASCII{
 class Latin1{
 	public:
 		using ctype=unicode;
+        using alias=ASCII;
 		static constexpr uint min_bytes() noexcept {return 1;}
 		static constexpr bool has_max() noexcept {return true;}
 		static constexpr uint max_bytes() noexcept {return 1;}
