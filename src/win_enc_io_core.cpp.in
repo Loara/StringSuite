@@ -1,8 +1,27 @@
+/*
+    This file is part of Encmetric.
+    Copyright (C) 2021 Paolo De Donato.
+
+    Encmetric is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Encmetric is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
+*/
+
 extern "C"{
 #include <windows.h>
 }
 #include <strsuite/encmetric/enc_c.hpp>
 #include <strsuite/io/enc_io_core.hpp>
+#include <strsuite/io/enc_io_buffer.hpp>
 
 using namespace sts::literals;
 
@@ -14,120 +33,91 @@ size_t sts::def_strlen(const sts::byte *b){
         throw sts::IOFail{};
 }
 
+struct Windows_syscalls{
+    HANDLE fd;
+    Windows_syscalls(HANDLE f) : fd{f} {}
 
-class in_buffer : private sts::stat_buf<64>{
-    private:
-        HANDLE fd;
-        void refresh_empty(){
-            if(siz != 0)
-                return;
-            fir=0;
-            DWORD chrr;
-            auto err = ReadConsoleW(fd, raw_last(), raw_contiguous_last()/2, &chrr, NULL);
-            if(err == 0){
-                auto errnoo = GetLastError();
-                if(errnoo == ERROR_IO_PENDING)
+    static constexpr size_t buffer_size=64;
+    /*
+     * Return must be >0
+     * if ==0 then repeat must be true
+     */
+    size_t read_wrap(sts::byte *v, size_t l, bool &repeat){
+        DWORD chrr;
+        auto err = ReadConsoleW(fd, v, l/2, &chrr, NULL);
+        if(err == 0){
+            auto errnoo = GetLastError();
+            if(errnoo == ERROR_IO_PENDING)
+                throw sts::IOAGAIN{};
+            else
+                throw sts::IOFail{};
+        }
+        else if(chrr == 0)
+            throw sts::IOEOF{};
+        return 2 * static_cast<size_t>(chrr);
+    }
+    size_t write_wrap(const sts::byte *v, size_t l, bool &repeat){
+        DWORD chrr;
+        auto err = WriteConsoleW(fd, v, l/2, &chrr, NULL);
+        if(err == 0){
+            auto errnoo = GetLastError();
+            if(errnoo == ERROR_IO_PENDING)
+                throw sts::IOAGAIN{};
+            else
+                throw sts::IOFail{};
+        }
+        else if(chrr == 0)
+            throw sts::IOEOF{};
+        return 2 * static_cast<size_t>(chrr);
+        /*
+        ssize_t wt = write(fd, v, l);
+        if(wt < 0){
+            switch(errno){
+                case EAGAIN:
+                case_EWOULDBLOCK
                     throw sts::IOAGAIN{};
-                else
+                case EINTR:
+                    repeat = true;
+                    return 0;
+                case EDQUOT:
+                case EFBIG:
+                    throw sts::IOEOF{};
+                default:
                     throw sts::IOFail{};
             }
-            else if(chrr == 0)
-                throw sts::IOEOF{};
-            raw_set(2 * static_cast<size_t>(chrr));
         }
-    public:
-        /*
-         * Read exactly len bytes, throw exception (IOEOF for example) if there are less
-         */
-        void copy_to(sts::byte *to, size_t len){
-            //even
-            len = len - (len % 2);
-            sts::byte *inc = to;
-            while(len > 0){
-                size_t buf_wrt = raw_contiguous_first();
-                if(buf_wrt > 0){
-                    size_t min = buf_wrt > len ? len : buf_wrt;
-                    std::memcpy(inc, raw_first(), min);
-                    inc += min;
-                    raw_get(min);
-                    len -= min;
-                }
-                else
-                    refresh_empty();
-            }
-        }
-        /*
-         * don't remove that byte from buffer
-         */
-        void test_byte(sts::byte *to){
-            if(siz == 0)
-                refresh_empty();
-            to[0] = *raw_first();
-            to[1] = *(raw_first()+1);
-        }
-
-        in_buffer(HANDLE f) : fd{f} {}
+        else if(wt == 0)
+            throw sts::IOEOF{};
+        return static_cast<size_t>(wt);
+        */
+    }
 };
 
-/*
- * little bug: endline \r\n in order to end a line must be printed all toghether, it must not be stripped away
- */
-class out_buffer : public sts::stat_buf<64> {
-    private:
-        HANDLE fd;
-    public:
-        void svuota(){
-            while(raw_contiguous_first() > 0){
-                DWORD chrr;
-                auto err = WriteConsoleW(fd, raw_first(), raw_contiguous_first()/2, &chrr, NULL);
-                if(err == 0){
-                    auto errnoo = GetLastError();
-                    if(errnoo == ERROR_IO_PENDING)
-                        throw sts::IOAGAIN{};
-                    else
-                        throw sts::IOFail{};
-                }
-                else if(chrr == 0)
-                    throw sts::IOEOF{};
-                raw_get(2 * static_cast<size_t>(chrr));
-            }
-        }
-        /*
-         * Read exactly len bytes, throw exception (IOEOF for example) if there are less
-         */
-        void copy_from(const sts::byte *to, size_t len){
-            const sts::byte *inc = to;
-            while(len > 0){
-                size_t buf_wrt = raw_contiguous_last();
-                if(buf_wrt > 0){
-                    size_t min = buf_wrt > len ? len : buf_wrt;
-                    std::memcpy(raw_last(), inc, min);
-                    inc += min;
-                    raw_set(min);
-                    len -= min;
-                }
-                else
-                    svuota();
-            }
-        }
-
-        out_buffer(HANDLE f) : fd{f} {}
-};
 
 class Windows_istream : public sts::NewlineIStream<sts::UTF16LE>{
     private:
-        in_buffer buffer;
+        sts::istr_buffer<Windows_syscalls> buffer;
+        static_assert(Windows_syscalls::buffer_size > 4, "buffer too small");
     protected:
         sts::adv_string_view<sts::UTF16LE> do_newline() const noexcept{ return u"\r\n"_asv;}
         sts::uint do_char_read(sts::tchar_pt<sts::UTF16LE> pt, size_t siz){
             if(siz < 2)
                 throw sts::IOBufsmall{2-siz};
-            sts::byte cht[2];
-            buffer.test_byte(cht);
-            sts::uint totl = sts::UTF16LE::chLen(cht, 2);
+            buffer.ghost_copy(pt.data(), 2);
+            sts::uint totl = pt.chLen(2);
             if(totl > siz)
                 throw sts::IOBufsmall{totl-siz};
             buffer.copy_to(pt.data(), totl);
+            return totl;
+        }
+        sts::uint do_ghost_read(sts::tchar_pt<sts::UTF16LE> pt, size_t siz){
+            if(siz < 2)
+                throw sts::IOBufsmall{2-siz};
+            buffer.ghost_copy(pt.data(), 2);
+            sts::uint totl = pt.chLen(2);
+            if(totl > siz)
+                throw sts::IOBufsmall{totl-siz};
+            buffer.ghost_copy(pt.data(), totl);
             return totl;
         }
 
@@ -165,7 +155,8 @@ class Windows_istream : public sts::NewlineIStream<sts::UTF16LE>{
 
 class Windows_ostream : public sts::NewlineOStream<sts::UTF16LE>{
     private:
-        out_buffer buffer;
+        sts::ostr_buffer<Windows_syscalls> buffer;
+        static_assert(Windows_syscalls::buffer_size > 4, "buffer too small");
     protected:
         sts::adv_string_view<sts::UTF16LE> do_newline() const noexcept{ return u"\r\n"_asv;}
         sts::uint do_char_write(sts::const_tchar_pt<sts::UTF16LE> pt, size_t siz){
@@ -177,11 +168,15 @@ class Windows_ostream : public sts::NewlineOStream<sts::UTF16LE>{
             buffer.copy_from(pt.data(), totl);
             return totl;
         }
+        size_t do_string_write(const sts::adv_string_view<sts::UTF16LE> &str){
+            buffer.copy_from(str.data(), str.size());
+            return str.size();
+        }
 
         void do_close() {}
 
         void do_flush(){
-            buffer.svuota();
+            buffer.flush();
         }
 
         sts::EncMetric_info<sts::UTF16LE> do_encmetric() const noexcept{ return sts::EncMetric_info<sts::UTF16LE>{};}
@@ -189,58 +184,20 @@ class Windows_ostream : public sts::NewlineOStream<sts::UTF16LE>{
         Windows_ostream (HANDLE f) : buffer{f} {}
 };
 
-sts::NewlineIStream<sts::UTF16LE> *sts::get_console_stdin(){
+sts::NewlineIStream<sts::UTF16LE> &sts::get_console_stdin(){
     static Windows_istream input{};
-    return &input;
+    return input;
 }
 
-sts::NewlineOStream<sts::UTF16LE> *sts::get_console_stdout(){
+sts::NewlineOStream<sts::UTF16LE> &sts::get_console_stdout(){
     static Windows_ostream input{GetStdHandle(STD_OUTPUT_HANDLE)};
-    return &input;
+    return input;
 }
 
-sts::NewlineOStream<sts::UTF16LE> *sts::get_console_stderr(){
+sts::NewlineOStream<sts::UTF16LE> &sts::get_console_stderr(){
     static Windows_ostream input{GetStdHandle(STD_ERROR_HANDLE)};
-    return &input;
+    return input;
 }
-
-/*
-sts::raw_stdin_byte::raw_stdin_byte() {}
-
-size_t sts::raw_stdin_byte::do_read(byte *b, size_t siz){
-	DWORD y;
-	if(ReadConsoleW(GetStdHandle(STD_INPUT_HANDLE), b, static_cast<DWORD>(siz/2), &y, NULL) == 0)
-		throw IOFail{};
-    if(y == 0)
-        throw IOEOF{};
-	return 2*y;
-}
-
-void sts::raw_stdin_byte::do_close() {}
-
-void sts::raw_stdin_byte::do_flush() {
-    byte rc[] = {byte{0x0d}, byte{0x00}};
-    byte nl[] = {byte{0x0a}, byte{0x00}};
-    byte buf[2];
-    bool hr=false, hn=false;
-    DWORD y;
-    do{
-        if(ReadConsoleW(GetStdHandle(STD_INPUT_HANDLE), &buf, static_cast<DWORD>(1), &y, NULL) == 0)
-            return;
-        if(y == 0)
-            return;
-        if(buf[0] == rc[0] && buf[1] == rc[1])
-            hr = true;
-        else if(hr && buf[0] == nl[0] && buf[1] == nl[1])
-            hn = true;
-        else{
-            hr = false;
-            hn= false;
-        }
-    }
-    while(hr && hn);
-}
-*/
 
 sts::param_helper::param_helper(int, const char **) : argn{0}, args{nullptr} {
     auto pointer = GetCommandLineW();

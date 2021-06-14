@@ -39,6 +39,15 @@ class CharIStream{
             enc.assert_base_for(pt.raw_format());
             return do_char_read(tchar_pt<T>{pt.data(), enc}, buf);
         }
+        template<general_enctype S>
+        uint char_read_v(tchar_pt<S> pt, size_t buf) {
+            auto enc=do_encmetric();
+            enc.assert_base_for(pt.raw_format());
+            uint ret = do_char_read(tchar_pt<T>{pt.data(), enc}, buf);
+            if(!pt.validChar(ret))
+                throw IOIncomplete{"Not a valid character"};
+            return ret;
+        }
         /*
          * Read single character but don't update stream state: next read will read the same character
          */
@@ -47,6 +56,15 @@ class CharIStream{
             auto enc=do_encmetric();
             enc.assert_base_for(pt.raw_format());
             return do_ghost_read(tchar_pt<T>{pt.data(), enc}, buf);
+        }
+        template<general_enctype S>
+        uint ghost_read_v(tchar_pt<S> pt, size_t buf) {
+            auto enc=do_encmetric();
+            enc.assert_base_for(pt.raw_format());
+            uint ret = do_ghost_read(tchar_pt<T>{pt.data(), enc}, buf);
+            if(!pt.validChar(ret))
+                throw IOIncomplete{"Not a valid character"};
+            return ret;
         }
         void close() {return do_close();}
         void flush() {return do_flush();}
@@ -58,6 +76,7 @@ template<general_enctype T>
 class CharOStream{
     protected:
         virtual uint do_char_write(const_tchar_pt<T>, size_t)=0;
+        /*
         virtual size_t do_chars_write(const_tchar_pt<T> pt, size_t buf, size_t nchr){
             if(nchr==0)
                 return 0;
@@ -71,9 +90,8 @@ class CharOStream{
             }
             return ret;
         }
-        virtual size_t do_string_write(const adv_string_view<T> &str){
-            return do_chars_write(str.begin(), str.size(), str.length());
-        }
+        */
+        virtual size_t do_string_write(const adv_string_view<T> &str)=0;
         virtual void do_close()=0;
         virtual void do_flush()=0;
         virtual EncMetric_info<T> do_encmetric() const noexcept=0;
@@ -90,12 +108,14 @@ class CharOStream{
         uint char_write(tchar_pt<S> pt, size_t buf) {
             return char_write(pt.cast(), buf);
         }
+        /*
         template<general_enctype S>
         size_t chars_write(const_tchar_pt<S> pt, size_t buf, size_t nchr) {
             auto enc = do_encmetric();
             pt.raw_format().assert_base_for(enc);
             return do_chars_write(const_tchar_pt<T>{pt.data(), enc}, buf, nchr);
         }
+        */
         template<general_enctype S>
         size_t string_write(const adv_string_view<S> &str) {return do_string_write(str.rebase(do_encmetric()));}
         void close() {return do_close();}

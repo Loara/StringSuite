@@ -160,6 +160,7 @@ class const_tchar_pt : public base_tchar_pt<T, const_tchar_pt<T>, byte const>{
 
 		const_tchar_pt new_instance(const byte *c) const{return const_tchar_pt<T>{c, this->ei};}
 		const_tchar_pt new_instance(const char *c) const{return const_tchar_pt<T>{reinterpret_cast<const byte *>(c), this->ei};}
+		const_tchar_pt new_instance(std::nullptr_t) const{return const_tchar_pt<T>{nullptr, this->ei};}
 };
 
 template<general_enctype T>
@@ -187,6 +188,7 @@ class tchar_pt : public wbase_tchar_pt<T, tchar_pt<T>>{
 
 		tchar_pt new_instance(byte *c) const{return tchar_pt<T>{c, this->ei};}
 		tchar_pt new_instance(char *c) const{return tchar_pt<T>{reinterpret_cast<byte *>(c), this->ei};}
+		tchar_pt new_instance(std::nullptr_t) const{return tchar_pt<T>{nullptr, this->ei};}
 };
 
 //---------------------------------------------

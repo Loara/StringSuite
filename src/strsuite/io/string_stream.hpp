@@ -21,8 +21,6 @@
 #include <strsuite/encmetric/enc_string.hpp>
 #include <strsuite/io/char_stream.hpp>
 
-#include <iostream>
-
 namespace sts{
     template<general_enctype T>
     class string_stream : public virtual CharIStream<T>, public virtual CharOStream<T>{
@@ -45,17 +43,23 @@ namespace sts{
         size_t remaining() const noexcept {return buffer.dimension - las.difff();}
 
         adv_string_view<T> view() const noexcept {return direct_build(fir.convert().cast(), len, siz);}
+        adv_string<T> move();
+        adv_string<T> allocate_new(std::pmr::memory_resource *res) const;
+        adv_string<T> allocate_new() const {return allocate_new(buffer.get_allocator());}
 
         template<general_enctype S>
-        uint get_char(CharIStream<S> *);
+        uint get_char(CharIStream<S> &);
         template<general_enctype S>
-        uint put_char(CharOStream<S> *);
+        uint get_ghost(CharIStream<S> &);
+        template<general_enctype S>
+        uint put_char(CharOStream<S> &);
         template<general_enctype S>
         size_t put_chars(CharOStream<S> *, size_t);
 
     protected:
         EncMetric_info<T> do_encmetric() const noexcept{ return base.raw_format();}
         uint do_char_read(tchar_pt<T>, size_t);
+        uint do_ghost_read(tchar_pt<T>, size_t);
         uint do_char_write(const_tchar_pt<T>, size_t);
         size_t do_string_write(const adv_string_view<T> &);
         void do_close() {}

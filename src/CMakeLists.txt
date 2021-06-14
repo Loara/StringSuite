@@ -60,7 +60,7 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
     "strsuite/encmetric/win_codepages.hpp" DESTINATION include/strsuite/encmetric)
 
 install(FILES "strsuite/io/enc_io_core.hpp"
-    "strsuite/io/enc_io_core.hpp"
+    "strsuite/io/enc_io_buffer.hpp"
     "strsuite/io/enc_io_exc.hpp"
     "strsuite/io/byte_stream.hpp"
     "strsuite/io/char_stream.hpp"
