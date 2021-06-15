@@ -10,7 +10,7 @@ C++ library to manage strings and (almost) any kind of encoded data.
 Encmetric is written under the GNU Lesser General Public License (LGPL) version 3. For more informations see COPYING and COPYING.LESSER files
 
 # Build and Install
-To build the library you need cmake version 3.20 or later and a C++ compiler that supports C++20 concepts (for example `gcc` v. 10.2 or newer).
+To build the library you need cmake version 3.20 or later and a C++ compiler that supports C++20 concepts (for example `gcc` v. 11.2 or newer).
 
 To build and install the library you can run these commands:
 
@@ -32,14 +32,15 @@ On Arch Linux you can use package `stringsuite` in AUR, additional informations 
 Clearly you can write and use your own encoding classes.
 
 # Basic usage
-## String encodings
+## `encmetric` subset
+### String encodings
 A string encoding class is simply a static class that manages how a string is encoded with that encoding. Some encoding classes provided with StringSuire are `ASCII`, `UTF8`, `UTF16BE` `UTF16LE`, `UTF32BE` `UTF32LE`, `Latin1`/`ISO_8859_1`, `ISO_8859_2`, `KOI8_R`, `KOI8_U`, `KOI8_RU`.
 
 Usually encoding classes should be specified as template arguments of string classes, but you can decide todynamically specify an encoding by using the `WIDEchr` template argument. Remember that if you initialize any string with the `WIDEchr` template argument you should pass a dynamic pointer to `EncMetric<unicode>` class representing your encoding, this can be obtained via the `DynEncoding` template argument. For example a dynamic pointer of `UTF8` encofing can be obtained with
 
     const EncMetric<unicode> *utf8 = DynEncoding<UTF8>::instance();
 
-## String dimensions
+### String dimensions
 Encoded strings have two different types of lengths:
 
  * **size** is simply the number of bytes occupied by the encoded string, same value returned by `strlen` in C and `std::string::length()`, `std::string::size()` in C++
@@ -54,7 +55,7 @@ For example consider the UTF8 encoded string `abè€`: it contains exactly 4 ch
 
 Then the size of string `abè€` is exactly 1+1+2+3=7. Strings in StringSuite, despite `std::string`, allow you to detect both the size and the length of any encoded string.
 
-## Strings and string views
+### Strings and string views
 An **adv_string_view** object is simply a view of an existing character encoded string (like che C `const char *` strings) that doesn't own the pointed data, so copying an adv_string_view doesn't automatically copy also the underlying string. Instead an `adv_string` object is more similar to C++ `std::string` object: it allocates enough space in order to contain its string. Copying and initializying a new adv_string also copy the encoded string, so you should usually use adv_string_view instead of adv_string if you don't need to manipulate your strings.
 
 You can initialize new strings and new string views with `alloc_string` and `new_string_view` functions respectively (or with their constructor if you use gcc 11.2 or later)
@@ -66,10 +67,32 @@ You can initialize new strings and new string views with `alloc_string` and `new
 
 You can perform all tha basic string operations on an `adv_string_view`/`adv_string` class, for more informations see their class definitions in `strsuite/encmetric/enc_string.hpp` header file.
 
-## String buffer
-An **adv_string_buf** is a simple string buffer that allow you to build new strings. It can also perform **encoding conversions** so you should use it in order to perform encoding conversions (for example UTF8 from an UTF16 string).
+### String literals
+In StrSuite you can build some UTF string views directly from string literals by using the `_asv` suffix. For example
 
-Once you create the desired string you can obtain it with one of the following methods:
+* literal `u8"..."_asv` returns an UTF-8 encoded string view (`adv_string_view<UTF8>`);
+* literal `u"..."_asv` returns an UTF16SYS encoded string where UTF16SYS may be UTF16LE or UTF16BE depending of endianess of current enfironment;
+* literal `U"..."_asv` returns an UTF32SYS encoded string where UTF32SYS may be UTF32LE or UTF32BE depending of endianess of current enfironment.
+
+**Notice** that while by default you can use string literal `"..."_asv` to build ASCII string views some compilers (for example gcc) have the ability of changing the encoding of these narrowed literals (via the option `-fexec-charset=` for example) and currently StringSuite is not able to detect this variation. Use always `u8` literals or use `STS_IO_asv` macro as explained in the sext section.
+
+## `io` subset
+### `STS_IO_asv` and `IOenc`
+UNIX systems by default works with UTF8 encoded strings whereas Windows uses UTF16 (little endian) encoding (not considering all the Windows codepages). StringSuite provides the macro `STS_IO_asv` in order to build UTF8 literals on UNIX systems and UTF16 literals on Windows.
+
+StringSuite provides also the `IOenc` encoding type alias in order to receive any `STS_IO_asv` string view and to work with basyc system IO streams.
+
+    adv_string_view<IOenc> u = STS_IO_asv("Hi");
+    /*
+     * equivalent to adv_string_view<UTF8> u = u8"Hi"_asv on UNIX systems
+     * equivalent to adv_string_view<UTF16LE> u = u"Hi"_asv on Windows systems
+     */
+
+### Default stdin, stdout, stderr
+You can access console `IOenc` encoded standard streams `stdin, stdout, stderr` by calling respectively `get_console_stdin()`, `get_console_stdout()`, `get_console_stderr()`. For all available operations see also `char_stream.hpp`, `nl_stream.hpp` file headers.
+
+### `string_stream`
+An **string_stream** is a simple string buffer that allow you to build new strings defined in `string_stream.hpp` header. Once you create the desired string you can obtain it with one of the following methods:
 
 * `view()`: returns a view of underlying string buffer. **WARNING**: any buffer modification (for example appending new strings) invalidates all instantiated views. Use this function with extreme care;
 * `move()`: moves the underlying buffer to a new `adv_string` object. After this operation the buffer will be empty;

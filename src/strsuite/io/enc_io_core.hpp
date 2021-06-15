@@ -20,7 +20,7 @@
 #include <strsuite/encmetric/config.hpp>
 #include <strsuite/encmetric/all_enc.hpp>
 #include <strsuite/io/enc_io_exc.hpp>
-#include <strsuite/io/char_stream.hpp>
+#include <strsuite/io/nl_stream.hpp>
 
 namespace sts{
 

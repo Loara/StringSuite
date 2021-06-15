@@ -64,13 +64,14 @@ install(FILES "strsuite/io/enc_io_core.hpp"
     "strsuite/io/enc_io_exc.hpp"
     "strsuite/io/byte_stream.hpp"
     "strsuite/io/char_stream.hpp"
-    "strsuite/io/string_stream.hpp" DESTINATION include/strsuite/io)
+    "strsuite/io/string_stream.hpp"
+    "strsuite/io/nl_stream.hpp" DESTINATION include/strsuite/io)
 
 install(FILES "strsuite/encmetric/chite.tpp"
     "strsuite/encmetric/enc_string.tpp"
     "strsuite/encmetric/dynstring.tpp" DESTINATION include/strsuite/encmetric)
 
-install(FILES "strsuite/io/char_stream.tpp"
+install(FILES "strsuite/io/nl_stream.tpp"
     "strsuite/io/string_stream.tpp" DESTINATION include/strsuite/io)
 
 install(FILES "strsuite/encmetric.hpp" DESTINATION include/strsuite)
