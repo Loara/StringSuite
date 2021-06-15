@@ -28,6 +28,14 @@ void string_stream<T>::increase(uint inc){
     buffer.exp_fit(buffer.dimension + inc);
     base = base.new_instance(buffer.memory);
 }
+
+template<general_enctype T>
+tchar_pt<T> string_stream<T>::reserve_space(size_t needed){
+    buffer.exp_fit(las.difff() + needed);
+    base = base.new_instance(buffer.memory);
+    return las.convert();
+}
+
 template<general_enctype T>
 template<general_enctype S>
 uint string_stream<T>::get_char(CharIStream<S> &stm){
@@ -170,6 +178,7 @@ size_t string_stream<T>::do_string_write(const adv_string_view<T> &str){
 
 template<general_enctype T>
 adv_string<T> string_stream<T>::move(){
+    rewind();
     basic_ptr res = std::move(buffer);
     buffer.leave();
     size_t rsiz = siz, rlen = len;
@@ -183,7 +192,7 @@ adv_string<T> string_stream<T>::move(){
 
 template<general_enctype T>
 adv_string<T> string_stream<T>::allocate_new(std::pmr::memory_resource *res) const{
-    adv_string_view<T> vw = direct_build(base.cast(), len, siz);
+    adv_string_view<T> vw = direct_build(fir.convert().cast(), len, siz);
     return adv_string<T>{vw, res};//Make a copy
 }
 

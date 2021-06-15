@@ -31,6 +31,7 @@ namespace sts{
         size_t siz, len;
         void rewind();
         void increase(uint);
+        tchar_pt<T> reserve_space(size_t);
     public:
         string_stream(EncMetric_info<T> info, std::pmr::memory_resource *alloc) : buffer{alloc}, base{buffer.memory}, fir{base}, las{base}, siz{0}, len{0} {}
 
