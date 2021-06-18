@@ -106,7 +106,7 @@ uint UTF16<be>::decode(unicode *uni, const byte *by, size_t l){
         char16_t temph, templ;
         myend<be>::decode(&temph, by, 2);
         myend<be>::decode(&templ, by+2, 2);
-        *uni = unicode{(( static_cast<uint>(temph) - 0xd800) << 10) + ( static_cast<uint>(templ) - 0xdc00)};
+        *uni = unicode{0x10000 + (( static_cast<uint>(temph) - 0xd800) << 10) + ( static_cast<uint>(templ) - 0xdc00)};
 		/*
 		unicode p_word{(read_unicode( leave_b(access(by, be, 2, 0), 0, 1) ) << 8) + read_unicode(access(by, be, 2, 1))};
 		unicode s_word{(read_unicode( leave_b(access(by+2, be, 2, 0), 0, 1) ) << 8) + read_unicode(access(by+2, be, 2, 1))};
@@ -139,10 +139,10 @@ uint UTF16<be>::encode(const unicode &unin, byte *by, size_t l){
 	
 	if(y_byte == 4){
 		uint_least32_t codec = static_cast<uint_least32_t>(unin) - 0x10000;
-        char16_t L = static_cast<char16_t>(leave_b(codec, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
-        char16_t H = static_cast<char16_t>(leave_b(codec, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19) >> 10);
-        myend<be>::encode(H, by, 2);
-        myend<be>::encode(L, by+2, 2);
+        char16_t Lee = static_cast<char16_t>(leave_b(codec, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
+        char16_t Hee = static_cast<char16_t>(leave_b(codec, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19) >> 10);
+        myend<be>::encode(Hee + 0xd800, by, 2);
+        myend<be>::encode(Lee + 0xdc00, by+2, 2);
         /*
 		access(by+2, be, 2, 1) = byte{static_cast<uint8_t>(uni & 0xff)};
 		uni=unicode{uni >> 8};
