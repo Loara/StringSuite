@@ -95,10 +95,24 @@ uint string_stream<T>::put_char(CharOStream<S> &stm){
 
 template<general_enctype T>
 template<general_enctype S>
-size_t string_stream<T>::put_chars(CharOStream<S> *stm, size_t nchr){
+size_t string_stream<T>::put_all(CharOStream<S> &stm){
+    if(len == 0)
+        throw IOEOF{};
+    adv_string_view<T> data = view();
+    size_t ret = stm.string_write(data);
+    siz=0;
+    len=0;
+    fir.set_diff(0);
+    las.set_diff(0);
+    return ret;
+}
+
+template<general_enctype T>
+template<general_enctype S>
+size_t string_stream<T>::put_chars(CharOStream<S> &stm, size_t nchr){
     if(len < nchr )
         throw IOEOF{};
-    size_t ret = stm->chars_write(fir.convert().cast(), siz, nchr);
+    size_t ret = stm.chars_write(fir.convert().cast(), siz, nchr);
     fir += ret;
     len -= nchr;
     siz -= ret;
@@ -174,6 +188,70 @@ size_t string_stream<T>::do_string_write(const adv_string_view<T> &str){
     len += str.length();
     siz += chsi;
     return chsi;
+}
+
+template<general_enctype T>
+template<general_enctype R>
+uint string_stream<T>::char_write_conv(const_tchar_pt<R> pt, size_t buf){
+    if((pt.raw_format().base_for(base.raw_format())))
+        return this->char_write(pt, buf);
+    ctype temp;
+    pt.decode(&temp, buf);
+    uint ret;
+    bool enc=false;
+    do{
+        try{
+            ret = las.encode_next(temp, remaining());
+            enc=true;
+        }
+        catch(buffer_small &e){
+            increase(e.get_required_size());
+        }
+    }
+    while(!enc);
+    siz += ret;
+    len++;
+    return ret;
+}
+
+template<general_enctype T>
+template<general_enctype R>
+size_t string_stream<T>::string_write_conv(const adv_string_view<R> &str){
+    if((str.raw_format().base_for(base.raw_format())))
+        return this->string_write(str);
+    ctype temp;
+    const_tchar_pt<R> pt = str.begin();
+    size_t xl = str.length();
+    size_t xs = str.size();
+
+    /*
+     * Temporarly data
+     * since in case of fatal error no byte should be permanently written
+     */
+    tchar_relative<T> dest{las};
+    size_t wrby=0;
+
+    uint inc = 0;
+    bool enc;
+    for(size_t i=0; i<xl; i++){
+        pt.decode_next_update(&temp, xs);
+        enc=false;
+        do{
+            try{
+                inc = dest.encode_next(temp, remaining());
+                enc=true;
+            }
+            catch(buffer_small &e){
+                increase(e.get_required_size());
+            }
+        }
+        while(!enc);
+        wrby += inc;
+    }
+    las.set_diff(dest.difff());
+    siz += wrby;
+    len += xl;
+    return wrby;
 }
 
 template<general_enctype T>

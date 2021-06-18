@@ -349,8 +349,10 @@ class EncMetric_info{
         }
         template<general_enctype S> requires same_data<T, S>
         void assert_base_for(EncMetric_info<S> b) const{
-            if constexpr(strong_enctype<S>)
-                static_assert(is_base_for<T, S>, "Cannot convert encoding T to encoding S (see above)");
+            if constexpr(strong_enctype<S>){
+                if constexpr(!is_base_for<T, S>)
+                    throw incorrect_encoding{"Cannot convert these encodings"};
+            }
             else{
                 if(!is_base_for_d(format(), b.format()))
                     throw incorrect_encoding{"Cannot convert these encodings"};
@@ -422,7 +424,7 @@ class ASCII{
 		static constexpr uint min_bytes() noexcept {return 1;}
 		static constexpr bool has_max() noexcept {return true;}
 		static constexpr uint max_bytes() noexcept {return 1;}
-		static uint chLen(const byte *, size_t siz) {return 1;}
+		static uint chLen(const byte *, size_t) {return 1;}
 		static validation_result validChar(const byte *, size_t) noexcept;
 		static uint decode(unicode *uni, const byte *by, size_t l);
 		static uint encode(const unicode &uni, byte *by, size_t l);
@@ -435,7 +437,7 @@ class Latin1{
 		static constexpr uint min_bytes() noexcept {return 1;}
 		static constexpr bool has_max() noexcept {return true;}
 		static constexpr uint max_bytes() noexcept {return 1;}
-		static uint chLen(const byte *, size_t siz) {return 1;}
+		static uint chLen(const byte *, size_t) {return 1;}
 		static validation_result validChar(const byte *, size_t) noexcept;
 		static uint decode(unicode *uni, const byte *by, size_t l);
 		static uint encode(const unicode &uni, byte *by, size_t l);

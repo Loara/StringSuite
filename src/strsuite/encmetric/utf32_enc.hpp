@@ -20,6 +20,8 @@
 
 namespace sts{
 
+extern template class Endian_enc_size<true, char32_t, 4>;
+extern template class Endian_enc_size<false, char32_t, 4>;
 extern template class UTF32<true>;
 extern template class UTF32<false>;
 

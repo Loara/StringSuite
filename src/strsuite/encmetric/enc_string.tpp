@@ -206,12 +206,15 @@ bool adv_string_view<T>::equal_to(const adv_string_view<T> &t, size_t ch) const{
 
 template<typename T>
 bool adv_string_view<T>::operator==(const adv_string_view<T> &t) const{
-	if(!sameEnc(ptr, t.begin()))
+	if(!sameEnc(ptr, t.begin())){
 		return false;
-	if(siz != t.size())
+    }
+	if(siz != t.size()){
 		return false;
-    if(len != t.length())
+    }
+    if(len != t.length()){
         return false;
+    }
 	return compare(data(), t.data(), siz);
 }
 

@@ -21,6 +21,7 @@
  */
 #include <strsuite/encmetric/byte_tools.hpp>
 #include <strsuite/encmetric/encoding.hpp>
+#include <strsuite/encmetric/endianess.hpp>
 
 namespace sts{
 

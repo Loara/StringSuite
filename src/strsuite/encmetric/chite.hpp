@@ -206,8 +206,8 @@ class tchar_relative{
         tchar_relative(const tchar_pt<T> &fr, std::size_t t = 0) : ptr{fr}, dif{t} {}
         tchar_relative(tchar_pt<T> &&, std::size_t = 0) =delete;
 
-        tchar_relative(const tchar_relative &)=delete;
-        tchar_relative(tchar_relative &&)=delete;
+        tchar_relative(const tchar_relative &e) : ptr{e.ptr}, dif{e.dif} {}
+        //tchar_relative(tchar_relative &&)=delete;
 
         tchar_relative &operator=(const tchar_relative &)=delete;
         tchar_relative &operator=(tchar_relative &&)=delete;

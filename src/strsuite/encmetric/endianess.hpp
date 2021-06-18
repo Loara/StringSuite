@@ -31,7 +31,7 @@ public:
     static constexpr uint min_bytes() noexcept{ return N;}
     static constexpr bool has_max() noexcept {return true;}
     static constexpr uint max_bytes() noexcept{ return N;}
-	static uint chLen(const byte *, size_t siz) {return N;}
+	static uint chLen(const byte *, size_t) {return N;}
 	static validation_result validChar(const byte *, size_t l) noexcept {return validation_result{l >= static_cast<size_t>(N), N};}
 	static uint decode(T *uni, const byte *by, size_t l){
         if(l < N)

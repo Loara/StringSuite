@@ -38,7 +38,7 @@ basic_ptr::basic_ptr(const byte *pt, std::size_t dim, std::pmr::memory_resource 
         std::memcpy(memory, pt, dim);
 }
 
-basic_ptr::basic_ptr(basic_ptr &&from) noexcept : memory{std::move(from.memory)}, dimension{from.dimension}, alloc{std::move(from.alloc)}{
+basic_ptr::basic_ptr(basic_ptr &&from) noexcept : alloc{std::move(from.alloc)}, memory{std::move(from.memory)}, dimension{from.dimension}{
     from.reset();
 }
 

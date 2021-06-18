@@ -57,7 +57,7 @@ validation_result UTF8::validChar(const byte *data, size_t siz) noexcept{
 		add = 4;
 	else
 		return validation_result{false, 0};
-	for(int i=1; i<add; i++){
+	for(uint i=1; i<add; i++){
 		b=data[i];
 		if(bit_zero(b, 7) || bit_one(b, 6))
 			return validation_result{false, 0};

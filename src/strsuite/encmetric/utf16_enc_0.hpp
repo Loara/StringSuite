@@ -21,6 +21,7 @@
  * */
 #include <strsuite/encmetric/byte_tools.hpp>
 #include <strsuite/encmetric/encoding.hpp>
+#include <strsuite/encmetric/endianess.hpp>
 
 namespace sts{
 
@@ -38,20 +39,5 @@ class UTF16{
 };
 using UTF16LE = UTF16<false>;
 using UTF16BE = UTF16<true>;
-
-inline constexpr bool utf16_H_range(const byte *datas, bool be) noexcept{
-	byte data = access(datas, be, 2, 0);
-	return bit_one(data, 7, 6, 4, 3) && bit_zero(data, 5, 2);
-}
-
-inline constexpr bool utf16_L_range(const byte *datas, bool be) noexcept{
-	byte data = access(datas, be, 2, 0);
-	return bit_one(data, 7, 6, 4, 3, 2) && bit_zero(data, 5);
-}
-
-inline constexpr bool utf16_range(const byte *datas, bool be) noexcept{
-	byte data = access(datas, be, 2, 0);
-	return bit_one(data, 7, 6, 4, 3) && bit_zero(data, 5);
-}
 
 }

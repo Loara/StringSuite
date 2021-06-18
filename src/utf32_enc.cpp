@@ -18,12 +18,20 @@
 #include <strsuite/encmetric/utf32_enc_0.hpp>
 
 namespace sts{
+template class Endian_enc_size<true, char32_t, 4>;
+template class Endian_enc_size<false, char32_t, 4>;
+
+template<bool be>
+using myend=Endian_enc_size<be, char32_t, 4>;
+
 template<bool be>
 validation_result UTF32<be>::validChar(const byte *data, size_t siz) noexcept{
-    if(siz < 4)
+    if(siz < 4){
         return validation_result{false, 0};
-	if(access(data, be, 4, 0) != byte{0})
+    }
+	if(access(data, be, 4, 0) != byte{0}){
 		return validation_result{false, 0};
+    }
 	byte rew = access(data, be, 4, 1);
 	if(!bit_zero(rew, 7, 6, 5))
 		return validation_result{false, 0};
@@ -36,10 +44,9 @@ template<bool be>
 uint UTF32<be>::decode(unicode *uni, const byte *by, size_t l){
 	if(l < 4)
 		throw buffer_small{4-static_cast<uint>(l)};
-	*uni = unicode{0};
-	for(int i=0; i<4; i++){
-		*uni = unicode{(*uni << 8) + read_unicode(access(by, be, 4, i))};
-	}
+    char32_t tmp;
+    myend<be>::decode(&tmp, by, l);
+    *uni = unicode{tmp};
 	return 4;
 }
 
@@ -47,12 +54,8 @@ template<bool be>
 uint UTF32<be>::encode(const unicode &unin, byte *by, size_t l){
 	if(l < 4)
 		throw buffer_small{4-static_cast<uint>(l)};
-	byte temp[4];
-	unicode uni=unin;
-	for(int i=0; i<4; i++){
-		access(temp, be, 4, 3-i) = byte{static_cast<uint8_t>(uni & 0xff)};
-		uni=unicode{uni >> 8};
-	}
+	char32_t cast = static_cast<char32_t>(unin);
+    myend<be>::encode(cast, by, l);
 	return 4;
 }
 

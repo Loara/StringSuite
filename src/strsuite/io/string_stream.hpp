@@ -33,7 +33,8 @@ namespace sts{
         void increase(uint);
         tchar_pt<T> reserve_space(size_t);
     public:
-        string_stream(EncMetric_info<T> info, std::pmr::memory_resource *alloc) : buffer{alloc}, base{buffer.memory}, fir{base}, las{base}, siz{0}, len{0} {}
+        using ctype=typename T::ctype;
+        string_stream(EncMetric_info<T> info, std::pmr::memory_resource *alloc) : buffer{alloc}, base{buffer.memory, info}, fir{base}, las{base}, siz{0}, len{0} {}
 
         string_stream(std::pmr::memory_resource *alloc = std::pmr::get_default_resource()) requires strong_enctype<T> : string_stream{EncMetric_info<T>{}, alloc} {}
 
@@ -55,7 +56,15 @@ namespace sts{
         template<general_enctype S>
         uint put_char(CharOStream<S> &);
         template<general_enctype S>
-        size_t put_chars(CharOStream<S> *, size_t);
+        size_t put_all(CharOStream<S> &);
+        template<general_enctype S>
+        size_t put_chars(CharOStream<S> &, size_t);
+
+        //Make encoding conversion
+        template<general_enctype R>
+        uint char_write_conv(const_tchar_pt<R>, size_t);
+        template<general_enctype R>
+        size_t string_write_conv(const adv_string_view<R> &);
 
     protected:
         EncMetric_info<T> do_encmetric() const noexcept{ return base.raw_format();}
