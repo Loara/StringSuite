@@ -71,7 +71,8 @@ install(FILES "strsuite/io/enc_io_core.hpp"
     "strsuite/io/byte_stream.hpp"
     "strsuite/io/char_stream.hpp"
     "strsuite/io/string_stream.hpp"
-    "strsuite/io/nl_stream.hpp" DESTINATION include/strsuite/io)
+    "strsuite/io/nl_stream.hpp"
+    "strsuite/io/buffers.hpp" DESTINATION include/strsuite/io)
 
 install(FILES "strsuite/encmetric/chite.tpp"
     "strsuite/encmetric/enc_string.tpp"

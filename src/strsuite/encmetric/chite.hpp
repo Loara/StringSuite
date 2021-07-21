@@ -66,13 +66,9 @@ class base_tchar_pt{
 		data_type *data() const {return ptr;}
 		EncMetric_info<T> raw_format() const noexcept{ return ei;}
 		const EncMetric<ctype> *format() const noexcept {return ei.format();}
-		/*
-		    Informations about relative EncMetric
-		*/
-		/*
-		    Test if is a null string
-		*/
-		bool isNull() const {return ptr == nullptr;}
+
+		bool isNull() const noexcept{return ptr == nullptr;}
+		void rebase(data_type *p) noexcept{ptr = p;}
 		uint min_bytes() const noexcept {return ei.min_bytes();}
 		bool has_max() const noexcept {return ei.has_max();}
 		uint max_bytes() const noexcept {return ei.max_bytes();}
