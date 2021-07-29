@@ -18,95 +18,48 @@
 */
 #include <strsuite/encmetric/base.hpp>
 #include <strsuite/encmetric/byte_tools.hpp>
+#include <strsuite/io/buffers.hpp>
 #include <cstring>
 
 namespace sts{
 
-template<typename Sys>
-class istr_buffer{
+template<strong_enctype T, typename Sys>
+class istr_buffer : public basic_buffer<T, istr_buffer<T, Sys>, true, false>{
     private:
         Sys sy;
         byte buf[Sys::buffer_size];
-        size_t siz, fir;
-        void refresh(){
-            fir=0;
-            siz=0;
-        }
-        void fill(){
-            size_t wt;
+    public:
+        istr_buffer(const Sys &f) : basic_buffer<T, istr_buffer<T, Sys>, true, false>{buf, Sys::buffer_size, EncMetric_info<T>{}}, sy{f} {}
+
+        void inc_siz(uint inc){
+            if(this->rem < static_cast<size_t>(inc))
+                throw IOEOF{};
+            size_t wt, tu = static_cast<size_t>(inc);
             bool repeat;
             do{
                 repeat=false;
-                wt = sy.read_wrap(buf + siz, Sys::buffer_size - siz, repeat);
-            }while(repeat);
-            siz += wt;
-        }
-        void shift(size_t &tmp){
-            if(fir == 0)
-                return;
-            siz = siz - fir;
-            tmp = tmp - fir;
-            std::memmove(buf, buf + fir, siz);
-            fir = 0;
-        }
-    public:
-        /*
-         * Read exactly len bytes, throw exception (IOEOF for example) if there are less
-         *
-         * Since it reads only single character we have len <= 4
-         * so tmp - fir <= 4 and if siz = tmp then
-         * buffer_size > 4 >= siz - fir and  buffer_size - (siz - fir) > 0, this implies that shift + fill will read at least 1 byte
-         */
-        void copy_to(byte *to, size_t len){
-            size_t tmp = fir;
-            byte *inc = to;
-            while(len > 0){
-                size_t buf_wrt = siz - tmp;
-                if(buf_wrt > 0){
-                    size_t min = buf_wrt > len ? len : buf_wrt;
-                    std::memcpy(inc, buf + tmp, min);
-                    tmp += min;
-                    inc += min;
-                    len -= min;
+                wt = sy.read_wrap(this->las.data(), this->rem, repeat);
+                if(wt > 0){
+                    this->raw_las_step(wt);
                 }
-                else{
-                    shift(tmp);
-                    fill();
+                if(wt < tu){
+                    tu -= wt;
+                    repeat = true;
                 }
+                else
+                    tu = 0;
             }
-            fir = tmp;
+            while(repeat);
         }
-        void ghost_copy(byte *to, size_t len){
-            size_t tmp = fir;
-            byte *inc = to;
-            while(len > 0){
-                size_t buf_wrt = siz - tmp;
-                if(buf_wrt > 0){
-                    size_t min = buf_wrt > len ? len : buf_wrt;
-                    std::memcpy(inc, buf + tmp, min);
-                    tmp += min;
-                    inc += min;
-                    len -= min;
-                }
-                else{
-                    shift(tmp);
-                    fill();
-                }
-            }
-            //Nope
-            //fir = tmp;
-        }
-
         Sys get_system_id() const noexcept {return sy;}
-
-        istr_buffer(const Sys &f) : sy{f} {}
 };
 
-template<typename Sys>
-class ostr_buffer{
+template<strong_enctype T, typename Sys>
+class ostr_buffer : public basic_buffer<T, ostr_buffer<T, Sys>, false, true>{
     private:
         Sys sy;
         byte buf[Sys::buffer_size];
+        /*
         size_t pt1, pt2; // 0 < pt1 < pt2 < tmp < buffer_size
         void refresh(){
             pt1=0;
@@ -126,7 +79,10 @@ class ostr_buffer{
             pt2 = pt2 - pt1;
             pt1 = 0;
         }
+        */
     public:
+        ostr_buffer(const Sys &f) : basic_buffer<T, ostr_buffer<T, Sys>, false, true>{buf, Sys::buffer_size, EncMetric_info<T>{}}, sy{f} {}
+        /*
         void copy_from(const byte *from, size_t len){
             const byte *inc = from;
             while(len > 0){
@@ -147,17 +103,29 @@ class ostr_buffer{
         }
 
         void flush(){
-            while(true){
-                shift();
-                if(pt2 == 0)
-                    break;
-                push();
+            base_flush();
+        }
+        */
+        void inc_rem(size_t){
+            size_t wt;
+            bool repeat;
+            do{
+                repeat=false;
+                wt = sy.write_wrap(this->fir.data(), this->siz, repeat);
+                if(wt > 0){
+                    this->raw_fir_step(wt);
+                }
             }
+            while(repeat);
+            this->rewind();//increases rem by n
+        }
+
+        void flush(){
+            inc_rem(0);
+            this->base_flush();
         }
 
         Sys get_system_id() const noexcept {return sy;}
-
-        ostr_buffer(const Sys &f) : sy{f} {}
 };
 
 }

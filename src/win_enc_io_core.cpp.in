@@ -96,28 +96,27 @@ struct Windows_syscalls{
 
 class Windows_istream : public sts::NewlineIStream<sts::UTF16LE>{
     private:
-        sts::istr_buffer<Windows_syscalls> buffer;
+        sts::istr_buffer<sts::UTF16LE, Windows_syscalls> buffer;
         static_assert(Windows_syscalls::buffer_size > 4, "buffer too small");
     protected:
         sts::adv_string_view<sts::UTF16LE> do_newline() const noexcept{ return u"\r\n"_asv;}
         sts::uint do_char_read(sts::tchar_pt<sts::UTF16LE> pt, size_t siz){
             if(siz < 2)
                 throw sts::IOBufsmall{2-siz};
-            buffer.ghost_copy(pt.data(), 2);
-            sts::uint totl = pt.chLen(2);
-            if(totl > siz)
-                throw sts::IOBufsmall{totl-siz};
-            buffer.copy_to(pt.data(), totl);
+            sts::uint totl = buffer.get_chLen();
+            if(siz < static_cast<size_t>(totl))
+                throw sts::IOBufsmall{static_cast<size_t>(totl) - siz};
+            std::memcpy(pt.data(), buffer.fir.data(), totl);
+            buffer.raw_fir_step(totl);
             return totl;
         }
         sts::uint do_ghost_read(sts::tchar_pt<sts::UTF16LE> pt, size_t siz){
             if(siz < 2)
                 throw sts::IOBufsmall{2-siz};
-            buffer.ghost_copy(pt.data(), 2);
-            sts::uint totl = pt.chLen(2);
-            if(totl > siz)
-                throw sts::IOBufsmall{totl-siz};
-            buffer.ghost_copy(pt.data(), totl);
+            sts::uint totl = buffer.get_chLen();
+            if(siz < static_cast<size_t>(totl))
+                throw sts::IOBufsmall{static_cast<size_t>(totl) - siz};
+            std::memcpy(pt.data(), buffer.fir.data(), totl);
             return totl;
         }
 
@@ -150,12 +149,12 @@ class Windows_istream : public sts::NewlineIStream<sts::UTF16LE>{
 
         sts::EncMetric_info<sts::UTF16LE> do_encmetric() const noexcept{ return sts::EncMetric_info<sts::UTF16LE>{};}
     public:
-        Windows_istream () : buffer{GetStdHandle(STD_INPUT_HANDLE)} {}
+        Windows_istream () : buffer{Windows_syscalls{GetStdHandle(STD_INPUT_HANDLE)}} {}
 };
 
 class Windows_ostream : public sts::NewlineOStream<sts::UTF16LE>{
     private:
-        sts::ostr_buffer<Windows_syscalls> buffer;
+        sts::ostr_buffer<sts::UTF16LE, Windows_syscalls> buffer;
         static_assert(Windows_syscalls::buffer_size > 4, "buffer too small");
     protected:
         sts::adv_string_view<sts::UTF16LE> do_newline() const noexcept{ return u"\r\n"_asv;}
@@ -165,11 +164,20 @@ class Windows_ostream : public sts::NewlineOStream<sts::UTF16LE>{
             sts::uint totl = pt.chLen(siz);
             if(totl > siz)
                 throw sts::IOBufsmall{totl-siz};
-            buffer.copy_from(pt.data(), totl);
+            buffer.force_frspc(totl);
+            std::memcpy(buffer.las.data(), pt.data(), totl);
+            buffer.raw_las_step(totl);
             return totl;
         }
         size_t do_string_write(const sts::adv_string_view<sts::UTF16LE> &str){
-            buffer.copy_from(str.data(), str.size());
+            size_t rem = str.size();
+            const sts::byte *b = str.data();
+            while(rem > 0){
+                sts::size_t wrt = buffer.req_frspc(rem);
+                std::memcpy(buffer.las.data(), b, wrt);
+                buffer.raw_las_step(wrt);
+                rem -= wrt;
+            }
             return str.size();
         }
 
@@ -181,7 +189,7 @@ class Windows_ostream : public sts::NewlineOStream<sts::UTF16LE>{
 
         sts::EncMetric_info<sts::UTF16LE> do_encmetric() const noexcept{ return sts::EncMetric_info<sts::UTF16LE>{};}
     public:
-        Windows_ostream (HANDLE f) : buffer{f} {}
+        Windows_ostream (HANDLE f) : buffer{Windows_syscalls{f}} {}
 };
 
 sts::NewlineIStream<sts::UTF16LE> &sts::get_console_stdin(){

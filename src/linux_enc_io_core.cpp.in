@@ -91,22 +91,38 @@ struct Linux_syscalls{
 
 class Linux_istream : public sts::NewlineIStream<sts::UTF8>{
     private:
-        sts::istr_buffer<Linux_syscalls> buffer;
+        sts::istr_buffer<sts::UTF8, Linux_syscalls> buffer;
         static_assert(Linux_syscalls::buffer_size > 4, "buffer too small");
     protected:
         sts::adv_string_view<sts::UTF8> do_newline() const noexcept{ return u8"\n"_asv;}
         uint do_char_read(sts::tchar_pt<sts::UTF8> pt, size_t siz){
             if(siz == 0)
                 throw sts::IOBufsmall{1};
+            uint totl = buffer.get_chLen();
+            if(siz < static_cast<size_t>(totl))
+                throw sts::IOBufsmall{static_cast<size_t>(totl) - siz};
+            std::memcpy(pt.data(), buffer.fir.data(), totl);
+            buffer.raw_fir_step(totl);
+            return totl;
+            /*
             buffer.ghost_copy(pt.data(), 1);
             uint totl = pt.chLen(1);
             if(totl > siz)
                 throw sts::IOBufsmall{totl-siz};
             buffer.copy_to(pt.data(), totl);
             return totl;
+            */
         }
 
         uint do_ghost_read(sts::tchar_pt<sts::UTF8> pt, size_t siz){
+            if(siz == 0)
+                throw sts::IOBufsmall{1};
+            uint totl = buffer.get_chLen();
+            if(siz < static_cast<size_t>(totl))
+                throw sts::IOBufsmall{static_cast<size_t>(totl) - siz};
+            std::memcpy(pt.data(), buffer.fir.data(), totl);
+            return totl;
+            /*
             if(siz == 0)
                 throw sts::IOBufsmall{1};
             buffer.ghost_copy(pt.data(), 1);
@@ -115,6 +131,7 @@ class Linux_istream : public sts::NewlineIStream<sts::UTF8>{
                 throw sts::IOBufsmall{totl-siz};
             buffer.ghost_copy(pt.data(), totl);
             return totl;
+            */
         }
 
         void do_close() {}
@@ -150,7 +167,7 @@ class Linux_istream : public sts::NewlineIStream<sts::UTF8>{
 
 class Linux_ostream : public sts::NewlineOStream<sts::UTF8>{
     private:
-        sts::ostr_buffer<Linux_syscalls> buffer;
+        sts::ostr_buffer<sts::UTF8, Linux_syscalls> buffer;
         static_assert(Linux_syscalls::buffer_size > 4, "buffer too small");
     protected:
         sts::adv_string_view<sts::UTF8> do_newline() const noexcept{ return u8"\n"_asv;}
@@ -160,11 +177,20 @@ class Linux_ostream : public sts::NewlineOStream<sts::UTF8>{
             uint totl = pt.chLen(siz);
             if(totl > siz)
                 throw sts::IOBufsmall{totl-siz};
-            buffer.copy_from(pt.data(), totl);
+            buffer.force_frspc(totl);
+            std::memcpy(buffer.las.data(), pt.data(), totl);
+            buffer.raw_las_step(totl);
             return totl;
         }
         size_t do_string_write(const sts::adv_string_view<sts::UTF8> &str){
-            buffer.copy_from(str.data(), str.size());
+            size_t rem = str.size();
+            const byte *b = str.data();
+            while(rem > 0){
+                size_t wrt = buffer.req_frspc(rem);
+                std::memcpy(buffer.las.data(), b, wrt);
+                buffer.raw_las_step(wrt);
+                rem -= wrt;
+            }
             return str.size();
         }
 

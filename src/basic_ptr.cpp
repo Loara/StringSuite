@@ -19,6 +19,15 @@
 
 using namespace sts;
 
+byte *basic_ptr::raw_allocate(size_t dim){
+    byte *ret = static_cast<byte *>(alloc->allocate(dim));
+    return ret;
+}
+
+void basic_ptr::raw_deallocate(byte *mem, size_t dim){
+    alloc->deallocate(mem, dim);
+}
+
 void basic_ptr::reset() noexcept{
 	memory = nullptr;
 	dimension = 0;
@@ -29,7 +38,7 @@ basic_ptr::basic_ptr(std::pmr::memory_resource *all) : alloc{all == nullptr ? st
 basic_ptr::basic_ptr(std::size_t dim, std::pmr::memory_resource *all) : basic_ptr{all} {
 	if(dim>0){
 		dimension = dim;
-		memory = static_cast<byte *>(alloc->allocate(dim));
+		memory = raw_allocate(dim);
 	}
 }
 
@@ -44,7 +53,7 @@ basic_ptr::basic_ptr(basic_ptr &&from) noexcept : alloc{std::move(from.alloc)}, 
 
 void basic_ptr::free(){
     if(memory != nullptr){
-		alloc->deallocate(memory, dimension);
+		raw_deallocate(memory, dimension);
 		memory = nullptr;
 	}
 	dimension = 0;
@@ -73,7 +82,7 @@ basic_ptr &basic_ptr::operator=(basic_ptr &&ref){
 }
 
 void basic_ptr::reallocate(std::size_t dim){
-    byte *newm = static_cast<byte *>(alloc->allocate(dim));
+    byte *newm = raw_allocate(dim);
     size_t mindim = dim > dimension ? dimension : dim;
     if(memory != nullptr)
         std::memcpy(newm, memory, mindim);

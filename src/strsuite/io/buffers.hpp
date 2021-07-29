@@ -35,10 +35,10 @@ namespace sts{
      */
 template<general_enctype T, typename U, bool read, bool write>
 class basic_buffer{
-    private:
+    protected:
         U *mycast() noexcept{ return static_cast<U *>(this);}
         U const *mycast() const noexcept{ return static_cast<U const *>(this);}
-    protected:
+    public:
         tchar_pt<T> base;
         tchar_relative<T> fir, las, end;
         size_t siz, rem;
@@ -46,9 +46,9 @@ class basic_buffer{
         void rebase(byte *b, size_t dim){
             base = base.new_instance(b);
             /*
-             * Must be dim >= end.difff()
+             * Must be dim >= las.difff()
              */
-            rem += dim - end.difff();
+            rem = dim - las.difff();
             end.set_diff(dim);
         }
         void reset(){
@@ -59,28 +59,29 @@ class basic_buffer{
             las.set_diff(0);
             end.set_diff(0);
         }
-    public:
-        struct buf_result{
-            byte *pt;
-            size_t s;
-        };
-        size_t size() const noexcept {return siz;}
-        tchar_pt<T> get_ptr() const noexcept{ return fir.convert();}
-        tchar_pt<T> set_ptr() const noexcept{ return las.convert();}
-        tchar_pt<T> end_ptr() const noexcept{ return end.convert();}
+        void base_flush(){
+            fir.set_diff(0);
+            las.set_diff(0);
+            siz = 0;
+            rem = end.difff();
+        }
+
+        void raw_fir_step(size_t inc){
+            fir += inc;
+            siz -= inc;
+        }
+        void raw_las_step(size_t inc){
+            las += inc;
+            siz += inc;
+            rem -= inc;
+        }
+
         void rewind(){
             size_t skip = fir.difff();
             std::memmove(base.data(), fir.data(), siz);
             fir.set_diff(0);
             las.set_diff(siz);
             rem += skip;
-        }
-
-        void base_flush(){
-            fir.set_diff(0);
-            las.set_diff(0);
-            siz = 0;
-            rem = end.difff();
         }
 
         uint get_chLen() requires read{
@@ -106,26 +107,32 @@ class basic_buffer{
             }
             return ret;
         }
-        uint get_step() requires read{
-            uint ret = fir.next(siz);
-            siz -= ret;
-            return ret;
-        }
 
-        void req_chLen(size_t nl) requires write{
-            while(rem < nl){
-                if(fir.difff() > 0)
-                    rewind();
-                else
-                    mycast()->inc_rem(nl - rem);
+        /*
+         * Tries to increase rem in otrder to be greater than nl
+         *
+         * returns minimum between rem and nl
+         */
+        size_t req_frspc(size_t nl) requires write{
+            if(fir.difff() > 0)
+                rewind();
+            if(rem >= nl)
+                return nl;
+            else{
+                mycast()->inc_rem(nl - rem);
+                return rem >= nl ? nl : rem;
             }
         }
-
-        size_t req_step(size_t nl) requires write{
-            las.set_diff(las.difff() + nl);
-            rem -= nl;
-            siz += nl;
-            return nl;
+        void force_frspc(size_t nl) requires write{
+            if(fir.difff() > 0)
+                rewind();
+            if(rem >= nl)
+                return;
+            else{
+                mycast()->inc_rem(nl - rem);
+                if(rem < nl)
+                    throw IOFail{};
+            }
         }
 };
 

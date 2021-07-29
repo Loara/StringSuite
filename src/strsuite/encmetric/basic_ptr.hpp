@@ -30,6 +30,8 @@ class basic_ptr{
 	private:
 		void reset() noexcept;
 		std::pmr::memory_resource *alloc;
+        byte *raw_allocate(size_t);
+        void raw_deallocate(byte *, size_t);
 	public:
 		byte *memory;
 		std::size_t dimension;

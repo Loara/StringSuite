@@ -58,7 +58,7 @@ uint string_stream<T>::get_char(CharIStream<S> &stm){
     while(!read){
         try{
             uint red = stm.char_read(this->las.convert(), this->rem);
-            this->req_step(red);
+            this->raw_las_step(red);
             len++;
             read=true;
         }
@@ -99,7 +99,7 @@ uint string_stream<T>::get_ghost(CharIStream<S> &stm){
     while(!read){
         try{
             uint red = stm.ghost_read(this->las.convert(), this->rem);
-            this->req_step(red);
+            this->raw_las_step(red);
             len++;
             read=true;
         }
@@ -118,8 +118,8 @@ template<general_enctype S>
 uint string_stream<T>::put_char(CharOStream<S> &stm){
     if(len == 0)
         throw IOEOF{};
-    stm.char_write(this->fir.convert().cast(), this->siz);
-    uint ret = this->get_step();
+    uint ret = stm.char_write(this->fir.convert().cast(), this->siz);
+    this->raw_fir_step(ret);
     len--;
     return ret;
 }
@@ -145,7 +145,7 @@ uint string_stream<T>::do_char_read(tchar_pt<T> ptr, size_t tsiz){
         throw IOBufsmall{ret - static_cast<uint>(tsiz)};
     std::memcpy(ptr.data(), this->fir.data(), ret);
     len--;
-    this->get_step();
+    this->raw_fir_step(ret);
     return ret;
 }
 
@@ -171,20 +171,20 @@ uint string_stream<T>::do_char_write(const_tchar_pt<T> ptr, size_t tsiz){
     }
     if(chsi > tsiz)
         throw IOBufsmall{chsi - static_cast<uint>(tsiz)};
-    this->req_chLen(chsi);
+    this->force_frspc(chsi);
     std::memcpy(this->las.data(), ptr.data(), chsi);
     len++;
-    this->req_step(chsi);
+    this->raw_las_step(chsi);
     return chsi;
 }
 
 template<general_enctype T>
 size_t string_stream<T>::do_string_write(const adv_string_view<T> &str){
     size_t chsi = str.size();
-    this->req_chLen(chsi);
+    this->force_frspc(chsi);
     std::memcpy(this->las.data(), str.data(), chsi);
     len += str.length();
-    this->req_step(chsi);
+    this->raw_las_step(chsi);
     return chsi;
 }
 
@@ -208,7 +208,7 @@ uint string_stream<T>::char_write_conv(const_tchar_pt<R> pt, size_t buf){
     }
     while(!enc);
     len++;
-    this->req_step(ret);
+    this->raw_las_step(ret);
     return ret;
 }
 
@@ -222,21 +222,15 @@ size_t string_stream<T>::string_write_conv(const adv_string_view<R> &str){
     size_t xl = str.length();
     size_t xs = str.size();
 
-    /*
-     * Temporarly data
-     * since in case of fatal error no byte should be permanently written
-     */
-    tchar_relative<T> dest{this->las};
-    size_t wrby=0;
-
     uint inc = 0;
+    size_t wrby=0;
     bool enc;
     for(size_t i=0; i<xl; i++){
         pt.decode_next_update(&temp, xs);
         enc=false;
         do{
             try{
-                inc = dest.encode_next(temp, this->rem);
+                inc = this->las.encode(temp, this->rem);
                 enc=true;
             }
             catch(buffer_small &e){
@@ -244,10 +238,10 @@ size_t string_stream<T>::string_write_conv(const adv_string_view<R> &str){
             }
         }
         while(!enc);
+        this->raw_las_step(inc);
+        len++;
         wrby += inc;
     }
-    this->req_step(wrby);
-    len += xl;
     return wrby;
 }
 
