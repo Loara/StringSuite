@@ -38,11 +38,8 @@ struct Windows_syscalls{
     Windows_syscalls(HANDLE f) : fd{f} {}
 
     static constexpr size_t buffer_size=64;
-    /*
-     * Return must be >0
-     * if ==0 then repeat must be true
-     */
-    size_t read_wrap(sts::byte *v, size_t l, bool &repeat){
+
+    size_t read_wrap(sts::byte *v, size_t l){
         DWORD chrr;
         auto err = ReadConsoleW(fd, v, l/2, &chrr, NULL);
         if(err == 0){
@@ -56,7 +53,7 @@ struct Windows_syscalls{
             throw sts::IOEOF{};
         return 2 * static_cast<size_t>(chrr);
     }
-    size_t write_wrap(const sts::byte *v, size_t l, bool &repeat){
+    size_t write_wrap(const sts::byte *v, size_t l){
         DWORD chrr;
         auto err = WriteConsoleW(fd, v, l/2, &chrr, NULL);
         if(err == 0){

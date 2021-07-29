@@ -22,8 +22,17 @@
 #include <cstring>
 
 namespace sts{
+template<size_t t>
+inline constexpr size_t tester = t;
 
-template<strong_enctype T, typename Sys>
+template<typename Sys>
+concept syscall = requires(Sys s, byte *a, const byte *b, size_t t){
+    tester<Sys::buffer_size>;
+    {s.read_wrap(a, t)} -> std::same_as<size_t>;
+    {s.write_wrap(b, t)} -> std::same_as<size_t>;
+};
+
+template<strong_enctype T, syscall Sys>
 class istr_buffer : public basic_buffer<T, istr_buffer<T, Sys>, true, false>{
     private:
         Sys sy;
@@ -38,7 +47,7 @@ class istr_buffer : public basic_buffer<T, istr_buffer<T, Sys>, true, false>{
             bool repeat;
             do{
                 repeat=false;
-                wt = sy.read_wrap(this->las.data(), this->rem, repeat);
+                wt = sy.read_wrap(this->las.data(), this->rem);
                 if(wt > 0){
                     this->raw_las_step(wt);
                 }
@@ -54,7 +63,7 @@ class istr_buffer : public basic_buffer<T, istr_buffer<T, Sys>, true, false>{
         Sys get_system_id() const noexcept {return sy;}
 };
 
-template<strong_enctype T, typename Sys>
+template<strong_enctype T, syscall Sys>
 class ostr_buffer : public basic_buffer<T, ostr_buffer<T, Sys>, false, true>{
     private:
         Sys sy;
@@ -111,10 +120,12 @@ class ostr_buffer : public basic_buffer<T, ostr_buffer<T, Sys>, false, true>{
             bool repeat;
             do{
                 repeat=false;
-                wt = sy.write_wrap(this->fir.data(), this->siz, repeat);
+                wt = sy.write_wrap(this->fir.data(), this->siz);
                 if(wt > 0){
                     this->raw_fir_step(wt);
                 }
+                else
+                    repeat=true;
             }
             while(repeat);
             this->rewind();//increases rem by n

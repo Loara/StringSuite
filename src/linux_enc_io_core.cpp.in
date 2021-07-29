@@ -48,7 +48,7 @@ struct Linux_syscalls{
      * Return must be >0
      * if ==0 then repeat must be true
      */
-    size_t read_wrap(byte *v, size_t l, bool &repeat){
+    size_t read_wrap(byte *v, size_t l){
         ssize_t wt = read(fd, v, l);
         if(wt < 0){
             switch(errno){
@@ -56,7 +56,6 @@ struct Linux_syscalls{
                 case_EWOULDBLOCK
                     throw sts::IOAGAIN{};
                 case EINTR:
-                    repeat = true;
                     return 0;
                 default:
                     throw sts::IOFail{};
@@ -66,7 +65,7 @@ struct Linux_syscalls{
             throw sts::IOEOF{};
         return static_cast<size_t>(wt);
     }
-    size_t write_wrap(const byte *v, size_t l, bool &repeat){
+    size_t write_wrap(const byte *v, size_t l){
         ssize_t wt = write(fd, v, l);
         if(wt < 0){
             switch(errno){
@@ -74,7 +73,6 @@ struct Linux_syscalls{
                 case_EWOULDBLOCK
                     throw sts::IOAGAIN{};
                 case EINTR:
-                    repeat = true;
                     return 0;
                 case EDQUOT:
                 case EFBIG:
