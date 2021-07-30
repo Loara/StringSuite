@@ -36,8 +36,9 @@ class CharIStream{
         template<general_enctype S>
         uint char_read(tchar_pt<S> pt, size_t buf) {
             auto enc=do_encmetric();
-            enc.assert_base_for(pt.raw_format());
-            return do_char_read(tchar_pt<T>{pt.data(), enc}, buf);
+            //enc.assert_base_for(pt.raw_format());
+            //return do_char_read(tchar_pt<T>{pt.data(), enc}, buf);
+            return do_char_read(rebase_pointer(pt, enc), buf);
         }
         template<general_enctype S>
         uint char_read_v(tchar_pt<S> pt, size_t buf) {

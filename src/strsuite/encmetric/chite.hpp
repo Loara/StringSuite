@@ -155,8 +155,8 @@ class const_tchar_pt : public base_tchar_pt<T, const_tchar_pt<T>, byte const>{
 		explicit const_tchar_pt(std::nullptr_t, const EncMetric<typename T::ctype> *f) requires widenc<T> : const_tchar_pt{static_cast<const byte *>(nullptr), EncMetric_info<T>{f}} {}
 
 		const_tchar_pt new_instance(const byte *c) const{return const_tchar_pt<T>{c, this->ei};}
-		const_tchar_pt new_instance(const char *c) const{return const_tchar_pt<T>{reinterpret_cast<const byte *>(c), this->ei};}
-		const_tchar_pt new_instance(std::nullptr_t) const{return const_tchar_pt<T>{nullptr, this->ei};}
+		//const_tchar_pt new_instance(const char *c) const{return const_tchar_pt<T>{reinterpret_cast<const byte *>(c), this->ei};}
+		//const_tchar_pt new_instance(std::nullptr_t) const{return const_tchar_pt<T>{nullptr, this->ei};}
 };
 
 template<general_enctype T>
@@ -183,8 +183,8 @@ class tchar_pt : public wbase_tchar_pt<T, tchar_pt<T>>{
 		operator const_tchar_pt<T>() const noexcept{ return cast();}
 
 		tchar_pt new_instance(byte *c) const{return tchar_pt<T>{c, this->ei};}
-		tchar_pt new_instance(char *c) const{return tchar_pt<T>{reinterpret_cast<byte *>(c), this->ei};}
-		tchar_pt new_instance(std::nullptr_t) const{return tchar_pt<T>{nullptr, this->ei};}
+		//tchar_pt new_instance(char *c) const{return tchar_pt<T>{reinterpret_cast<byte *>(c), this->ei};}
+		//tchar_pt new_instance(std::nullptr_t) const{return tchar_pt<T>{nullptr, this->ei};}
 };
 
 //---------------------------------------------
@@ -254,6 +254,38 @@ template<typename tt>
 inline tchar_pt<WIDE<tt>> set_encoding(tchar_pt<RAW<tt>> r, const EncMetric<tt> *f) noexcept {return tchar_pt<WIDE<tt>>{r.data(), f};}
 template<typename tt>
 inline const_tchar_pt<WIDE<tt>> set_encoding(const_tchar_pt<RAW<tt>> r, const EncMetric<tt> *f) noexcept {return const_tchar_pt<WIDE<tt>>{r.data(), f};}
+
+/*
+ * S should be a base for T
+ */
+template<general_enctype T, general_enctype S>
+const_tchar_pt<T> rebase_pointer(const_tchar_pt<S> from, EncMetric_info<T> f){
+    from.raw_format().assert_base_for(f);
+    return const_tchar_pt<T>{from.data(), f};
+}
+template<general_enctype T, general_enctype S>
+tchar_pt<T> rebase_pointer(tchar_pt<S> from, EncMetric_info<T> f){
+    from.raw_format().assert_base_for(f);
+    return tchar_pt<T>{from.data(), f};
+}
+
+template<strong_enctype T, general_enctype S>
+const_tchar_pt<T> rebase_pointer(const_tchar_pt<S> from){
+    return rebase_pointer(from, EncMetric_info<T>{});
+}
+template<strong_enctype T, general_enctype S>
+tchar_pt<T> rebase_pointer(tchar_pt<S> from){
+    return rebase_pointer(from, EncMetric_info<T>{});
+}
+
+template<typename tt, general_enctype S>
+const_tchar_pt<WIDE<tt>> rebase_pointer(const_tchar_pt<S> from, const EncMetric<tt> *format){
+    return rebase_pointer(from, EncMetric_info<WIDE<tt>>{format});
+}
+template<typename tt, general_enctype S>
+tchar_pt<WIDE<tt>> rebase_pointer(tchar_pt<S> from, const EncMetric<tt> *format){
+    return rebase_pointer(from, EncMetric_info<WIDE<tt>>{format});
+}
 
 /*
     Estimate the size of a possible string with n characters

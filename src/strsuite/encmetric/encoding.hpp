@@ -200,33 +200,6 @@ bool is_base_for_d(const EncMetric<tt> *a, const EncMetric<tt> *b) noexcept{
     return is_base_for_d(a, b->d_alias());
 }
 
-/*
-template<typename T>
-struct index_traits_0;
-
-template<default_aliases T>
-struct index_traits_0<T>{
-	using type_enc=T;
-};
-
-template<compare_aliases T>
-struct index_traits_0<T>{
-    static_assert(!is_wide<typename T::compare_enc>::value, "Cannot define aliases to WIDE encodings");
-	using type_enc=typename T::compare_enc;
-};
-
-template<equivalence_aliases T>
-struct index_traits_0<T>{
-    static_assert(not_widenc<typename T::equivalence_enc>, "Cannot define aliases to WIDE encodings");
-	using type_enc=typename index_traits_0<typename T::equivalence_enc>::type_enc;
-};
-
-template<not_widenc T>
-struct index_traits : public index_traits_0<T> {
-	static std::type_index index() noexcept {return std::type_index{typeid(typename index_traits_0<T>::type_enc)};}
-};
-
-*/
 
 template<typename T>
 concept safe_hasmax = not_widenc<T> && T::has_max();
@@ -347,9 +320,11 @@ class EncMetric_info{
             else
                 return is_base_for_d(format(), b.format());
         }
-        template<general_enctype S> requires same_data<T, S>
+        template<general_enctype S>
         void assert_base_for(EncMetric_info<S> b) const{
-            if constexpr(strong_enctype<S>){
+            if constexpr(!same_data<T, S>)
+                throw incorrect_encoding{"Cannot convert these encodings"};
+            else if constexpr(strong_enctype<S>){
                 if constexpr(!is_base_for<T, S>)
                     throw incorrect_encoding{"Cannot convert these encodings"};
             }
@@ -401,9 +376,11 @@ class EncMetric_info<WIDE<tt>>{
         bool base_for(EncMetric_info<S> b) const noexcept{
             return is_base_for_d(format(), b.format());
         }
-        template<typename S> requires general_enctype_of<S, tt>
+        template<general_enctype S>
         void assert_base_for(EncMetric_info<S> b) const{
-            if(!is_base_for_d(format(), b.format()))
+            if constexpr(!general_enctype_of<S, tt>)
+                throw incorrect_encoding{"Cannot convert these encodings"};
+            else if(!is_base_for_d(format(), b.format()))
                 throw incorrect_encoding{"Cannot convert these encodings"};
         }
         template<typename S> requires general_enctype_of<S, tt>

@@ -123,8 +123,9 @@ bool adv_string_view<T>::verify_safe() const noexcept{
 template<general_enctype T>
 template<general_enctype S>
 adv_string_view<S> adv_string_view<T>::rebase(EncMetric_info<S> o) const{
-    raw_format().assert_base_for(o);
-    return direct_build(const_tchar_pt<S>{ptr.data(), o}, len, siz);
+    //raw_format().assert_base_for(o);
+    //return direct_build(const_tchar_pt<S>{ptr.data(), o}, len, siz);
+    return direct_build(rebase_pointer(ptr, o), len, siz);
 }
 
 
