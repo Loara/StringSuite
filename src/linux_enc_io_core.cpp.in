@@ -87,7 +87,7 @@ struct Linux_syscalls{
     }
 };
 
-class Linux_istream : public sts::NewlineIStream<sts::UTF8>{
+class Linux_istream : public sts::InputStream{
     private:
         sts::istr_buffer<sts::UTF8, Linux_syscalls> buffer;
         static_assert(Linux_syscalls::buffer_size > 4, "buffer too small");
@@ -134,14 +134,14 @@ class Linux_istream : public sts::NewlineIStream<sts::UTF8>{
 
         void do_close() {}
 
-        void do_flush(){
+        void do_discard(){
             pollfd readany{};
             while(true){
                 readany.fd = buffer.get_system_id().fd;
-                readany.events = POLLIN;//test if there is any remaining byte to read
+                readany.events = POLLIN;
                 int err = poll(&readany, 1, 0);
                 if(err == -1 || (readany.revents & POLLIN) == 0){
-                    //No data to read
+
                     break;
                 }
                 byte chr[4];
@@ -163,7 +163,7 @@ class Linux_istream : public sts::NewlineIStream<sts::UTF8>{
         Linux_istream () : buffer{Linux_syscalls{STDIN_FILENO}} {}
 };
 
-class Linux_ostream : public sts::NewlineOStream<sts::UTF8>{
+class Linux_ostream : public sts::OutputStream{
     private:
         sts::ostr_buffer<sts::UTF8, Linux_syscalls> buffer;
         static_assert(Linux_syscalls::buffer_size > 4, "buffer too small");
@@ -203,17 +203,17 @@ class Linux_ostream : public sts::NewlineOStream<sts::UTF8>{
         Linux_ostream (int f) : buffer{Linux_syscalls{f}} {}
 };
 
-sts::NewlineIStream<sts::UTF8> &sts::get_console_stdin(){
+sts::InputStream &sts::get_console_stdin(){
     static Linux_istream input{};
     return input;
 }
 
-sts::NewlineOStream<sts::UTF8> &sts::get_console_stdout(){
+sts::OutputStream &sts::get_console_stdout(){
     static Linux_ostream input{STDOUT_FILENO};
     return input;
 }
 
-sts::NewlineOStream<sts::UTF8> &sts::get_console_stderr(){
+sts::OutputStream &sts::get_console_stderr(){
     static Linux_ostream input{STDERR_FILENO};
     return input;
 }

@@ -91,7 +91,7 @@ struct Windows_syscalls{
 };
 
 
-class Windows_istream : public sts::NewlineIStream<sts::UTF16LE>{
+class Windows_istream : public sts::InputStream{
     private:
         sts::istr_buffer<sts::UTF16LE, Windows_syscalls> buffer;
         static_assert(Windows_syscalls::buffer_size > 4, "buffer too small");
@@ -119,7 +119,7 @@ class Windows_istream : public sts::NewlineIStream<sts::UTF16LE>{
 
         void do_close() {}
 
-        void do_flush(){
+        void do_discard(){
             sts::byte rc[] = {sts::byte{0x0d}, sts::byte{0x00}};
             sts::byte nl[] = {sts::byte{0x0a}, sts::byte{0x00}};
             sts::byte buf[4];
@@ -144,12 +144,13 @@ class Windows_istream : public sts::NewlineIStream<sts::UTF16LE>{
             while(!hr || !hn);
         }
 
+
         sts::EncMetric_info<sts::UTF16LE> do_encmetric() const noexcept{ return sts::EncMetric_info<sts::UTF16LE>{};}
     public:
         Windows_istream () : buffer{Windows_syscalls{GetStdHandle(STD_INPUT_HANDLE)}} {}
 };
 
-class Windows_ostream : public sts::NewlineOStream<sts::UTF16LE>{
+class Windows_ostream : public sts::OutputStream{
     private:
         sts::ostr_buffer<sts::UTF16LE, Windows_syscalls> buffer;
         static_assert(Windows_syscalls::buffer_size > 4, "buffer too small");
@@ -189,17 +190,17 @@ class Windows_ostream : public sts::NewlineOStream<sts::UTF16LE>{
         Windows_ostream (HANDLE f) : buffer{Windows_syscalls{f}} {}
 };
 
-sts::NewlineIStream<sts::UTF16LE> &sts::get_console_stdin(){
+InputStream &sts::get_console_stdin(){
     static Windows_istream input{};
     return input;
 }
 
-sts::NewlineOStream<sts::UTF16LE> &sts::get_console_stdout(){
+OutputStream &sts::get_console_stdout(){
     static Windows_ostream input{GetStdHandle(STD_OUTPUT_HANDLE)};
     return input;
 }
 
-sts::NewlineOStream<sts::UTF16LE> &sts::get_console_stderr(){
+OutputStream &sts::get_console_stderr(){
     static Windows_ostream input{GetStdHandle(STD_ERROR_HANDLE)};
     return input;
 }

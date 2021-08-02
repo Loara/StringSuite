@@ -31,11 +31,43 @@ adv_string<T> NewlineIStream<T>::do_getline(std::pmr::memory_resource *all){
     adv_string_view<T> nl = do_newline();
     bool endl=false;
     while(!endl){
-        stream.get_char(*this);
-        if(stream.view().endsWith(nl))
+        try{
+            stream.get_char(*this);
+            if(stream.view().endsWith(nl))
+                endl=true;
+        }
+        catch(IOEOF &){
             endl=true;
+        }
     }
     return stream.move();
+}
+
+template<general_enctype T>
+adv_string<T> NewlineIStream<T>::do_get_line(std::pmr::memory_resource *all){
+    string_stream stream{this->do_encmetric(), all};
+    adv_string_view<T> nl = do_newline();
+    bool endl=false, end=false;
+    while(!end){
+        try{
+            stream.get_char(*this);
+            if(stream.view().endsWith(nl)){
+                endl=true;
+                end=true;
+            }
+        }
+        catch(IOEOF &){
+            end=true;
+        }
+    }
+    if(endl){
+        stream.view().verify();
+        auto ret = stream.move();
+        ret.cut_end(nl);
+        return ret;
+    }
+    else
+        return stream.move();
 }
     /*
             basic_ptr ptda{all};

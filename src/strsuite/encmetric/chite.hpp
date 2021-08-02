@@ -259,6 +259,10 @@ inline const_tchar_pt<WIDE<tt>> set_encoding(const_tchar_pt<RAW<tt>> r, const En
  * S should be a base for T
  */
 template<general_enctype T, general_enctype S>
+bool can_rebase_pointer(const_tchar_pt<S> from, EncMetric_info<T> f) noexcept{
+    return from.raw_format().base_for(f);
+}
+template<general_enctype T, general_enctype S>
 const_tchar_pt<T> rebase_pointer(const_tchar_pt<S> from, EncMetric_info<T> f){
     from.raw_format().assert_base_for(f);
     return const_tchar_pt<T>{from.data(), f};

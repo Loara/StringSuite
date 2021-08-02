@@ -30,9 +30,17 @@ using IOenc = std::conditional_t<is_windows(), UTF16LE, UTF8>;
 size_t def_strlen(const byte *);
 adv_string_view<IOenc> console_endline();
 
-NewlineIStream<IOenc> &get_console_stdin();
-NewlineOStream<IOenc> &get_console_stdout();
-NewlineOStream<IOenc> &get_console_stderr();
+class InputStream : public NewlineIStream<IOenc>{
+protected:
+    virtual void do_discard()=0;
+public:
+    void discard(){do_discard();}
+};
+class OutputStream : public NewlineOStream<IOenc>{};
+
+InputStream &get_console_stdin();
+OutputStream &get_console_stdout();
+OutputStream &get_console_stderr();
 
 //size_t raw_newline();
 

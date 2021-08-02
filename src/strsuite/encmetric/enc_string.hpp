@@ -111,6 +111,8 @@ class adv_string_view{
          * For example if T=ASCII then S can be UTF8, Latin1, Windows codepages, ....
          */
         template<general_enctype S>
+        bool can_rebase(EncMetric_info<S>) const noexcept;
+        template<general_enctype S>
         adv_string_view<S> rebase(EncMetric_info<S>) const;
         template<strong_enctype S>
         adv_string_view<S> rebase() const {return rebase(EncMetric_info<S>{});}
@@ -126,21 +128,29 @@ class adv_string_view{
 		size_t size(size_t a, size_t n) const;//bytes of first n character starting from the (a+1)-st character
 		size_t size(size_t n) const {return size(0, n);}
 
-		bool equal_to(const adv_string_view<T> &, size_t n) const;//compare only the first n character
+		template<general_enctype S>
+		bool equal_to(const adv_string_view<S> &, size_t n) const;//compare only the first n character
 
-		bool operator==(const adv_string_view<T> &) const;
+		template<general_enctype S>
+		bool operator==(const adv_string_view<S> &) const;
 
-		bool operator!=(const adv_string_view<T> &bin) const {return !(*this == bin);}
+        template<general_enctype S>
+		bool operator!=(const adv_string_view<S> &bin) const {return !(*this == bin);}
 
-		index_result bytesOf(const adv_string_view<T> &) const;
+		template<general_enctype S>
+		index_result bytesOf(const adv_string_view<S> &) const;
 
-		index_result indexOf(const adv_string_view<T> &) const;
+		template<general_enctype S>
+		index_result indexOf(const adv_string_view<S> &) const;
 
-		index_result containsChar(const adv_string_view<T> &) const;
+		template<general_enctype S>
+		index_result containsChar(const adv_string_view<S> &) const;
 
-		bool startsWith(const adv_string_view<T> &) const;
+		template<general_enctype S>
+		bool startsWith(const adv_string_view<S> &) const;
 
-		bool endsWith(const adv_string_view<T> &) const;
+		template<general_enctype S>
+		bool endsWith(const adv_string_view<S> &) const;
 
 		const byte *data() const noexcept {return ptr.data();}
 		const char *raw() const noexcept {return (const char *)(ptr.data());}
@@ -154,6 +164,8 @@ class adv_string_view{
 		template<general_enctype S>
 		adv_string<T> concatenate(const adv_string_view<S> &, std::pmr::memory_resource * = std::pmr::get_default_resource()) const;
         */
+		template<general_enctype S>
+		bool cut_end(const adv_string_view<S> &) noexcept;
 
 	friend adv_string_view<T> direct_build<T>(const_tchar_pt<T> ptr, size_t len, size_t siz) noexcept;
 };

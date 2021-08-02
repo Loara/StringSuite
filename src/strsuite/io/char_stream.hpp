@@ -28,7 +28,7 @@ class CharIStream{
         virtual uint do_char_read(tchar_pt<T>, size_t)=0;
         virtual uint do_ghost_read(tchar_pt<T>, size_t)=0;
         virtual void do_close()=0;
-        virtual void do_flush()=0;
+        //virtual void do_flush()=0;
         virtual EncMetric_info<T> do_encmetric() const noexcept=0;
     public:
         using ctype = typename T::ctype;
@@ -68,7 +68,7 @@ class CharIStream{
             return ret;
         }
         void close() {return do_close();}
-        void flush() {return do_flush();}
+        //void flush() {return do_flush();}
         EncMetric_info<T> raw_format() const noexcept{ return do_encmetric();}
         const EncMetric<typename T::ctype> *format() const noexcept{ return raw_format().format();}
 };

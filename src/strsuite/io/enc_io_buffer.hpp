@@ -132,7 +132,12 @@ class ostr_buffer : public basic_buffer<T, ostr_buffer<T, Sys>, false, true>{
         }
 
         void flush(){
-            inc_rem(0);
+            while(this->siz > 0){
+                size_t wt = sy.write_wrap(this->fir.data(), this->siz);
+                if(wt > 0){
+                    this->raw_fir_step(wt);
+                }
+            }
             this->base_flush();
         }
 

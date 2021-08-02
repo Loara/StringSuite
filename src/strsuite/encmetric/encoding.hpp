@@ -189,7 +189,7 @@ template<strong_enctype A, has_alias B>
 struct base_ale_0<A, B> : public std::bool_constant<std::same_as<A, B> || base_ale_0<A, typename B::alias>::value> {};
 
 template<typename A, typename B>
-concept is_base_for = strong_enctype<A> && strong_enctype<B> && (enc_raw<B> || (std::same_as<typename A::ctype, typename B::ctype> && base_ale_0<A, B>::value));
+concept is_base_for = strong_enctype<A> && strong_enctype<B> && std::same_as<typename A::ctype, typename B::ctype> && base_ale_0<A, B>::value;
 
 template<typename tt>
 bool is_base_for_d(const EncMetric<tt> *a, const EncMetric<tt> *b) noexcept{
@@ -297,11 +297,12 @@ class EncMetric_info{
 		std::type_index index() const noexcept {return DynEncoding<T>::index();}
 
 		template<general_enctype S>
-		bool equalTo(EncMetric_info<S> o) const noexcept{
-            if constexpr(not_widenc<S>)
-                return same_enc<S, T>;
-            else
-                return index() == o.index();
+		constexpr bool equalTo(EncMetric_info<S>) const noexcept requires not_widenc<S>{
+            return same_enc<S, T>;
+        }
+		template<general_enctype S>
+		bool equalTo(EncMetric_info<S> o) const noexcept requires widenc<S>{
+            return index() == o.index();
         }
         template<general_enctype S>
         void assert_same_enc(EncMetric_info<S> o) const{
@@ -313,12 +314,14 @@ class EncMetric_info{
                     throw incorrect_encoding{"Different encodings"};
             }
         }
-        template<general_enctype S> requires same_data<T, S>
+
+        template<general_enctype S> requires same_data<T, S> && not_widenc<S>
+        constexpr bool base_for(EncMetric_info<S>) const noexcept{
+            return is_base_for<T, S>;
+        }
+        template<general_enctype S> requires same_data<T, S> && widenc<S>
         bool base_for(EncMetric_info<S> b) const noexcept{
-            if constexpr(strong_enctype<S>)
-                return is_base_for<T, S>;
-            else
-                return is_base_for_d(format(), b.format());
+            return is_base_for_d(format(), b.format());
         }
         template<general_enctype S>
         void assert_base_for(EncMetric_info<S> b) const{

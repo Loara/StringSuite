@@ -26,10 +26,15 @@ class NewlineIStream : public CharIStream<T>{
         virtual adv_string_view<T> do_newline() const noexcept=0;
         virtual index_result do_is_endl(const byte *b, size_t siz)const noexcept;
         virtual adv_string<T> do_getline(std::pmr::memory_resource *all);
+        virtual adv_string<T> do_get_line(std::pmr::memory_resource *all);
     public:
         adv_string_view<T> newline() const noexcept{return do_newline();}
         index_result is_endl(const byte *b, size_t siz)const noexcept{ return do_is_endl(b, siz);}
         adv_string<T> getline(std::pmr::memory_resource *all=std::pmr::get_default_resource()){ return do_getline(all);}
+        /*
+         * Same as getline, but removes newlines
+         */
+        adv_string<T> get_line(std::pmr::memory_resource *all=std::pmr::get_default_resource()){ return do_get_line(all);}
 };
 
 template<general_enctype T>
