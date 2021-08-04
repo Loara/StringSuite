@@ -91,6 +91,29 @@ void basic_ptr::reallocate(std::size_t dim){
     dimension = dim;
 }
 
+void basic_ptr::reallocate_reverse(std::size_t dim){
+    byte *newm = raw_allocate(dim);
+    const byte *from = nullptr;
+    byte *to = nullptr;
+    if(memory != nullptr){
+        if(dim > dimension){
+            //bigger
+            from = memory;
+            to = newm + (dim - dimension);
+            std::memcpy(to, from, dimension);
+        }
+        else{
+            //smaller
+            from = memory + (dimension - dim);
+            to = newm;
+            std::memcpy(to, from, dim);
+        }
+    }
+    free();
+    memory = newm;
+    dimension = dim;
+}
+
 void basic_ptr::shift(std::size_t first, std::size_t n){
     if(memory == nullptr || first == 0 || n == 0)
         return;
@@ -107,6 +130,16 @@ void basic_ptr::exp_fit(std::size_t fit){
         grown *= 2;
     if(grown > dimension)
         reallocate(grown);
+}
+
+void basic_ptr::exp_fit_reverse(std::size_t fit){
+    if(fit == 0)
+        return;
+    std::size_t grown = dimension == 0 ? 8 : dimension;
+    while(grown < fit)
+        grown *= 2;
+    if(grown > dimension)
+        reallocate_reverse(grown);
 }
 
 byte* basic_ptr::leave() noexcept{

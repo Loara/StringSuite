@@ -1,4 +1,3 @@
-
 /*
     This file is part of Encmetric.
     Copyright (C) 2021 Paolo De Donato.
@@ -122,7 +121,7 @@ bool adv_string_view<T>::verify_safe() const noexcept{
 
 template<general_enctype T>
 template<general_enctype S>
-bool adv_string_view<T>::can_rebase(EncMetric_info<S> o) const noexcept{
+constexpr bool adv_string_view<T>::can_rebase(EncMetric_info<S> o) const noexcept{
     //raw_format().assert_base_for(o);
     //return direct_build(const_tchar_pt<S>{ptr.data(), o}, len, siz);
     return can_rebase_pointer(ptr, o);
@@ -232,7 +231,7 @@ template<typename T>
 template<general_enctype S>
 index_result adv_string_view<T>::bytesOf(const adv_string_view<S> &sq) const{
 	if(!sq.can_rebase(raw_format()))
-		return index_result{false, 0};
+		throw incorrect_encoding{"Impossible to perform encode rebase"};
 	if(sq.size() == 0){
 		return index_result{true, 0};
 	}
@@ -255,7 +254,7 @@ template<typename T>
 template<general_enctype S>
 index_result adv_string_view<T>::indexOf(const adv_string_view<S> &sq) const{
 	if(!sq.can_rebase(raw_format()))
-		return index_result{false, 0};
+		throw incorrect_encoding{"Impossible to perform encode rebase"};
 	if(sq.size() == 0){
 		return index_result{true, 0};
 	}
@@ -280,7 +279,7 @@ template<typename T>
 template<general_enctype S>
 index_result adv_string_view<T>::containsChar(const adv_string_view<S> &cu) const{
 	if(!cu.can_rebase(raw_format()))
-		return index_result{false, 0};
+		throw incorrect_encoding{"Impossible to perform encode rebase"};
     if(cu.length() == 0)
         return index_result{true, 0};
     adv_string_view<T> strip = cu.substring(0, 1);
@@ -309,7 +308,7 @@ template<typename T>
 template<general_enctype S>
 bool adv_string_view<T>::startsWith(const adv_string_view<S> &sq) const{
 	if(!sq.can_rebase(raw_format()))
-		return false;
+		throw incorrect_encoding{"Impossible to perform encode rebase"};
 	if(sq.size() == 0){
 		return true;
 	}
@@ -323,7 +322,7 @@ template<typename T>
 template<general_enctype S>
 bool adv_string_view<T>::endsWith(const adv_string_view<S> &sq) const{
 	if(!sq.can_rebase(raw_format()))
-		return false;
+		throw incorrect_encoding{"Impossible to perform encode rebase"};
 	if(sq.size() == 0){
 		return true;
 	}

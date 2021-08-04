@@ -102,8 +102,11 @@ class CharOStream{
         template<general_enctype S>
         uint char_write(const_tchar_pt<S> pt, size_t buf) {
             auto enc = do_encmetric();
+            /*
             pt.raw_format().assert_base_for(enc);
             return do_char_write(const_tchar_pt<T>{pt.data(), enc}, buf);
+            */
+            return do_char_write(rebase_pointer(pt, enc), buf);
         }
         template<general_enctype S>
         uint char_write(tchar_pt<S> pt, size_t buf) {

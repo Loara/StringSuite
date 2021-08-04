@@ -136,6 +136,8 @@ template<typename T>
 concept widenc = is_wide<T>::value;
 template<typename T>
 concept not_widenc = strong_enctype<T> && !is_wide<T>::value;
+template<typename S, typename T>
+concept not_widenc_both = not_widenc<S> && not_widenc<T>;
 
 template<typename T>
 concept enc_raw = is_raw<T>::value;
@@ -200,12 +202,15 @@ bool is_base_for_d(const EncMetric<tt> *a, const EncMetric<tt> *b) noexcept{
     return is_base_for_d(a, b->d_alias());
 }
 
-
 template<typename T>
 concept safe_hasmax = not_widenc<T> && T::has_max();
+template<typename T>
+concept safe_not_hasmax = general_enctype<T> && !safe_hasmax<T>;
 
 template<typename T>
 concept fixed_size = not_widenc<T> && T::has_max() && (T::min_bytes() == T::max_bytes());
+template<typename T>
+concept not_fixed_size = general_enctype<T> && !fixed_size<T>;
 
 
 template<strong_enctype T>
@@ -241,7 +246,7 @@ constexpr void assert_raw(){static_assert(!enc_raw<T>, "Using RAW format");}
 template<strong_enctype T>
 class DynEncoding : public EncMetric<typename T::ctype>{
 	private:		
-		DynEncoding() {}
+		DynEncoding() noexcept {}
 	public:
         static_assert(!enc_raw<T>, "EncMetric cannot hold a RAW encoding");
 		using static_enc = T;
@@ -249,9 +254,9 @@ class DynEncoding : public EncMetric<typename T::ctype>{
 
 		~DynEncoding() {}
 
-		uint d_min_bytes() const noexcept {return static_enc::min_bytes();}
-		bool d_has_max() const noexcept {return static_enc::has_max();}
-		uint d_max_bytes() const {return static_enc::max_bytes();}
+		constexpr uint d_min_bytes() const noexcept {return static_enc::min_bytes();}
+		constexpr bool d_has_max() const noexcept {return static_enc::has_max();}
+		constexpr uint d_max_bytes() const {return static_enc::max_bytes();}
 		uint d_chLen(const byte *b, size_t siz) const {return static_enc::chLen(b, siz);}
 		validation_result d_validChar(const byte *b, size_t siz) const noexcept {return static_enc::validChar(b, siz);}
 		std::type_index index() const noexcept {return std::type_index{typeid(T)};}
@@ -281,8 +286,8 @@ template<general_enctype T>
 class EncMetric_info{
 	public:
 		using ctype=typename T::ctype;
-		EncMetric_info(const EncMetric_info<T> &) noexcept {}
-		EncMetric_info() {}
+		constexpr EncMetric_info(const EncMetric_info<T> &) noexcept {}
+		constexpr EncMetric_info() noexcept {}
 		const EncMetric<ctype> *format() const noexcept {return DynEncoding<T>::instance();}
 
 		constexpr uint min_bytes() const noexcept {return T::min_bytes();}
@@ -297,12 +302,11 @@ class EncMetric_info{
 		std::type_index index() const noexcept {return DynEncoding<T>::index();}
 
 		template<general_enctype S>
-		constexpr bool equalTo(EncMetric_info<S>) const noexcept requires not_widenc<S>{
-            return same_enc<S, T>;
-        }
-		template<general_enctype S>
-		bool equalTo(EncMetric_info<S> o) const noexcept requires widenc<S>{
-            return index() == o.index();
+		constexpr bool equalTo(EncMetric_info<S> o) const noexcept requires not_widenc<S>{
+            if constexpr(not_widenc<S>)
+                return same_enc<S, T>;
+            else
+                return index() == o.index();
         }
         template<general_enctype S>
         void assert_same_enc(EncMetric_info<S> o) const{
@@ -316,12 +320,11 @@ class EncMetric_info{
         }
 
         template<general_enctype S> requires same_data<T, S> && not_widenc<S>
-        constexpr bool base_for(EncMetric_info<S>) const noexcept{
-            return is_base_for<T, S>;
-        }
-        template<general_enctype S> requires same_data<T, S> && widenc<S>
-        bool base_for(EncMetric_info<S> b) const noexcept{
-            return is_base_for_d(format(), b.format());
+        constexpr bool base_for(EncMetric_info<S> b) const noexcept{
+            if constexpr(not_widenc<S>)
+                return is_base_for<T, S>;
+            else
+                return is_base_for_d(format(), b.format());
         }
         template<general_enctype S>
         void assert_base_for(EncMetric_info<S> b) const{
@@ -351,9 +354,9 @@ class EncMetric_info<WIDE<tt>>{
 		const EncMetric<tt> *f;
 	public:
 		using ctype=tt;
-		EncMetric_info(const EncMetric<tt> *format) : f{format} {}
-		EncMetric_info(const EncMetric_info &info) : f{info.f} {}
-		const EncMetric<tt> *format() const noexcept {return f;}
+		constexpr EncMetric_info(const EncMetric<tt> *format) noexcept : f{format} {}
+		constexpr EncMetric_info(const EncMetric_info &info) noexcept : f{info.f} {}
+		constexpr const EncMetric<tt> *format() const noexcept {return f;}
 
 		uint min_bytes() const noexcept {return f->d_min_bytes();}
 		bool has_max() const noexcept {return f->d_has_max();}

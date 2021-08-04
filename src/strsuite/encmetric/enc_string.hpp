@@ -18,7 +18,6 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 #include <memory_resource>
-//#include <string>
 #include <strsuite/encmetric/config.hpp>
 #include <strsuite/encmetric/chite.hpp>
 #include <strsuite/encmetric/basic_ptr.hpp>
@@ -111,7 +110,7 @@ class adv_string_view{
          * For example if T=ASCII then S can be UTF8, Latin1, Windows codepages, ....
          */
         template<general_enctype S>
-        bool can_rebase(EncMetric_info<S>) const noexcept;
+        constexpr bool can_rebase(EncMetric_info<S>) const noexcept;
         template<general_enctype S>
         adv_string_view<S> rebase(EncMetric_info<S>) const;
         template<strong_enctype S>

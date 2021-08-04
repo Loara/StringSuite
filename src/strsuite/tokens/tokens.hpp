@@ -53,7 +53,8 @@ class Token{
 		/*
          * Steps the token pointer until it encounter a character contained in the argumet
          */
-		bool goUp(const adv_string_view<T> &delim){
+        template<general_enctype S>
+		bool goUp(const adv_string_view<S> &delim){
 			if(e == end)
 				return false;
 			while(!delim.containsChar(e)){
@@ -66,7 +67,8 @@ class Token{
 		/*
          * Steps the token pointer until it encounter a character NOT contained in the argumet
          */
-		bool goUntil(const adv_string_view<T> &delim){
+        template<general_enctype S>
+		bool goUntil(const adv_string_view<S> &delim){
 			if(e == end)
 				return false;
 			while(delim.containsChar(e)){
@@ -79,7 +81,8 @@ class Token{
 		/*
          * Get a view of token delimited by any delimiter character passed in the argument
          */
-		adv_string_view<T> proceed(const adv_string_view<T> &delim){
+        template<general_enctype S>
+		adv_string_view<T> proceed(const adv_string_view<S> &delim){
             goUntil(delim);
 			flush();
 			goUp(delim);

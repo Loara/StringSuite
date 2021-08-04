@@ -48,6 +48,7 @@ class basic_ptr{
 		basic_ptr &operator=(const basic_ptr &)=delete;
 
 		void reallocate(std::size_t dim);
+        void reallocate_reverse(std::size_t dim);
         /*
          * shift n bytes from first to 0
          *
@@ -55,6 +56,7 @@ class basic_ptr{
          */
         void shift(std::size_t first, std::size_t n);
 		void exp_fit(std::size_t fit);
+        void exp_fit_reverse(std::size_t fit);
 		byte* leave() noexcept;
 
 		std::pmr::memory_resource *get_allocator() const noexcept{

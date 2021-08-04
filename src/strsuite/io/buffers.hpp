@@ -109,7 +109,7 @@ class basic_buffer{
         }
 
         /*
-         * Tries to increase rem in otrder to be greater than nl
+         * Tries to increase rem in order to be greater than nl
          *
          * returns minimum between rem and nl
          */
