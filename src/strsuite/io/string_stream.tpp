@@ -246,6 +246,25 @@ size_t string_stream<T>::string_write_conv(const adv_string_view<R> &str){
 }
 
 template<general_enctype T>
+uint string_stream<T>::char_write(const ctype &c){
+    uint ret;
+    bool ext=false;
+    do{
+        try{
+            ret = this->las.encode(c, this->rem);
+            ext = true;
+        }
+        catch(buffer_small &e){
+            this->force_frspc(this->rem + e.get_required_size());
+        }
+    }
+    while(!ext);
+    len++;
+    this->raw_las_step(ret);
+    return ret;
+}
+
+template<general_enctype T>
 adv_string<T> string_stream<T>::move(){
     this->rewind();
     basic_ptr res = std::move(buffer);

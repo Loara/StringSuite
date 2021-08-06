@@ -19,7 +19,7 @@
 */
 #include <concepts>
 #include <forward_list>
-#include <strsuite/io/string_stream.hpp>
+#include <strsuite/io/middle_enc.hpp>
 namespace sts{
 
     struct Int_opts{

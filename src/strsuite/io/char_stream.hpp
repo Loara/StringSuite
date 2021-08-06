@@ -38,13 +38,16 @@ class CharIStream{
             auto enc=do_encmetric();
             //enc.assert_base_for(pt.raw_format());
             //return do_char_read(tchar_pt<T>{pt.data(), enc}, buf);
-            return do_char_read(rebase_pointer(pt, enc), buf);
+            return do_char_read(inv_rebase_pointer(pt, enc), buf);
         }
         template<general_enctype S>
         uint char_read_v(tchar_pt<S> pt, size_t buf) {
+            /*
             auto enc=do_encmetric();
             enc.assert_base_for(pt.raw_format());
             uint ret = do_char_read(tchar_pt<T>{pt.data(), enc}, buf);
+            */
+            uint ret = char_read(pt, buf);
             if(!pt.validChar(ret))
                 throw IOIncomplete{"Not a valid character"};
             return ret;
@@ -55,14 +58,17 @@ class CharIStream{
         template<general_enctype S>
         uint ghost_read(tchar_pt<S> pt, size_t buf) {
             auto enc=do_encmetric();
-            enc.assert_base_for(pt.raw_format());
-            return do_ghost_read(tchar_pt<T>{pt.data(), enc}, buf);
+            //enc.assert_base_for(pt.raw_format());
+            return do_ghost_read(inv_rebase_pointer(pt, enc), buf);
         }
         template<general_enctype S>
         uint ghost_read_v(tchar_pt<S> pt, size_t buf) {
+            /*
             auto enc=do_encmetric();
             enc.assert_base_for(pt.raw_format());
             uint ret = do_ghost_read(tchar_pt<T>{pt.data(), enc}, buf);
+            */
+            uint ret = ghost_read(pt, buf);
             if(!pt.validChar(ret))
                 throw IOIncomplete{"Not a valid character"};
             return ret;

@@ -63,6 +63,7 @@ namespace sts{
         template<general_enctype R>
         size_t string_write_conv(const adv_string_view<R> &);
 
+        uint char_write(const ctype &);
     protected:
         void inc_siz(uint);
         void inc_rem(size_t);

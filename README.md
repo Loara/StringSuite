@@ -33,6 +33,7 @@ Clearly you can write and use your own encoding classes.
 
 # Basic usage
 ## `encmetric` subset
+Include `strsuite/encmetric.hpp` header in order to use this module.
 ### String encodings
 A string encoding class is simply a static class that manages how a string is encoded with that encoding. Some encoding classes provided with StringSuire are `ASCII`, `UTF8`, `UTF16BE` `UTF16LE`, `UTF32BE` `UTF32LE`, `Latin1`/`ISO_8859_1`, `ISO_8859_2`, `KOI8_R`, `KOI8_U`, `KOI8_RU`.
 
@@ -77,6 +78,7 @@ In StrSuite you can build some UTF string views directly from string literals by
 **Notice** that while by default you can use string literal `"..."_asv` to build ASCII string views some compilers (for example gcc) have the ability of changing the encoding of these narrowed literals (via the option `-fexec-charset=` for example) and currently StringSuite is not able to detect this variation. Use always `u8` literals or use `STS_IO_asv` macro as explained in the sext section.
 
 ## `io` subset
+Include `strsuite/io.hpp` header in order to use this module.
 ### `STS_IO_asv` and `IOenc`
 UNIX systems by default works with UTF8 encoded strings whereas Windows uses UTF16 (little endian) encoding (not considering all the Windows codepages). StringSuite provides the macro `STS_IO_asv` in order to build UTF8 literals on UNIX systems and UTF16 literals on Windows.
 

@@ -17,7 +17,7 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 #include <strsuite/io/enc_io_core.hpp>
-#include <type_traits>
+#include <strsuite/io/integral_format.hpp>
 
 namespace sts{
 

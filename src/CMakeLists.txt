@@ -73,7 +73,8 @@ install(FILES "strsuite/io/enc_io_core.hpp"
     "strsuite/io/string_stream.hpp"
     "strsuite/io/nl_stream.hpp"
     "strsuite/io/buffers.hpp"
-    "strsuite/io/integral_format.hpp" DESTINATION include/strsuite/io)
+    "strsuite/io/integral_format.hpp"
+    "strsuite/io/middle_enc.hpp" DESTINATION include/strsuite/io)
 
 install(FILES "strsuite/tokens/tokens.hpp" DESTINATION include/strsuite/tokens)
 
@@ -86,6 +87,6 @@ install(FILES "strsuite/io/nl_stream.tpp"
     "strsuite/io/integral_format.tpp" DESTINATION include/strsuite/io)
 
 install(FILES "strsuite/encmetric.hpp" DESTINATION include/strsuite)
-install(FILES "strsuite/enc_io.hpp" DESTINATION include/strsuite)
+install(FILES "strsuite/io.hpp" DESTINATION include/strsuite)
 
 install(FILES "${PROJECT_BINARY_DIR}/strsuite/encmetric/config.hpp" DESTINATION include/strsuite/encmetric)

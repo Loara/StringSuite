@@ -16,37 +16,6 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 
-template<typename T>
-class c_buffer;
-
-template<safe_hasmax T>
-class c_buffer<T>{
-private:
-    byte mem[T::max_bytes()];
-    tchar_pt<T> data;
-public:
-    c_buffer(EncMetric_info<T>, std::pmr::memory_resource *=std::pmr::get_default_resource()) : data{mem} {}
-    template<general_enctype S>
-    void char_write(CharOStream<S> &out, const typename T::ctype &ev){
-        data.encode(ev, T::max_bytes());
-        out.char_write(data, T::max_bytes());
-    }
-};
-/*
-template<safe_not_hasmax T>
-class c_buffer<T>{
-private:
-    string_stream<T> data;
-public:
-    c_buffer(EncMetric_info<T> i, std::pmr::memory_resource *res=std::pmr::get_default_resource()) : data{i, res} {}
-    template<general_enctype S>
-    void char_write(CharOStream<S> &out, const typename T::ctype &ev){
-        data.char_write(ev);
-        data.put_char(out);
-    }
-};
-*/
-
 template<safe_hasmax T, std::integral I>
 void write_integer(CharOStream<T> &out, I val, const Int_opts &opt, std::pmr::memory_resource *res){
     if(opt.base < 2 || opt.base > 26)
