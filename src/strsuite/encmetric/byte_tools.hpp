@@ -139,6 +139,12 @@ inline constexpr bool byte_less(byte a, byte b) noexcept{
     return static_cast<uint>(a) < static_cast<uint>(b);
 }
 
+inline constexpr byte byte_plus(byte a, byte b) noexcept{
+    return static_cast<byte>(static_cast<uint>(a) + static_cast<uint>(b));
+}
+inline constexpr byte byte_minus(byte a, byte b) noexcept{
+    return static_cast<byte>(static_cast<uint>(a) - static_cast<uint>(b));
+}
 }
 
 

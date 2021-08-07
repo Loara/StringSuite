@@ -27,7 +27,8 @@ On Arch Linux you can use package `stringsuite` in AUR, additional informations 
 * UTF8, UTF16, UTF32
 * KOI8-R, KOI8-U, KOI8-RU
 * Base64
-* Windows codepage 1252, 1250
+* Windows codepages 1250, 1251, 1252
+* EUC-JP (experimental)
 
 Clearly you can write and use your own encoding classes.
 

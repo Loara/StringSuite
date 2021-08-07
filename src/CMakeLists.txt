@@ -34,7 +34,8 @@ add_library(strsuite
     koi8.cpp
     win_codepages.cpp
     enc_io_core.cpp
-    base64.cpp)
+    base64.cpp
+    jis.cpp)
 
 #headers
 target_include_directories(strsuite PUBLIC "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}")
@@ -63,6 +64,7 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
     "strsuite/encmetric/utf16_enc.hpp"
     "strsuite/encmetric/utf32_enc_0.hpp"
     "strsuite/encmetric/utf32_enc.hpp"
+    "strsuite/encmetric/jis.hpp"
     "strsuite/encmetric/win_codepages.hpp" DESTINATION include/strsuite/encmetric)
 
 install(FILES "strsuite/io/enc_io_core.hpp"
