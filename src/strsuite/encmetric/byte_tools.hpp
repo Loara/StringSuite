@@ -139,12 +139,45 @@ inline constexpr bool byte_less(byte a, byte b) noexcept{
     return static_cast<uint>(a) < static_cast<uint>(b);
 }
 
+inline constexpr byte operator+(byte a, byte b) noexcept{
+    return static_cast<byte>(static_cast<uint>(a) + static_cast<uint>(b));
+}
+
+inline constexpr byte operator+(byte a, uint b) noexcept{
+    return static_cast<byte>(static_cast<uint>(a) + b);
+}
+
+inline constexpr byte operator-(byte a, uint b) noexcept{
+    return static_cast<byte>(static_cast<uint>(a) - b);
+}
+
+inline constexpr byte operator*(byte a, uint b) noexcept{
+    return static_cast<byte>(static_cast<uint>(a) * b);
+}
+
+inline constexpr byte operator/(byte a, uint b) noexcept{
+    return static_cast<byte>(static_cast<uint>(a) / b);
+}
+
+/*
 inline constexpr byte byte_plus(byte a, byte b) noexcept{
     return static_cast<byte>(static_cast<uint>(a) + static_cast<uint>(b));
 }
+*/
 inline constexpr byte byte_minus(byte a, byte b) noexcept{
     return static_cast<byte>(static_cast<uint>(a) - static_cast<uint>(b));
 }
+
+inline constexpr bool is_in_range(byte t, uint a, uint b) noexcept{
+    return static_cast<uint>(t) >= a && static_cast<uint>(t) <= b;
+}
+
+inline namespace literals{
+    inline constexpr byte operator"" _by(unsigned long long int i) noexcept{
+        return static_cast<byte>(i);
+    }
+}
+
 }
 
 

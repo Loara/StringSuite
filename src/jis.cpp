@@ -114,27 +114,132 @@ sts::uint sts::EUC_JP::encode(const sts::jisx_213 &uni, sts::byte *by, sts::size
     else if(uni.plane == sts::jisx_213::PLANE_1){
         if(l < 2)
             throw sts::buffer_small{1};
-        by[0] = sts::byte_plus(uni.row, sts::byte{0xa0});
-        by[1] = sts::byte_plus(uni.col, sts::byte{0xa0});
+        by[0] = uni.row + 0xa0;
+        by[1] = uni.col + 0xa0;
         return 2;
     }
     else{
         if(l < 3)
             throw sts::buffer_small{3 - static_cast<uint>(l)};
         by[0] = sts::byte{0x8f};
-        by[1] = sts::byte_plus(uni.row, sts::byte{0xa0});
-        by[2] = sts::byte_plus(uni.col, sts::byte{0xa0});
+        by[1] = uni.row + 0xa0;
+        by[2] = uni.col + 0xa0;
         return 3;
     }
 }
-/*
- * Shift jis ranges (wiki)
- * . 129 - 159
- * . 224 - 239
- * . . 240 - 242
- * . . 240 - 244
- * . 244 - 252
- * , 64 - 126
- * , 128 - 158
- * , 159 - 252
- */
+
+sts::uint sts::SHIFT_JIS::chLen(const sts::byte *b, sts::size_t l){
+    if(l == 0)
+        throw sts::buffer_small{1};
+    if(sts::is_in_range(b[0], 0x81, 0x9f) || is_in_range(b[0], 0xe0, 0xfc))
+        return 2;
+    return 1;
+}
+
+sts::validation_result sts::SHIFT_JIS::validChar(const sts::byte *b, sts::size_t l) noexcept{
+    if(l == 0)
+        return sts::validation_result{false, 0};
+    if(sts::is_in_range(b[0], 0x81, 0x9f) || is_in_range(b[0], 0xe0, 0xfc)){
+        if(l < 2)
+            return sts::validation_result{false, 0};
+        if(sts::is_in_range(b[1], 0x40, 0x7e) || sts::is_in_range(b[1], 0x80, 0xfc))
+            return sts::validation_result{true, 2};
+        else return sts::validation_result{false, 0};
+    }
+    else return sts::validation_result{true, 1};
+}
+
+sts::uint sts::SHIFT_JIS::decode(sts::jisx_213 *uni, const sts::byte *by, sts::size_t l){
+    if(l == 0)
+        throw sts::buffer_small{1};
+    if(sts::is_in_range(by[0], 0, 0x80) || sts::is_in_range(by[0], 0xa0, 0xdf) || sts::is_in_range(by[0], 0xfd, 0xff)){
+        uni->col = by[0];
+        uni->row = sts::byte{0};
+        return 1;
+    }
+    else{
+        if(l < 2)
+            throw sts::buffer_small{1};
+        bool even;
+        if(sts::is_in_range(by[1], 0x40, 0x7e)){
+            even=false;
+            uni->col = by[1] - 0x3f;
+        }
+        else if(sts::is_in_range(by[1], 0x80, 0x9e)){
+            even=false;
+            uni->col = by[1] - 0x40;
+        }
+        else if(sts::is_in_range(by[1], 0x9f, 0xfc)){
+            even=true;
+            uni->col = by[1] - 0x9e;
+        }
+        else throw sts::incorrect_encoding{"Invalid Shift JIS second byte"};
+
+        if(sts::is_in_range(by[0], 0x81, 0x9f)){
+            uni->plane = sts::jisx_213::PLANE_1;
+            uni->row = even ? by[0] * 2 + 1 - 0x101 : by[0] * 2 - 0x101;
+        }
+        else if(sts::is_in_range(by[0], 0xe0, 0xef)){
+            uni->plane = sts::jisx_213::PLANE_1;
+            uni->row = even ? by[0] * 2 + 1 - 0x181 : by[0] * 2 - 0x181;
+        }
+        else if(sts::is_in_range(by[0], 0xf0, 0xfc)){
+            uni->plane = sts::jisx_213::PLANE_2;
+            sts::byte rtest = even ? by[0] * 2 + 1 - 0x1df : by[0] * 2 - 0x1df;
+            if(rtest == 1_by || rtest == 3_by || rtest == 4_by || rtest == 5_by)
+                uni->row = rtest;
+            else{
+                rtest = even ? (by[0] + 3) * 2 + 1 - 0x1df : (by[0] + 3) * 2 - 0x1df;
+                if(rtest == 8_by || rtest == 12_by || rtest == 13_by || rtest == 14_by || rtest == 15_by)
+                    uni->row = rtest;
+                else{
+                    uni->row = even ? by[0] * 2 + 1 - 0x19b : by[0] * 2 - 0x19b;
+                }
+            }
+        }
+        else throw sts::incorrect_encoding{"Invalid Shift JIS first byte"};
+
+        return 2;
+    }
+}
+
+
+sts::uint sts::SHIFT_JIS::encode(const sts::jisx_213 &uni, sts::byte *by, sts::size_t l){
+    if(uni.row == sts::byte{0}){
+        if(l == 0)
+            throw sts::buffer_small{1};
+        if(sts::is_in_range(uni.col, 0x81, 0x9f) || is_in_range(uni.col, 0xe0, 0xfc))
+            throw sts::incorrect_encoding{"Cannot encode this character"};
+        by[0] = uni.col;
+        return 1;
+    }
+    else{
+        if(l < 2)
+            throw sts::buffer_small{2 - static_cast<uint>(l)};
+
+        if(sts::bit_zero(uni.row, 0))
+            by[1] = uni.col + 0x9e;
+        else{
+            if(sts::byte_less(uni.col, sts::byte{0x40}))
+                by[1] = uni.col + 0x3f;
+            else
+                by[1] = uni.col + 0x40;
+        }
+
+        if(uni.plane == sts::jisx_213::PLANE_1){
+            if(sts::is_in_range(uni.row, 0x1, 0x3e))
+                by[0] = (uni.row + 0x101) / 2;
+            else
+                by[0] = (uni.row + 0x181) / 2;
+        }
+        else{
+            if(sts::is_in_range(uni.row, 1, 7))
+                by[0] = (uni.row + 0x1df) / 2;
+            else if(sts::is_in_range(uni.row, 8, 15))
+                by[0] = (uni.row + 0x1df) / 2 - 3;
+            else
+                by[0] = (uni.row + 0x19b) / 2;
+        }
+        return 2;
+    }
+}
