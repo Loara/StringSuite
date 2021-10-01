@@ -24,9 +24,6 @@
     static:
 
      - constexpr unsigned int min_bytes() noexcept  => minimum number of bytes needed to detect the length of a character
-     - constexpr bool has_max() noexcept => the encoding fixes the maximum number of bytes per-character
-     - constexpr unsigned int max_bytes() noexcept => maximum number of bytes needed to store an entire character, undefined
-       if has_max is false
      - unsigned int chLen(const byte *, size_t)  => the length in bytes of the first character pointed by (can throw
         an encoding_error if the length can't be recognized). The first purpouse of this function
         is only to calculate le length of a character, not to verify it. The second character is the size of your byte array
@@ -58,19 +55,23 @@ class EncMetric{
 		using ctype=tt;
 		virtual ~EncMetric() {}
 		virtual uint d_min_bytes() const noexcept=0;
-		virtual bool d_has_max() const noexcept=0;
-		virtual uint d_max_bytes() const=0;
 		virtual uint d_chLen(const byte *, size_t) const=0;
 		virtual validation_result d_validChar(const byte *, size_t) const noexcept =0;
 		virtual uint d_decode(ctype *, const byte *, size_t) const =0;
 		virtual uint d_encode(const ctype &, byte *, size_t) const =0;
 
+		virtual bool d_has_max() const noexcept=0;
+		virtual uint d_max_bytes() const=0;
+
 		virtual bool d_fixed_size() const noexcept =0;
 		virtual std::type_index index() const noexcept=0;
+
+        virtual bool d_has_head() const noexcept=0;
+        virtual uint d_head() const=0;
         /*
-         * If it doesn't have alias must return nullptr
+         * If it doesn't have enc_base must return nullptr
          */
-        virtual const EncMetric<tt> *d_alias() const noexcept =0;
+        virtual const EncMetric<tt> *d_enc_base() const noexcept =0;
 };
 
 /*
@@ -114,8 +115,6 @@ using RAWchr=RAW<unicode>;
 template<typename T>
 concept strong_enctype = requires {typename T::ctype;} && requires(const byte *a, byte *b, typename T::ctype tu, size_t sz){
         {T::min_bytes()} noexcept->std::convertible_to<uint>;
-        {T::has_max()} noexcept->std::same_as<bool>;
-        {T::max_bytes()}->std::convertible_to<uint>;
         {T::chLen(a, sz)}->std::convertible_to<uint>;
         {T::validChar(a, sz)}noexcept->std::same_as<validation_result>;
         {T::decode(&tu, a, sz)}->std::convertible_to<uint>;
@@ -171,15 +170,15 @@ concept same_data = general_enctype<S> && general_enctype<T> && (enc_raw<S> || e
     We say an encoding A is a BASE for B if and only if any A encoded string is also a B valid encoded string
     with the same meaning. A well-known application on unicode strings is when A is ASCII and B is UTF8, Latin1, ISO8859, Win codepages, ...
 
-    In order to make A a BASE for B you need to include inside B an "alias" class typedef of A. Look Latin1 class declaration.
+    In order to make A a BASE for B you need to include inside B an "enc_base" class typedef of A. Look Latin1 class declaration.
 
     You should not use aliases to RAW encodingd, and you mustn't create crossed aliases in order to make two encodings equivalent.
 */
 template<typename T>
-concept has_alias = strong_enctype<T> && requires {typename T::alias;} && strong_enctype_of<typename T::alias, typename T::ctype>;
+concept has_alias = strong_enctype<T> && requires {typename T::enc_base;} && strong_enctype_of<typename T::enc_base, typename T::ctype>;
 
 template<typename T>
-concept has_not_alias = strong_enctype<T> && !requires {typename T::alias;};
+concept has_not_alias = strong_enctype<T> && !requires {typename T::enc_base;};
 
 template<typename A, typename B>
 struct base_ale_0;
@@ -188,10 +187,13 @@ template<strong_enctype A, has_not_alias B>
 struct base_ale_0<A, B> : public std::bool_constant<std::same_as<A, B>> {};
 
 template<strong_enctype A, has_alias B>
-struct base_ale_0<A, B> : public std::bool_constant<std::same_as<A, B> || base_ale_0<A, typename B::alias>::value> {};
+struct base_ale_0<A, B> : public std::bool_constant<std::same_as<A, B> || base_ale_0<A, typename B::enc_base>::value> {};
 
 template<typename A, typename B>
 concept is_base_for = strong_enctype<A> && strong_enctype<B> && std::same_as<typename A::ctype, typename B::ctype> && base_ale_0<A, B>::value;
+
+template<typename A, typename B>
+concept is_extension_for = is_base_for<B, A>;
 
 template<typename tt>
 bool is_base_for_d(const EncMetric<tt> *a, const EncMetric<tt> *b) noexcept{
@@ -199,19 +201,12 @@ bool is_base_for_d(const EncMetric<tt> *a, const EncMetric<tt> *b) noexcept{
         return false;
     if(a->index() == b->index())
         return true;
-    return is_base_for_d(a, b->d_alias());
+    return is_base_for_d(a, b->d_enc_base());
 }
-
-template<typename T>
-concept safe_hasmax = not_widenc<T> && T::has_max();
-template<typename T>
-concept safe_not_hasmax = general_enctype<T> && !safe_hasmax<T>;
-
-template<typename T>
-concept fixed_size = not_widenc<T> && T::has_max() && (T::min_bytes() == T::max_bytes());
-template<typename T>
-concept not_fixed_size = general_enctype<T> && !fixed_size<T>;
-
+template<typename tt>
+bool is_extension_for_d(const EncMetric<tt> *a, const EncMetric<tt> *b) noexcept{
+    return is_base_for_d(b, a);
+}
 
 template<strong_enctype T>
 constexpr int min_length(int nchr) noexcept{
@@ -223,8 +218,58 @@ int min_length(int nchr, const EncMetric<tt> *format) noexcept{
 }
 
 template<strong_enctype T>
+constexpr void assert_raw(){static_assert(!enc_raw<T>, "Using RAW format");}
+
+/*
+ * Encoding optional features
+ */
+namespace feat{
+    template<typename T>
+    class has_max : public std::false_type{};
+
+    template<typename T> requires requires(){typename std::integral_constant<uint, T::max_bytes()>;}
+    class has_max<T> : public std::true_type{
+    public:
+        static constexpr uint get_max() noexcept{
+            return T::max_bytes();
+        }
+    };
+
+    template<typename T>
+    concept safe_hasmax = strong_enctype<T> && has_max<T>::value;
+
+    template<typename T>
+    class fixed_size : public std::false_type{};
+
+    template<typename T> requires has_max<T>::value
+    class fixed_size<T> : public std::bool_constant<T::min_bytes() == T::max_bytes()> {};
+
+    /*
+     * An encoding is opt_find if and only if there exists N>0 integer such that every encoded character can be divided in two consecutive regions:
+     *  - a region A of length exactly N bytes
+     *  - a region B of length N * k bytes with k>=0 integer
+     * and every possible subsequence of N bytes in B must be different from every possible values of A
+     *
+     * This property allows easier finding algorithm. UTF8 and UTF16 both posseses this property with all fixed size encodings.
+     */
+    template<typename T>
+    class opt_head : public std::false_type{};
+
+    template<typename T> requires fixed_size<T>::value || requires(){typename std::integral_constant<uint, T::fixed_head()>;}
+    class opt_head<T> : public std::true_type{
+    public:
+        static constexpr uint get_head() noexcept{
+            if constexpr(fixed_size<T>::value)
+                return T::min_bytes();
+            else
+                return T::fixed_head();
+        }
+    };
+}
+
+template<strong_enctype T>
 constexpr int max_length(uint nchr){
-	static_assert(safe_hasmax<T>, "This encoding has no superior limit");
+	static_assert(feat::has_max<T>::value, "This encoding has no superior limit");
 	return T::max_bytes() * nchr;
 }
 template<typename tt>
@@ -235,8 +280,7 @@ int max_length(uint nchr, const EncMetric<tt> *format){
 		throw encoding_error{"This encoding has no superior limit"};
 }
 
-template<strong_enctype T>
-constexpr void assert_raw(){static_assert(!enc_raw<T>, "Using RAW format");}
+//---------------------------------------------------
 
 /*
     Wrapper of an encoding T in order to save it in a class field of WIDENC classes
@@ -255,8 +299,13 @@ class DynEncoding : public EncMetric<typename T::ctype>{
 		~DynEncoding() {}
 
 		constexpr uint d_min_bytes() const noexcept {return static_enc::min_bytes();}
-		constexpr bool d_has_max() const noexcept {return static_enc::has_max();}
-		constexpr uint d_max_bytes() const {return static_enc::max_bytes();}
+		constexpr bool d_has_max() const noexcept {return feat::has_max<T>::value;}
+		constexpr uint d_max_bytes() const {
+            if constexpr(feat::has_max<T>::value)
+                return feat::has_max<T>::get_max();
+            else
+                throw encoding_error{"This encoding has no superior limit"};
+        }
 		uint d_chLen(const byte *b, size_t siz) const {return static_enc::chLen(b, siz);}
 		validation_result d_validChar(const byte *b, size_t siz) const noexcept {return static_enc::validChar(b, siz);}
 		std::type_index index() const noexcept {return std::type_index{typeid(T)};}
@@ -264,16 +313,24 @@ class DynEncoding : public EncMetric<typename T::ctype>{
 		uint d_decode(ctype *uni, const byte *by, size_t l) const {return static_enc::decode(uni, by, l);}
 		uint d_encode(const ctype &uni, byte *by, size_t l) const {return static_enc::encode(uni, by, l);}
 
-		bool d_fixed_size() const noexcept {return fixed_size<T>;}
+		bool d_fixed_size() const noexcept {return feat::fixed_size<T>::value;}
+
+        bool d_has_head() const noexcept{return feat::opt_head<T>::value;}
+        uint d_head() const{
+            if constexpr(feat::opt_head<T>::value)
+                return feat::opt_head<T>::get_head();
+            else
+                throw encoding_error{"This encoding has no head/tail structure"};
+        }
 
 		static const EncMetric<ctype> *instance() noexcept{
 			static DynEncoding<T> t{};
 			return &t;
 		}
 
-        const EncMetric<ctype> *d_alias() const noexcept{
+        const EncMetric<ctype> *d_enc_base() const noexcept{
             if constexpr(has_alias<T>)
-                return DynEncoding<typename T::alias>::instance();
+                return DynEncoding<typename T::enc_base>::instance();
             else
                 return nullptr;
         }
@@ -291,9 +348,19 @@ class EncMetric_info{
 		const EncMetric<ctype> *format() const noexcept {return DynEncoding<T>::instance();}
 
 		constexpr uint min_bytes() const noexcept {return T::min_bytes();}
-		constexpr bool has_max() const noexcept {return T::has_max();}
-		constexpr uint max_bytes() const noexcept {return T::max_bytes();}
-		constexpr bool is_fixed() const noexcept {return fixed_size<T>;}
+
+		constexpr bool has_max() const noexcept {return feat::has_max<T>::value;}
+		constexpr uint max_bytes() const noexcept requires feat::has_max<T>::value {return feat::has_max<T>::get_max();}
+		/*
+         * Use only for runtime erroring
+         */
+		uint max_bytes() const requires (!feat::has_max<T>::value) {throw encoding_error{"This encoding has no superior limit"};}
+
+		constexpr bool has_head() const noexcept {return feat::opt_head<T>::value;}
+		constexpr uint head() const noexcept requires feat::opt_head<T>::value {return feat::opt_head<T>::get_head();}
+		uint head() const requires (!feat::opt_head<T>::value) {throw encoding_error{"This encoding has no head/tail structure"};}
+
+		constexpr bool is_fixed() const noexcept {return feat::fixed_size<T>::value;}
 
 		uint chLen(const byte *b, size_t siz) const {return T::chLen(b, siz);}
 		validation_result validChar(const byte *b, size_t l) const noexcept {return T::validChar(b, l);}
@@ -302,14 +369,16 @@ class EncMetric_info{
 		std::type_index index() const noexcept {return DynEncoding<T>::index();}
 
 		template<general_enctype S>
-		constexpr bool equalTo(EncMetric_info<S> o) const noexcept requires not_widenc<S>{
-            if constexpr(not_widenc<S>)
-                return same_enc<S, T>;
-            else
-                return index() == o.index();
+		constexpr bool equalTo(EncMetric_info<S>) const noexcept requires not_widenc<S>{
+            return same_enc<S, T>;
         }
+		template<general_enctype S>
+		bool equalTo(EncMetric_info<S> o) const noexcept requires widenc<S>{
+            return index() == o.index();
+        }
+
         template<general_enctype S>
-        void assert_same_enc(EncMetric_info<S> o) const{
+        void assert_same_enc([[maybe_unused]] EncMetric_info<S> o) const{
             if constexpr(strong_enctype<S>){
                 static_assert(same_enc<T, S>, "Different encodings");
             }
@@ -320,25 +389,27 @@ class EncMetric_info{
         }
 
         template<general_enctype S> requires same_data<T, S> && not_widenc<S>
-        constexpr bool base_for(EncMetric_info<S> b) const noexcept{
-            if constexpr(not_widenc<S>)
-                return is_base_for<T, S>;
-            else
-                return is_base_for_d(format(), b.format());
+        constexpr bool base_for(EncMetric_info<S>) const noexcept{
+            return is_base_for<T, S>;
         }
+        template<general_enctype S> requires same_data<T, S> && widenc<S>
+        bool base_for(EncMetric_info<S> b) const noexcept{
+            return is_base_for_d(format(), b.format());
+        }
+
         template<general_enctype S>
-        void assert_base_for(EncMetric_info<S> b) const{
-            if constexpr(!same_data<T, S>)
-                throw incorrect_encoding{"Cannot convert these encodings"};
-            else if constexpr(strong_enctype<S>){
-                if constexpr(!is_base_for<T, S>)
-                    throw incorrect_encoding{"Cannot convert these encodings"};
+        void assert_base_for([[maybe_unused]] EncMetric_info<S> b) const{
+            static_assert(same_data<T, S>, "Cannot convert these encodings");
+            if constexpr(strong_enctype<S>){
+                static_assert(is_base_for<T, S>, "Cannot convert these encodings");
             }
             else{
                 if(!is_base_for_d(format(), b.format()))
                     throw incorrect_encoding{"Cannot convert these encodings"};
             }
         }
+
+        /*
         template<general_enctype S> requires same_data<T, S>
         bool stc_can_reassign() const noexcept{
             if constexpr(widenc<S>)
@@ -346,6 +417,7 @@ class EncMetric_info{
             else
                 return base_for(EncMetric_info<S>{});
         }
+        */
 };
 
 template<typename tt>
@@ -359,9 +431,14 @@ class EncMetric_info<WIDE<tt>>{
 		constexpr const EncMetric<tt> *format() const noexcept {return f;}
 
 		uint min_bytes() const noexcept {return f->d_min_bytes();}
+
 		bool has_max() const noexcept {return f->d_has_max();}
-		uint max_bytes() const noexcept {return f->d_max_bytes();}
+		uint max_bytes() const {return f->d_max_bytes();}
+
 		bool is_fixed() const noexcept {return f->d_fixed_size();}
+
+		bool has_head() const noexcept {return f->d_has_head();}
+		uint head() const {return f->d_head();}
 
 		uint chLen(const byte *b, size_t siz) const {return f->d_chLen(b, siz);}
 		validation_result validChar(const byte *b, size_t l) const noexcept {return f->d_validChar(b, l);}
@@ -382,6 +459,7 @@ class EncMetric_info<WIDE<tt>>{
         bool base_for(EncMetric_info<S> b) const noexcept{
             return is_base_for_d(format(), b.format());
         }
+
         template<general_enctype S>
         void assert_base_for(EncMetric_info<S> b) const{
             if constexpr(!general_enctype_of<S, tt>)
@@ -389,6 +467,7 @@ class EncMetric_info<WIDE<tt>>{
             else if(!is_base_for_d(format(), b.format()))
                 throw incorrect_encoding{"Cannot convert these encodings"};
         }
+        /*
         template<typename S> requires general_enctype_of<S, tt>
         bool stc_can_reassign() const noexcept{
             if constexpr(widenc<S>)
@@ -396,6 +475,7 @@ class EncMetric_info<WIDE<tt>>{
             else
                 return base_for(EncMetric_info<S>{});
         }
+        */
 };
 
 /*
@@ -405,7 +485,6 @@ class ASCII{
 	public:
 		using ctype=unicode;
 		static constexpr uint min_bytes() noexcept {return 1;}
-		static constexpr bool has_max() noexcept {return true;}
 		static constexpr uint max_bytes() noexcept {return 1;}
 		static uint chLen(const byte *, size_t) {return 1;}
 		static validation_result validChar(const byte *, size_t) noexcept;
@@ -416,9 +495,8 @@ class ASCII{
 class Latin1{
 	public:
 		using ctype=unicode;
-        using alias=ASCII;
+        using enc_base=ASCII;
 		static constexpr uint min_bytes() noexcept {return 1;}
-		static constexpr bool has_max() noexcept {return true;}
 		static constexpr uint max_bytes() noexcept {return 1;}
 		static uint chLen(const byte *, size_t) {return 1;}
 		static validation_result validChar(const byte *, size_t) noexcept;

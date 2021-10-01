@@ -284,25 +284,7 @@ tchar_pt<T> inv_rebase_pointer(tchar_pt<S> from, EncMetric_info<T> f){
     f.assert_base_for(from.raw_format());
     return tchar_pt<T>{from.data(), f};
 }
-/*
-template<strong_enctype T, general_enctype S>
-const_tchar_pt<T> rebase_pointer(const_tchar_pt<S> from){
-    return rebase_pointer(from, EncMetric_info<T>{});
-}
-template<strong_enctype T, general_enctype S>
-tchar_pt<T> rebase_pointer(tchar_pt<S> from){
-    return rebase_pointer(from, EncMetric_info<T>{});
-}
 
-template<typename tt, general_enctype S>
-const_tchar_pt<WIDE<tt>> rebase_pointer(const_tchar_pt<S> from, const EncMetric<tt> *format){
-    return rebase_pointer(from, EncMetric_info<WIDE<tt>>{format});
-}
-template<typename tt, general_enctype S>
-tchar_pt<WIDE<tt>> rebase_pointer(tchar_pt<S> from, const EncMetric<tt> *format){
-    return rebase_pointer(from, EncMetric_info<WIDE<tt>>{format});
-}
-*/
 /*
     Estimate the size of a possible string with n characters
 */

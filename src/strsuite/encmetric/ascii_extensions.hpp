@@ -31,9 +31,8 @@ template<typename Enc>
 class ASCII_extension{
 	public:
 		using ctype=unicode;
-        using alias=ASCII;
+        using enc_base=ASCII;
 		static constexpr uint min_bytes() noexcept {return 1;}
-		static constexpr bool has_max() noexcept {return true;}
 		static constexpr uint max_bytes() noexcept {return 1;}
 		static constexpr uint chLen(const byte *, size_t siz) {
             return 1;

@@ -28,7 +28,7 @@ namespace sts{
         Int_opts() : base{10}, plus{false} {}
     };
 
-    template<safe_hasmax T, std::integral I>
+    template<feat::safe_hasmax T, std::integral I>
     void write_integer(CharOStream<T> &, I, const Int_opts &, std::pmr::memory_resource * =std::pmr::get_default_resource());
 
 #include <strsuite/io/integral_format.tpp>

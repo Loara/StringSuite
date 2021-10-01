@@ -16,7 +16,7 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 
-template<safe_hasmax T, std::integral I>
+template<feat::safe_hasmax T, std::integral I>
 void write_integer(CharOStream<T> &out, I val, const Int_opts &opt, std::pmr::memory_resource *res){
     if(opt.base < 2 || opt.base > 26)
         return;

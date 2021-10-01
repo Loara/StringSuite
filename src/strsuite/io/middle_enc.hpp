@@ -25,21 +25,21 @@ namespace sts{
 template<typename T>
 class c_buffer;
 
-template<safe_hasmax T>
+template<general_enctype T> requires feat::has_max<T>::value
 class c_buffer<T>{
 private:
-    byte mem[T::max_bytes()];
+    byte mem[feat::has_max<T>::get_max()];
     tchar_pt<T> data;
 public:
     c_buffer(EncMetric_info<T>, [[maybe_unused]] std::pmr::memory_resource * r=std::pmr::get_default_resource()) : data{mem} {}
     template<general_enctype S>
     void char_write(CharOStream<S> &out, const typename T::ctype &ev){
-        data.encode(ev, T::max_bytes());
-        out.char_write(data, T::max_bytes());
+        data.encode(ev, feat::has_max<T>::get_max());
+        out.char_write(data, feat::has_max<T>::get_max());
     }
 };
 
-template<safe_not_hasmax T>
+template<general_enctype T> requires (! feat::has_max<T>::value)
 class c_buffer<T>{
 private:
     string_stream<T> data;

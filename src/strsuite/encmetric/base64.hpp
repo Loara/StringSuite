@@ -41,7 +41,6 @@ class Base64_padding{
 			return -1;
 		}
 		static constexpr uint min_bytes() noexcept {return 4;}
-		static constexpr bool has_max() noexcept {return true;}
 		static constexpr uint max_bytes() noexcept {return 4;}
 		static constexpr uint chLen(const byte *, size_t) {return 4;}
 		static bool validChar(const byte *, uint &) noexcept;

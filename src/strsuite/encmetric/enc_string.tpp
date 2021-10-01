@@ -50,7 +50,7 @@ dimensions deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz, const terminate_fun
 template<typename T>
 dimensions deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz, size_t chMax){
 	dimensions ret{};
-	if constexpr(fixed_size<T>){
+	if constexpr(feat::fixed_size<T>::value){
         /*
          * Let i the max integer such that T::min_bytes() * i <= maxsiz
          */
@@ -241,12 +241,24 @@ index_result adv_string_view<T>::bytesOf(const adv_string_view<S> &sq) const{
 	size_t rem = siz - sq.size();
 	size_t byt = 0;
 	const_tchar_pt<T> newi = ptr;
-	while(byt <= rem){
-		if(compare(newi.data(), sq.begin().data(), sq.size())){
-            return index_result{true, byt};
-		}
-		byt += newi.next(siz);
-	}
+    if(raw_format().has_head()){
+        uint hd = raw_format().head();
+        while(byt <= rem){
+            if(compare(newi.data(), sq.begin().data(), sq.size())){
+                return index_result{true, byt};
+            }
+            newi += hd;
+            byt += hd;
+        }
+    }
+    else{
+        while(byt <= rem){
+            if(compare(newi.data(), sq.begin().data(), sq.size())){
+                return index_result{true, byt};
+            }
+            byt += newi.next(rem - byt);
+        }
+    }
     return index_result{false, 0};
 }
 
@@ -265,6 +277,10 @@ index_result adv_string_view<T>::indexOf(const adv_string_view<S> &sq) const{
 	size_t byt = 0;
 	size_t chr = 0;
 	const_tchar_pt<T> newi = ptr;
+    /*
+     * In this case we can't use the preceding optimization since we want to know
+     * also the number of characters
+     */
 	while(byt <= rem){
 		if(compare(newi.data(), sq.begin().data(), sq.size())){
             return index_result{true, chr};
