@@ -345,8 +345,17 @@ bool adv_string_view<T>::endsWith(const adv_string_view<S> &sq) const{
 	if(siz < sq.size() || len < sq.length()){
 		return false;
 	}
-	const_tchar_pt<T> poi = ptr + (siz - sq.size());
-	return compare(poi.data(), sq.begin().data(), sq.size());
+	if(raw_format().has_head()){
+        const_tchar_pt<T> poi = ptr + (siz - sq.size());
+        return compare(poi.data(), sq.begin().data(), sq.size());
+    }
+    else{
+        size_t discard = size(len - sq.length());
+        const_tchar_pt<T> poi = ptr + discard;
+        if(sq.size() != (siz - discard))
+            return false;
+        return compare(poi.data(), sq.begin().data(), sq.size());
+    }
 }
 
 template<typename T>

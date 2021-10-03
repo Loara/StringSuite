@@ -124,7 +124,7 @@ class adv_string_view{
 		adv_string_view<T> substring(size_t b) const {return substring(b, 0, true);}
 		size_t length() const noexcept {return len;}
 		size_t size() const noexcept {return siz;}
-		size_t size(size_t a, size_t n) const;//bytes of first n character starting from the (a+1)-st character
+		size_t size(size_t a, size_t n) const;//bytes of first n characters starting from the (a+1)-th character
 		size_t size(size_t n) const {return size(0, n);}
 
 		template<general_enctype S>

@@ -17,6 +17,7 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 #include <concepts>
+#include <utility>
 #include <strsuite/encmetric/encoding.hpp>
 
 namespace sts{
@@ -25,7 +26,7 @@ template<bool be, typename T, unsigned int N>
 class Endian_enc_size;
 
 template<bool be, typename T, unsigned int N > requires std::unsigned_integral<T>
-class Endian_enc_size<be, T, N>{
+class Endian_enc_size{
 public:
     using ctype=T;
     static constexpr uint min_bytes() noexcept{ return N;}
