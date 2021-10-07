@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <strsuite/encmetric/byte_tools.hpp>
 #include <type_traits>
+#include <utility>
 
 namespace sts{
 using std::size_t;
@@ -69,6 +70,41 @@ template<std::unsigned_integral S, std::unsigned_integral T>
 inline constexpr bool no_overflow_sum(S s, T t)noexcept{
     return (s + t) >= s; //only one
 }
+
+/*
+ * std::index_sequence helper functions
+ */
+ template<typename T, size_t N>
+ struct is_index_h : public std::false_type{};
+
+ template<size_t... I, size_t N>
+ struct is_index_h<std::index_sequence<I...>, N> : public std::bool_constant<N == sizeof...(I)> {};
+
+ template<typename T, size_t N>
+ concept is_index_seq_of_len = is_index_h<T, N>::value;
+
+ template<typename> struct push_value;
+
+ template<size_t... prq>
+ struct push_value<std::index_sequence<prq...>>{
+     template<size_t N>
+     using apply_f = std::index_sequence<N, prq...>;
+     template<size_t N>
+     using apply_b = std::index_sequence<prq..., N>;
+ };
+
+ template<size_t N>
+ struct generate_rev{
+     using apply = push_value<typename generate_rev<N-1>::apply>:: template apply_f<N-1>;
+ };
+
+ template<>
+ struct generate_rev<0>{
+     using apply = std::index_sequence<>;
+ };
+
+ template<size_t N>
+ using make_rev_index_sequence = generate_rev<N>::apply;
 
 }
 

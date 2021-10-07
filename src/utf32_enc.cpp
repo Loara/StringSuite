@@ -18,11 +18,11 @@
 #include <strsuite/encmetric/utf32_enc_0.hpp>
 
 namespace sts{
-template class Endian_enc_size<true, char32_t, 4>;
-template class Endian_enc_size<false, char32_t, 4>;
+template class Endian_enc_size<char32_t, 4, BE_end<4>>;
+template class Endian_enc_size<char32_t, 4, LE_end<4>>;
 
 template<bool be>
-using myend=Endian_enc_size<be, char32_t, 4>;
+using myend=Endian_enc_0<be, char32_t, 4>;
 
 template<bool be>
 validation_result UTF32<be>::validChar(const byte *data, size_t siz) noexcept{

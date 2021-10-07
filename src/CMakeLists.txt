@@ -65,7 +65,8 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
     "strsuite/encmetric/utf32_enc_0.hpp"
     "strsuite/encmetric/utf32_enc.hpp"
     "strsuite/encmetric/jis.hpp"
-    "strsuite/encmetric/win_codepages.hpp" DESTINATION include/strsuite/encmetric)
+    "strsuite/encmetric/win_codepages.hpp"
+    "strsuite/encmetric/type_array.hpp" DESTINATION include/strsuite/encmetric)
 
 install(FILES "strsuite/io/enc_io_core.hpp"
     "strsuite/io/enc_io_buffer.hpp"

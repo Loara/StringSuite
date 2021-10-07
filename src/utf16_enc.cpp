@@ -18,12 +18,11 @@
 #include <strsuite/encmetric/utf16_enc_0.hpp>
 
 namespace sts{
-
-template class Endian_enc_size<true, char16_t, 2>;
-template class Endian_enc_size<false, char16_t, 2>;
+template class Endian_enc_size<char16_t, 2, BE_end<2>>;
+template class Endian_enc_size<char16_t, 2, LE_end<2>>;
 
 template<bool be>
-using myend = Endian_enc_size<be, char16_t, 2>;
+using myend = Endian_enc_0<be, char16_t, 2>;
 
 template<bool be>
 struct uhelp{

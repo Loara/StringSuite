@@ -16,23 +16,30 @@
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
+#include <type_traits>
 #include <strsuite/encmetric/base.hpp>
 #include <strsuite/encmetric/byte_tools.hpp>
 #include <strsuite/io/buffers.hpp>
 #include <cstring>
 
 namespace sts{
-template<size_t t>
-inline constexpr size_t tester = t;
 
 template<typename Sys>
-concept syscall = requires(Sys s, byte *a, const byte *b, size_t t){
-    tester<Sys::buffer_size>;
+concept isyscall = requires(Sys s, byte *a, size_t t){
+    typename std::integral_constant <size_t, Sys::buffer_size>;
     {s.read_wrap(a, t)} -> std::same_as<size_t>;
+};
+
+template<typename Sys>
+concept osyscall = requires(Sys s,  const byte *b, size_t t){
+    typename std::integral_constant <size_t, Sys::buffer_size>;
     {s.write_wrap(b, t)} -> std::same_as<size_t>;
 };
 
-template<strong_enctype T, syscall Sys>
+template<typename Sys>
+concept syscall = isyscall<Sys> && osyscall<Sys>;
+
+template<strong_enctype T, isyscall Sys>
 class istr_buffer : public basic_buffer<T, istr_buffer<T, Sys>, true, false>{
     private:
         Sys sy;
@@ -63,7 +70,7 @@ class istr_buffer : public basic_buffer<T, istr_buffer<T, Sys>, true, false>{
         Sys get_system_id() const noexcept {return sy;}
 };
 
-template<strong_enctype T, syscall Sys>
+template<strong_enctype T, osyscall Sys>
 class ostr_buffer : public basic_buffer<T, ostr_buffer<T, Sys>, false, true>{
     private:
         Sys sy;
