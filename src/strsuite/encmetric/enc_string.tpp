@@ -215,16 +215,23 @@ bool adv_string_view<T>::equal_to(const adv_string_view<S> &t, size_t ch) const{
 
 template<typename T>
 template<general_enctype S>
-bool adv_string_view<T>::operator==(const adv_string_view<S> &t) const{
-	if(!raw_format().equalTo(t.raw_format()))
-		return false;
-	if(siz != t.size()){
-		return false;
+std::weak_ordering adv_string_view<T>::operator<=>(const adv_string_view<S> &t) const{
+    size_t mins = siz > t.size() ? t.size() : siz;
+    int cmp = 0;
+    if(mins > 0)
+        cmp = std::memcmp(data(), t.data(), mins);
+    if(cmp > 0)
+        return std::weak_ordering::greater;
+    else if(cmp < 0)
+        return std::weak_ordering::less;
+    else{
+        if(siz > t.size())
+            return std::weak_ordering::greater;
+        else if(siz < t.size())
+            return std::weak_ordering::less;
+        else
+            return std::weak_ordering::equivalent;
     }
-    if(len != t.length()){
-        return false;
-    }
-	return compare(data(), t.data(), siz);
 }
 
 template<typename T>

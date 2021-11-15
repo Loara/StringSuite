@@ -94,12 +94,13 @@ class Linux_istream : public sts::InputStream{
     protected:
         sts::adv_string_view<sts::UTF8> do_newline() const noexcept{ return u8"\n"_asv;}
         uint do_char_read(sts::tchar_pt<sts::UTF8> pt, size_t siz){
+            sts::EncMetric_info<sts::UTF8> format{};
             if(siz == 0)
                 throw sts::IOBufsmall{1};
-            uint totl = buffer.get_chLen();
+            uint totl = buffer.get_chLen(format);
             if(siz < static_cast<size_t>(totl))
                 throw sts::IOBufsmall{static_cast<size_t>(totl) - siz};
-            std::memcpy(pt.data(), buffer.fir.data(), totl);
+            std::memcpy(pt.data(), buffer.base + buffer.fir, totl);
             buffer.raw_fir_step(totl);
             return totl;
             /*
@@ -115,10 +116,11 @@ class Linux_istream : public sts::InputStream{
         uint do_ghost_read(sts::tchar_pt<sts::UTF8> pt, size_t siz){
             if(siz == 0)
                 throw sts::IOBufsmall{1};
-            uint totl = buffer.get_chLen();
+            sts::EncMetric_info<sts::UTF8> format{};
+            uint totl = buffer.get_chLen(format);
             if(siz < static_cast<size_t>(totl))
                 throw sts::IOBufsmall{static_cast<size_t>(totl) - siz};
-            std::memcpy(pt.data(), buffer.fir.data(), totl);
+            std::memcpy(pt.data(), buffer.base + buffer.fir, totl);
             return totl;
             /*
             if(siz == 0)
@@ -176,7 +178,7 @@ class Linux_ostream : public sts::OutputStream{
             if(totl > siz)
                 throw sts::IOBufsmall{totl-siz};
             buffer.force_frspc(totl);
-            std::memcpy(buffer.las.data(), pt.data(), totl);
+            std::memcpy(buffer.base + buffer.las, pt.data(), totl);
             buffer.raw_las_step(totl);
             return totl;
         }
@@ -185,7 +187,7 @@ class Linux_ostream : public sts::OutputStream{
             const byte *b = str.data();
             while(rem > 0){
                 size_t wrt = buffer.req_frspc(rem);
-                std::memcpy(buffer.las.data(), b, wrt);
+                std::memcpy(buffer.base + buffer.las, b, wrt);
                 buffer.raw_las_step(wrt);
                 rem -= wrt;
             }
@@ -221,4 +223,8 @@ sts::OutputStream &sts::get_console_stderr(){
 sts::param_helper::param_helper(int n, const char **c) : argn{n}, args{reinterpret_cast<const byte **>(c)} {}
 
 sts::param_helper::~param_helper() {}
+
+/*
+ * Files
+ */
 

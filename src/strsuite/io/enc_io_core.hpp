@@ -41,8 +41,9 @@ class OutputStream : public NewlineOStream<IOenc>{};
 InputStream &get_console_stdin();
 OutputStream &get_console_stdout();
 OutputStream &get_console_stderr();
-
-//size_t raw_newline();
+/*
+ * Decode program args
+ */
 
 class param_helper{
     private:

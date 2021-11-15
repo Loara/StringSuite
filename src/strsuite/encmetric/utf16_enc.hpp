@@ -22,7 +22,7 @@ namespace sts{
 
 extern template class Endian_enc_size<char16_t, 2, BE_end<2>>;
 extern template class Endian_enc_size<char16_t, 2, LE_end<2>>;
-extern template class UTF16<true>;
-extern template class UTF16<false>;
+extern template class UTF16<BE_end<2>>;
+extern template class UTF16<LE_end<2>>;
 
 }

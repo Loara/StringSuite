@@ -40,12 +40,12 @@ template<typename Sys>
 concept syscall = isyscall<Sys> && osyscall<Sys>;
 
 template<strong_enctype T, isyscall Sys>
-class istr_buffer : public basic_buffer<T, istr_buffer<T, Sys>, true, false>{
+class istr_buffer : public basic_buffer<istr_buffer<T, Sys>, true, false>{
     private:
         Sys sy;
         byte buf[Sys::buffer_size];
     public:
-        istr_buffer(const Sys &f) : basic_buffer<T, istr_buffer<T, Sys>, true, false>{buf, Sys::buffer_size, EncMetric_info<T>{}}, sy{f} {}
+        istr_buffer(const Sys &f) : basic_buffer<istr_buffer<T, Sys>, true, false>{buf, Sys::buffer_size}, sy{f} {}
 
         void inc_siz(uint inc){
             if(this->rem < static_cast<size_t>(inc))
@@ -54,7 +54,7 @@ class istr_buffer : public basic_buffer<T, istr_buffer<T, Sys>, true, false>{
             bool repeat;
             do{
                 repeat=false;
-                wt = sy.read_wrap(this->las.data(), this->rem);
+                wt = sy.read_wrap(this->base + this->las, this->rem);
                 if(wt > 0){
                     this->raw_las_step(wt);
                 }
@@ -71,63 +71,19 @@ class istr_buffer : public basic_buffer<T, istr_buffer<T, Sys>, true, false>{
 };
 
 template<strong_enctype T, osyscall Sys>
-class ostr_buffer : public basic_buffer<T, ostr_buffer<T, Sys>, false, true>{
+class ostr_buffer : public basic_buffer<ostr_buffer<T, Sys>, false, true>{
     private:
         Sys sy;
         byte buf[Sys::buffer_size];
-        /*
-        size_t pt1, pt2; // 0 < pt1 < pt2 < tmp < buffer_size
-        void refresh(){
-            pt1=0;
-            pt2=0;
-        }
-        void push(){
-            size_t wt;
-            bool repeat;
-            do{
-                repeat=false;
-                wt = sy.write_wrap(buf + pt1, pt2 - pt1, repeat);
-            }while(repeat);
-            pt1 += wt;
-        }
-        void shift(){
-            std::memmove(buf, buf + pt1, pt2 - pt1);
-            pt2 = pt2 - pt1;
-            pt1 = 0;
-        }
-        */
     public:
-        ostr_buffer(const Sys &f) : basic_buffer<T, ostr_buffer<T, Sys>, false, true>{buf, Sys::buffer_size, EncMetric_info<T>{}}, sy{f} {}
-        /*
-        void copy_from(const byte *from, size_t len){
-            const byte *inc = from;
-            while(len > 0){
-                size_t buf_wrt = Sys::buffer_size - pt2;
-                if(buf_wrt > 0){
-                    size_t min = buf_wrt > len ? len : buf_wrt;
-                    std::memcpy(buf+pt2, inc, min);
-                    pt2 += min;
-                    inc += min;
-                    len -= min;
-                }
-                else{
-                    push();
-                    shift();
-                    //pt1 will always be 0
-                }
-            }
-        }
+        ostr_buffer(const Sys &f) : basic_buffer<ostr_buffer<T, Sys>, false, true>{buf, Sys::buffer_size}, sy{f} {}
 
-        void flush(){
-            base_flush();
-        }
-        */
         void inc_rem(size_t){
             size_t wt;
             bool repeat;
             do{
                 repeat=false;
-                wt = sy.write_wrap(this->fir.data(), this->siz);
+                wt = sy.write_wrap(this->base + this->fir, this->siz);
                 if(wt > 0){
                     this->raw_fir_step(wt);
                 }
@@ -140,7 +96,7 @@ class ostr_buffer : public basic_buffer<T, ostr_buffer<T, Sys>, false, true>{
 
         void flush(){
             while(this->siz > 0){
-                size_t wt = sy.write_wrap(this->fir.data(), this->siz);
+                size_t wt = sy.write_wrap(this->base + this->fir, this->siz);
                 if(wt > 0){
                     this->raw_fir_step(wt);
                 }

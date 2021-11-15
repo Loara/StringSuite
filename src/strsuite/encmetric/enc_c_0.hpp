@@ -28,8 +28,8 @@ namespace sts{
  * if you want to use UTF8 characters use instead u8 string literals
  */
 using CENC = ASCII;
-using UTF16SYS = UTF16<bend>;
-using UTF32SYS = UTF32<bend>;
+using UTF16SYS = UTF16<BLE_end<bend, 2>>;
+using UTF32SYS = UTF32<BLE_end<bend, 4>>;
 /*
  * Default wchar_t encoding
  */

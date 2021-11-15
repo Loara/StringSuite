@@ -133,19 +133,19 @@ public:
 template<bool be, unsigned int N>
 using BLE_end = std::conditional_t<be, sts::make_rev_index_sequence<N>, std::make_index_sequence<N>>;
 
-template<unsigned int N> struct PDP_end_h;
+template<unsigned int N>
+struct PDP_end_h{
+    static_assert(N % 2 == 0, "Odd length for a PDP encoding");
+    using end = typename push_value<typename push_value<typename PDP_end_h<N-2>::end>::apply_f<N-1>>::apply_f<N-2>;
+};
 
+template<>
+struct PDP_end_h<0>{
+    using end=std::index_sequence<>;
+};
 template<>
 struct PDP_end_h<1>{
     using end=std::index_sequence<0>;
-};
-template<>
-struct PDP_end_h<2>{
-    using end=std::index_sequence<0, 1>;
-};
-template<>
-struct PDP_end_h<4>{
-    using end=std::index_sequence<2, 3, 0, 1>;
 };
 
 template<unsigned int N>
@@ -156,10 +156,7 @@ using BE_end = BLE_end<true, N>;
 template<unsigned int N>
 using LE_end = BLE_end<false, N>;
 
-template<bool be, typename T, unsigned int N>
-using Endian_enc_0 = Endian_enc_size<T, N, BLE_end<be, N>>;
-
-template<bool be, typename T>
-using Endian_enc = Endian_enc_0<be, T, sizeof(T)>;
+template<bool be, typename T, unsigned int N = sizeof(T)>
+using Endian_enc = Endian_enc_size<T, N, BLE_end<be, N>>;
 
 }

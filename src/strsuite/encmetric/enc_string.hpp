@@ -17,6 +17,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
+#include <compare>
 #include <memory_resource>
 #include <strsuite/encmetric/config.hpp>
 #include <strsuite/encmetric/chite.hpp>
@@ -130,11 +131,26 @@ class adv_string_view{
 		template<general_enctype S>
 		bool equal_to(const adv_string_view<S> &, size_t n) const;//compare only the first n character
 
+		/*
+         * A byte-only lexicographics ordering, doesn't consider encoding nor effective characters
+         *
+         * Use it mainly for storing purposes
+         */
 		template<general_enctype S>
-		bool operator==(const adv_string_view<S> &) const;
+		std::weak_ordering operator<=>(const adv_string_view<S> &) const;
 
-        template<general_enctype S>
-		bool operator!=(const adv_string_view<S> &bin) const {return !(*this == bin);}
+		template<general_enctype S>
+		bool operator==(const adv_string_view<S> &t) const {return (*this <=> t) == 0;}
+		template<general_enctype S>
+		bool operator!=(const adv_string_view<S> &t) const {return !(*this == t);}
+		template<general_enctype S>
+		bool operator>(const adv_string_view<S> &t) const {return (*this <=> t) > 0;}
+		template<general_enctype S>
+		bool operator<(const adv_string_view<S> &t) const {return (*this <=> t) < 0;}
+		template<general_enctype S>
+		bool operator>=(const adv_string_view<S> &t) const {return (*this <=> t) >= 0;}
+		template<general_enctype S>
+		bool operator<=(const adv_string_view<S> &t) const {return (*this <=> t) <= 0;}
 
 		template<general_enctype S>
 		index_result bytesOf(const adv_string_view<S> &) const;
@@ -181,7 +197,7 @@ adv_string_view<T> direct_build(const_tchar_pt<T> ptr, size_t len, size_t siz) n
 
 /*
  * Basic string comparator
- */
+ *
 
 template<general_enctype S, general_enctype T>
 class adv_string_comparator{
@@ -216,6 +232,7 @@ public:
     }
 };
 
+
 template<general_enctype T>
 class strless{
 public:
@@ -223,6 +240,8 @@ public:
         return adv_string_comparator<T, T>::cmp(a1, a2);
     }
 };
+
+*/
 
 using wstr_view = adv_string_view<WIDE<unicode>>;
 

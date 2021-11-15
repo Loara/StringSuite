@@ -51,60 +51,40 @@ void string_stream<T>::inc_rem(size_t inc){
 }
 
 template<general_enctype T>
-template<general_enctype S>
-uint string_stream<T>::get_char(CharIStream<S> &stm){
+template<general_enctype S, read_char_stream<S> IStream>
+uint string_stream<T>::get_char(IStream &stm){
     bool read=false;
     uint ret = 0;
     while(!read){
         try{
-            uint red = stm.char_read(this->las.convert(), this->rem);
+            uint red = stm.char_read(this->set_las_as(format), this->rem);
             this->raw_las_step(red);
             len++;
             read=true;
         }
         catch(IOBufsmall &e){
-            if(this->fir.difff() != 0)
+            if(this->fir != 0)
                 this->rewind();
             else
                 inc_rem(e.get_required_size());
         }
     }
     return ret;
-    /*
-    bool read=false;
-    uint ret = 0;
-    while(!read){
-        try{
-            stm.char_read(las.convert(), remaining());
-            ret = las.next(remaining());
-            len++;
-            siz += ret;
-            read=true;
-        }
-        catch(IOBufsmall &e){
-            if(fir.difff() != 0)
-                rewind();
-            else
-                increase(e.get_required_size());
-        }
-    }
-    return ret;
-    */
 }
 template<general_enctype T>
-template<general_enctype S>
-uint string_stream<T>::get_ghost(CharIStream<S> &stm){
+template<general_enctype S, read_char_stream<S> IStream>
+uint string_stream<T>::get_ghost(IStream &stm){
     bool read=false;
     uint ret = 0;
     while(!read){
         try{
-            uint red = stm.ghost_read(this->las.convert(), this->rem);
+            uint red = stm.ghost_read(this->set_las_as(format), this->rem);
             this->raw_las_step(red);
             len++;
             read=true;
         }
         catch(IOBufsmall &e){
-            if(this->fir.difff() != 0)
+            if(this->fir != 0)
                 this->rewind();
             else
                 inc_rem(e.get_required_size());
@@ -114,19 +94,19 @@ uint string_stream<T>::get_ghost(CharIStream<S> &stm){
 }
 
 template<general_enctype T>
-template<general_enctype S>
-uint string_stream<T>::put_char(CharOStream<S> &stm){
+template<general_enctype S, write_char_stream<S> OStream>
+uint string_stream<T>::put_char(OStream &stm){
     if(len == 0)
         throw IOEOF{};
-    uint ret = stm.char_write(this->fir.convert().cast(), this->siz);
+    uint ret = stm.char_write(this->get_fir_as(format), this->siz);
     this->raw_fir_step(ret);
     len--;
     return ret;
 }
 
 template<general_enctype T>
-template<general_enctype S>
-size_t string_stream<T>::put_all(CharOStream<S> &stm){
+template<general_enctype S, write_char_stream<S> OStream>
+size_t string_stream<T>::put_all(OStream &stm){
     if(len == 0)
         throw IOEOF{};
     adv_string_view<T> data = view();
@@ -140,10 +120,10 @@ template<general_enctype T>
 uint string_stream<T>::do_char_read(tchar_pt<T> ptr, size_t tsiz){
     if(len == 0)
         throw IOEOF{};
-    uint ret = this->get_chLen();
+    uint ret = this->get_chLen(format);
     if(tsiz < ret)
         throw IOBufsmall{ret - static_cast<uint>(tsiz)};
-    std::memcpy(ptr.data(), this->fir.data(), ret);
+    std::memcpy(ptr.data(), this->base + this->fir, ret);
     len--;
     this->raw_fir_step(ret);
     return ret;
@@ -153,10 +133,10 @@ template<general_enctype T>
 uint string_stream<T>::do_ghost_read(tchar_pt<T> ptr, size_t tsiz){
     if(len == 0)
         throw IOEOF{};
-    uint ret = this->get_chLen();
+    uint ret = this->get_chLen(format);
     if(tsiz < ret)
         throw IOBufsmall{ret - static_cast<uint>(tsiz)};
-    std::memcpy(ptr.data(), this->fir.data(), ret);
+    std::memcpy(ptr.data(), this->base + this->fir, ret);
     return ret;
 }
 
@@ -172,7 +152,7 @@ uint string_stream<T>::do_char_write(const_tchar_pt<T> ptr, size_t tsiz){
     if(chsi > tsiz)
         throw IOBufsmall{chsi - static_cast<uint>(tsiz)};
     this->force_frspc(chsi);
-    std::memcpy(this->las.data(), ptr.data(), chsi);
+    std::memcpy(this->base + this->las, ptr.data(), chsi);
     len++;
     this->raw_las_step(chsi);
     return chsi;
@@ -182,7 +162,7 @@ template<general_enctype T>
 size_t string_stream<T>::do_string_write(const adv_string_view<T> &str){
     size_t chsi = str.size();
     this->force_frspc(chsi);
-    std::memcpy(this->las.data(), str.data(), chsi);
+    std::memcpy(this->base + this->las, str.data(), chsi);
     len += str.length();
     this->raw_las_step(chsi);
     return chsi;
@@ -191,7 +171,7 @@ size_t string_stream<T>::do_string_write(const adv_string_view<T> &str){
 template<general_enctype T>
 template<general_enctype R>
 uint string_stream<T>::char_write_conv(const_tchar_pt<R> pt, size_t buf){
-    if((pt.raw_format().base_for(this->base.raw_format())))
+    if((pt.raw_format().base_for(format)))
         return this->char_write(pt, buf);
     ctype temp;
     pt.decode(&temp, buf);
@@ -199,7 +179,7 @@ uint string_stream<T>::char_write_conv(const_tchar_pt<R> pt, size_t buf){
     bool enc=false;
     do{
         try{
-            ret = this->las.encode(temp, this->rem);
+            ret = format.encode(temp, this->base + this->las, this->rem);
             enc=true;
         }
         catch(buffer_small &e){
@@ -215,7 +195,7 @@ uint string_stream<T>::char_write_conv(const_tchar_pt<R> pt, size_t buf){
 template<general_enctype T>
 template<general_enctype R>
 size_t string_stream<T>::string_write_conv(const adv_string_view<R> &str){
-    if((str.raw_format().base_for(this->base.raw_format())))
+    if((str.raw_format().base_for(format)))
         return this->string_write(str);
     ctype temp;
     const_tchar_pt<R> pt = str.begin();
@@ -230,7 +210,7 @@ size_t string_stream<T>::string_write_conv(const adv_string_view<R> &str){
         enc=false;
         do{
             try{
-                inc = this->las.encode(temp, this->rem);
+                inc = format.encode(temp, this->base + this->las, this->rem);
                 enc=true;
             }
             catch(buffer_small &e){
@@ -251,7 +231,7 @@ uint string_stream<T>::char_write(const ctype &c){
     bool ext=false;
     do{
         try{
-            ret = this->las.encode(c, this->rem);
+            ret = format.encode(c, this->base + this->las, this->rem);
             ext = true;
         }
         catch(buffer_small &e){
@@ -272,12 +252,12 @@ adv_string<T> string_stream<T>::move(){
     size_t rsiz = this->siz, rlen = len;
     len = 0;
     this->reset();
-    return direct_build_dyn(std::move(res), rlen, rsiz, this->base.raw_format());
+    return direct_build_dyn(std::move(res), rlen, rsiz, format);
 }
 
 template<general_enctype T>
 adv_string<T> string_stream<T>::allocate_new(std::pmr::memory_resource *res) const{
-    adv_string_view<T> vw = direct_build(this->fir.convert().cast(), len, this->siz);
+    adv_string_view<T> vw = direct_build(this->get_fir_as(format), len, this->siz);
     return adv_string<T>{vw, res};//Make a copy
 }
 

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(StringSuite VERSION 2.2 DESCRIPTION "Library to manage encoded strings" LANGUAGES CXX)
+project(StringSuite VERSION 3.0 DESCRIPTION "Library to manage encoded strings" LANGUAGES CXX)
 
 #require C++20
 set(CMAKE_CXX_STANDARD 20)
@@ -71,13 +71,13 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
 install(FILES "strsuite/io/enc_io_core.hpp"
     "strsuite/io/enc_io_buffer.hpp"
     "strsuite/io/enc_io_exc.hpp"
-    "strsuite/io/byte_stream.hpp"
     "strsuite/io/char_stream.hpp"
     "strsuite/io/string_stream.hpp"
     "strsuite/io/nl_stream.hpp"
     "strsuite/io/buffers.hpp"
     "strsuite/io/integral_format.hpp"
-    "strsuite/io/middle_enc.hpp" DESTINATION include/strsuite/io)
+    "strsuite/io/middle_enc.hpp"
+    "strsuite/io/files.hpp" DESTINATION include/strsuite/io)
 
 install(FILES "strsuite/tokens/tokens.hpp" DESTINATION include/strsuite/tokens)
 

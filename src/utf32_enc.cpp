@@ -21,14 +21,18 @@ namespace sts{
 template class Endian_enc_size<char32_t, 4, BE_end<4>>;
 template class Endian_enc_size<char32_t, 4, LE_end<4>>;
 
-template<bool be>
-using myend=Endian_enc_0<be, char32_t, 4>;
+template<typename Seq>
+using myend=Endian_enc_size<char32_t, 4, Seq>;
 
-template<bool be>
-validation_result UTF32<be>::validChar(const byte *data, size_t siz) noexcept{
+template<typename Seq>
+validation_result UTF32<Seq>::validChar(const byte *data, size_t siz) noexcept{
     if(siz < 4){
         return validation_result{false, 0};
     }
+    char32_t value;
+    myend<Seq>::decode(&value, data, siz);
+    return validation_result{value < 0x110000, 4};
+        /*
 	if(access(data, be, 4, 0) != byte{0}){
 		return validation_result{false, 0};
     }
@@ -38,29 +42,30 @@ validation_result UTF32<be>::validChar(const byte *data, size_t siz) noexcept{
 	if(bit_one(rew, 4) && !bit_zero(rew, 3, 2, 1, 0))
 		return validation_result{false, 0};
 	return validation_result{true, 4};
+    */
 }
 
-template<bool be>
-uint UTF32<be>::decode(unicode *uni, const byte *by, size_t l){
+template<typename Seq>
+uint UTF32<Seq>::decode(unicode *uni, const byte *by, size_t l){
 	if(l < 4)
 		throw buffer_small{4-static_cast<uint>(l)};
     char32_t tmp;
-    myend<be>::decode(&tmp, by, l);
+    myend<Seq>::decode(&tmp, by, l);
     *uni = unicode{tmp};
 	return 4;
 }
 
-template<bool be>
-uint UTF32<be>::encode(const unicode &unin, byte *by, size_t l){
+template<typename Seq>
+uint UTF32<Seq>::encode(const unicode &unin, byte *by, size_t l){
 	if(l < 4)
 		throw buffer_small{4-static_cast<uint>(l)};
 	char32_t cast = static_cast<char32_t>(unin);
-    myend<be>::encode(cast, by, l);
+    myend<Seq>::encode(cast, by, l);
 	return 4;
 }
 
-	template class UTF32<true>;
-	template class UTF32<false>;
+	template class UTF32<BE_end<4>>;
+	template class UTF32<LE_end<4>>;
 
 }
 

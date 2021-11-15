@@ -25,9 +25,10 @@
 
 namespace sts{
 
-template<bool be>
+template<typename Seq>
 class UTF32{
 	public:
+        static_assert(is_index_seq_of_len<Seq, 4>, "Invalid endianess type");
 		using ctype=unicode;
 		static constexpr uint min_bytes() noexcept {return 4;}
 		static constexpr uint max_bytes() noexcept {return 4;}
@@ -37,7 +38,7 @@ class UTF32{
 		static uint encode(const unicode &uni, byte *by, size_t l);
 };
 
-using UTF32LE = UTF32<false>;
-using UTF32BE = UTF32<true>;
+using UTF32LE = UTF32<LE_end<4>>;
+using UTF32BE = UTF32<BE_end<4>>;
 
 }

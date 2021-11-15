@@ -25,8 +25,9 @@
 
 namespace sts{
 
-template<bool be>
+template<typename Seq>
 class UTF16{
+    static_assert(is_index_seq_of_len<Seq, 2>, "Invalid endianess type");
 	public:
 		using ctype=unicode;
 		static constexpr uint min_bytes() noexcept {return 2;}
@@ -37,7 +38,7 @@ class UTF16{
 		static uint decode(unicode *uni, const byte *by, size_t l);
 		static uint encode(const unicode &uni, byte *by, size_t l);
 };
-using UTF16LE = UTF16<false>;
-using UTF16BE = UTF16<true>;
+using UTF16LE = UTF16<LE_end<2>>;
+using UTF16BE = UTF16<BE_end<2>>;
 
 }

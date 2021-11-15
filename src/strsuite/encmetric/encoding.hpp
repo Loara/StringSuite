@@ -94,9 +94,8 @@ template<typename tt>
 class RAW{
 	public:
 		using ctype=tt;
-		static constexpr uint min_bytes() noexcept {return 1;}
-		static constexpr bool has_max() noexcept {return true;}
-		static constexpr uint max_bytes() {return 1;}
+		static consteval uint min_bytes() noexcept {return 1;}
+		static consteval uint max_bytes() {return 1;}
 		using compare_enc=RAWcmp;
 		static uint chLen(const byte *, size_t) {return 1;}
 		static validation_result validChar(const byte *, size_t i) noexcept{
@@ -113,8 +112,8 @@ using RAWchr=RAW<unicode>;
  */
 
 template<typename T>
-concept strong_enctype = requires {typename T::ctype;} && requires(const byte *a, byte *b, typename T::ctype tu, size_t sz){
-        {T::min_bytes()} noexcept->std::convertible_to<uint>;
+concept strong_enctype = requires {typename T::ctype;} && requires(const byte * const a, byte * const b, typename T::ctype tu, const size_t sz){
+        typename std::integral_constant<uint, T::min_bytes()>;
         {T::chLen(a, sz)}->std::convertible_to<uint>;
         {T::validChar(a, sz)}noexcept->std::same_as<validation_result>;
         {T::decode(&tu, a, sz)}->std::convertible_to<uint>;
@@ -408,16 +407,6 @@ class EncMetric_info{
                     throw incorrect_encoding{"Cannot convert these encodings"};
             }
         }
-
-        /*
-        template<general_enctype S> requires same_data<T, S>
-        bool stc_can_reassign() const noexcept{
-            if constexpr(widenc<S>)
-                return true;
-            else
-                return base_for(EncMetric_info<S>{});
-        }
-        */
 };
 
 template<typename tt>
@@ -467,15 +456,6 @@ class EncMetric_info<WIDE<tt>>{
             else if(!is_base_for_d(format(), b.format()))
                 throw incorrect_encoding{"Cannot convert these encodings"};
         }
-        /*
-        template<typename S> requires general_enctype_of<S, tt>
-        bool stc_can_reassign() const noexcept{
-            if constexpr(widenc<S>)
-                return true;
-            else
-                return base_for(EncMetric_info<S>{});
-        }
-        */
 };
 
 /*
@@ -484,8 +464,8 @@ class EncMetric_info<WIDE<tt>>{
 class ASCII{
 	public:
 		using ctype=unicode;
-		static constexpr uint min_bytes() noexcept {return 1;}
-		static constexpr uint max_bytes() noexcept {return 1;}
+		static consteval uint min_bytes() noexcept {return 1;}
+		static consteval uint max_bytes() noexcept {return 1;}
 		static uint chLen(const byte *, size_t) {return 1;}
 		static validation_result validChar(const byte *, size_t) noexcept;
 		static uint decode(unicode *uni, const byte *by, size_t l);
@@ -496,8 +476,8 @@ class Latin1{
 	public:
 		using ctype=unicode;
         using enc_base=ASCII;
-		static constexpr uint min_bytes() noexcept {return 1;}
-		static constexpr uint max_bytes() noexcept {return 1;}
+		static consteval uint min_bytes() noexcept {return 1;}
+		static consteval uint max_bytes() noexcept {return 1;}
 		static uint chLen(const byte *, size_t) {return 1;}
 		static validation_result validChar(const byte *, size_t) noexcept;
 		static uint decode(unicode *uni, const byte *by, size_t l);

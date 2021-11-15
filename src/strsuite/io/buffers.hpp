@@ -33,37 +33,56 @@ namespace sts{
      * If read=true then U must have inc_siz(uint) member function
      * If write=true then U must have inc_rem(size_t) member function
      */
-template<general_enctype T, typename U, bool read, bool write>
+template<typename U, bool read, bool write>
 class basic_buffer{
     protected:
         U *mycast() noexcept{ return static_cast<U *>(this);}
         U const *mycast() const noexcept{ return static_cast<U const *>(this);}
     public:
-        tchar_pt<T> base;
-        tchar_relative<T> fir, las, end;
+        byte *base;
+        size_t fir, las, end;
         size_t siz, rem;
-        basic_buffer(byte *b, size_t dim, EncMetric_info<T> ec) : base{b, ec}, fir{base}, las{base}, end{base, dim}, siz{0}, rem{dim} {}
+
+        basic_buffer(byte *b, size_t dim) : base{b}, fir{0}, las{0}, end{dim}, siz{0}, rem{dim} {}
         void rebase(byte *b, size_t dim){
-            base = base.new_instance(b);
+            base = b;
             /*
-             * Must be dim >= las.difff()
+             * Must be dim >= las
              */
-            rem = dim - las.difff();
-            end.set_diff(dim);
+            rem = dim - las;
+            end = dim;
         }
         void reset(){
-            base = base.new_instance((byte*)nullptr);
+            base = nullptr;
             rem=0;
             siz=0;
-            fir.set_diff(0);
-            las.set_diff(0);
-            end.set_diff(0);
+            fir=0;
+            las=0;
+            end=0;
         }
         void base_flush(){
-            fir.set_diff(0);
-            las.set_diff(0);
+            fir = 0;
+            las = 0;
             siz = 0;
-            rem = end.difff();
+            rem = end;
+        }
+
+        template<general_enctype T>
+        const_tchar_pt<T> get_fir_as(EncMetric_info<T> format) const noexcept{
+            return const_tchar_pt<T>{base + fir, format};
+        }
+        template<general_enctype T>
+        const_tchar_pt<T> get_las_as(EncMetric_info<T> format) const noexcept{
+            return const_tchar_pt<T>{base + las, format};
+        }
+
+        template<general_enctype T>
+        tchar_pt<T> set_fir_as(EncMetric_info<T> format) const noexcept{
+            return tchar_pt<T>{base + fir, format};
+        }
+        template<general_enctype T>
+        tchar_pt<T> set_las_as(EncMetric_info<T> format) const noexcept{
+            return tchar_pt<T>{base + las, format};
         }
 
         void raw_fir_step(size_t inc){
@@ -77,23 +96,26 @@ class basic_buffer{
         }
 
         void rewind(){
-            size_t skip = fir.difff();
-            std::memmove(base.data(), fir.data(), siz);
-            fir.set_diff(0);
-            las.set_diff(siz);
+            if(fir == 0)
+                return;
+            size_t skip = fir;
+            std::memmove(base, base + fir, siz);
+            fir = 0;
+            las = siz;
             rem += skip;
         }
-
-        uint get_chLen() requires read{
+        template<typename T>
+        uint get_chLen(EncMetric_info<T> rf) requires read{
+            static_assert(general_enctype<T>, "Not an encoding");
             uint ret;
             bool get=false;
             do{
                 try{
-                    ret = fir.chLen(siz);
-                    get=true;
+                    ret = rf.chLen(base + fir, siz);
+                    get = true;
                 }
                 catch(buffer_small &e){
-                    if(fir.difff() != 0)
+                    if(fir != 0)
                         rewind();
                     mycast()->inc_siz(e.get_required_size());
                 }
@@ -101,7 +123,7 @@ class basic_buffer{
             while(!get);
 
             while(ret > siz){
-                if(fir.difff() != 0)
+                if(fir != 0)
                     rewind();
                 mycast()->inc_siz(ret - static_cast<uint>(siz));
             }
@@ -114,7 +136,7 @@ class basic_buffer{
          * returns minimum between rem and nl
          */
         size_t req_frspc(size_t nl) requires write{
-            if(fir.difff() > 0)
+            if(fir > 0)
                 rewind();
             if(rem >= nl)
                 return nl;
@@ -124,7 +146,7 @@ class basic_buffer{
             }
         }
         void force_frspc(size_t nl) requires write{
-            if(fir.difff() > 0)
+            if(fir > 0)
                 rewind();
             if(rem >= nl)
                 return;

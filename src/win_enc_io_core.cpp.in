@@ -98,22 +98,24 @@ class Windows_istream : public sts::InputStream{
     protected:
         sts::adv_string_view<sts::UTF16LE> do_newline() const noexcept{ return u"\r\n"_asv;}
         sts::uint do_char_read(sts::tchar_pt<sts::UTF16LE> pt, size_t siz){
+            sts::EncMetric_info<sts::UTF16LE> format{};
             if(siz < 2)
                 throw sts::IOBufsmall{2-siz};
-            sts::uint totl = buffer.get_chLen();
+            sts::uint totl = buffer.get_chLen(format);
             if(siz < static_cast<size_t>(totl))
                 throw sts::IOBufsmall{static_cast<size_t>(totl) - siz};
-            std::memcpy(pt.data(), buffer.fir.data(), totl);
+            std::memcpy(pt.data(), buffer.base + buffer.fir, totl);
             buffer.raw_fir_step(totl);
             return totl;
         }
         sts::uint do_ghost_read(sts::tchar_pt<sts::UTF16LE> pt, size_t siz){
             if(siz < 2)
                 throw sts::IOBufsmall{2-siz};
-            sts::uint totl = buffer.get_chLen();
+            sts::EncMetric_info<sts::UTF16LE> format{};
+            sts::uint totl = buffer.get_chLen(format);
             if(siz < static_cast<size_t>(totl))
                 throw sts::IOBufsmall{static_cast<size_t>(totl) - siz};
-            std::memcpy(pt.data(), buffer.fir.data(), totl);
+            std::memcpy(pt.data(), buffer.base + buffer.fir, totl);
             return totl;
         }
 
@@ -163,7 +165,7 @@ class Windows_ostream : public sts::OutputStream{
             if(totl > siz)
                 throw sts::IOBufsmall{totl-siz};
             buffer.force_frspc(totl);
-            std::memcpy(buffer.las.data(), pt.data(), totl);
+            std::memcpy(buffer.base + buffer.las, pt.data(), totl);
             buffer.raw_las_step(totl);
             return totl;
         }
@@ -172,7 +174,7 @@ class Windows_ostream : public sts::OutputStream{
             const sts::byte *b = str.data();
             while(rem > 0){
                 sts::size_t wrt = buffer.req_frspc(rem);
-                std::memcpy(buffer.las.data(), b, wrt);
+                std::memcpy(buffer.base + buffer.las, b, wrt);
                 buffer.raw_las_step(wrt);
                 rem -= wrt;
             }
