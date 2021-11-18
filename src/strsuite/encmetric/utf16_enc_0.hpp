@@ -30,9 +30,9 @@ class UTF16{
     static_assert(is_index_seq_of_len<Seq, 2>, "Invalid endianess type");
 	public:
 		using ctype=unicode;
-		static constexpr uint min_bytes() noexcept {return 2;}
-		static constexpr uint max_bytes() noexcept {return 4;}
-		static constexpr uint fixed_head() noexcept {return 2;}
+		static consteval uint min_bytes() noexcept {return 2;}
+		static consteval uint max_bytes() noexcept {return 4;}
+		static consteval uint fixed_head() noexcept {return 2;}
 		static uint chLen(const byte *, size_t);
 		static validation_result validChar(const byte *, size_t) noexcept;
 		static uint decode(unicode *uni, const byte *by, size_t l);

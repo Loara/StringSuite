@@ -50,13 +50,13 @@ namespace sts{
         adv_string<T> allocate_new(std::pmr::memory_resource *res) const;
         adv_string<T> allocate_new() const {return allocate_new(buffer.get_allocator());}
 
-        template<general_enctype S, read_char_stream<S> IStream>
+        template<read_char_stream<T> IStream>
         uint get_char(IStream &);
-        template<general_enctype S, read_char_stream<S> IStream>
+        template<read_char_stream<T> IStream>
         uint get_ghost(IStream &);
-        template<general_enctype S, write_char_stream<S> OStream>
+        template<write_char_stream<T> OStream>
         uint put_char(OStream &);
-        template<general_enctype S, write_char_stream<S> OStream>
+        template<write_char_stream<T> OStream>
         size_t put_all(OStream &);
 
 

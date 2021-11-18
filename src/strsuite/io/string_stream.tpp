@@ -51,7 +51,7 @@ void string_stream<T>::inc_rem(size_t inc){
 }
 
 template<general_enctype T>
-template<general_enctype S, read_char_stream<S> IStream>
+template<read_char_stream<T> IStream>
 uint string_stream<T>::get_char(IStream &stm){
     bool read=false;
     uint ret = 0;
@@ -72,7 +72,7 @@ uint string_stream<T>::get_char(IStream &stm){
     return ret;
 }
 template<general_enctype T>
-template<general_enctype S, read_char_stream<S> IStream>
+template<read_char_stream<T> IStream>
 uint string_stream<T>::get_ghost(IStream &stm){
     bool read=false;
     uint ret = 0;
@@ -94,7 +94,7 @@ uint string_stream<T>::get_ghost(IStream &stm){
 }
 
 template<general_enctype T>
-template<general_enctype S, write_char_stream<S> OStream>
+template<write_char_stream<T> OStream>
 uint string_stream<T>::put_char(OStream &stm){
     if(len == 0)
         throw IOEOF{};
@@ -105,7 +105,7 @@ uint string_stream<T>::put_char(OStream &stm){
 }
 
 template<general_enctype T>
-template<general_enctype S, write_char_stream<S> OStream>
+template<write_char_stream<T> OStream>
 size_t string_stream<T>::put_all(OStream &stm){
     if(len == 0)
         throw IOEOF{};

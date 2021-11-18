@@ -30,8 +30,8 @@ class UTF32{
 	public:
         static_assert(is_index_seq_of_len<Seq, 4>, "Invalid endianess type");
 		using ctype=unicode;
-		static constexpr uint min_bytes() noexcept {return 4;}
-		static constexpr uint max_bytes() noexcept {return 4;}
+		static consteval uint min_bytes() noexcept {return 4;}
+		static consteval uint max_bytes() noexcept {return 4;}
 		static uint chLen(const byte *, size_t){ return 4;}
 		static validation_result validChar(const byte *, size_t) noexcept;
 		static uint decode(unicode *uni, const byte *by, size_t l);

@@ -36,7 +36,7 @@ concept byte_stream = read_byte_stream<T> && write_byte_stream<T>;
 
 template<typename T, typename S>
 concept read_char_stream = general_enctype<S> && requires(T stream){
-        {stream.raw_format()} noexcept->std::same_as<EncMetric_info<typename T::ctype>>;
+        {stream.raw_format()} noexcept->std::same_as<EncMetric_info<typename T::enc>>;
     }
     && requires(T stream, const tchar_pt<S> dat, const size_t siz){
         {stream.char_read(dat, siz)}->std::convertible_to<uint>;
@@ -47,7 +47,7 @@ concept read_char_stream = general_enctype<S> && requires(T stream){
 
 template<typename T, typename S>
 concept write_char_stream = general_enctype<S> && requires(T stream){
-        {stream.raw_format()} noexcept->std::same_as<EncMetric_info<typename T::ctype>>;
+        {stream.raw_format()} noexcept->std::same_as<EncMetric_info<typename T::enc>>;
         stream.flush();
     }
     && requires(T stream, const const_tchar_pt<S> dat, const tchar_pt<S> vdat, const adv_string_view<S> str, const size_t siz){
@@ -66,6 +66,7 @@ class CharIStream{
         virtual EncMetric_info<T> do_encmetric() const noexcept=0;
     public:
         using ctype = typename T::ctype;
+        using enc = T;
         virtual ~CharIStream() {}
         template<general_enctype S>
         uint char_read(tchar_pt<S> pt, size_t buf) {
@@ -111,6 +112,7 @@ class CharOStream{
         virtual EncMetric_info<T> do_encmetric() const noexcept=0;
     public:
         using ctype = typename T::ctype;
+        using enc = T;
         virtual ~CharOStream() {}
         template<general_enctype S>
         uint char_write(const_tchar_pt<S> pt, size_t buf) {

@@ -33,8 +33,8 @@ struct jisx_213{
 class EUC_JP{
 	public:
 		using ctype=jisx_213;
-		static constexpr uint min_bytes() noexcept {return 1;}
-		static constexpr uint max_bytes() noexcept {return 3;}
+		static consteval uint min_bytes() noexcept {return 1;}
+		static consteval uint max_bytes() noexcept {return 3;}
 		static uint chLen(const byte *, size_t);
 		static validation_result validChar(const byte *, size_t) noexcept;
 		static uint decode(jisx_213 *uni, const byte *by, size_t l);
@@ -61,8 +61,8 @@ class EUC_JP{
 class SHIFT_JIS{
 	public:
 		using ctype=jisx_213;
-		static constexpr uint min_bytes() noexcept {return 1;}
-		static constexpr uint max_bytes() noexcept {return 2;}
+		static consteval uint min_bytes() noexcept {return 1;}
+		static consteval uint max_bytes() noexcept {return 2;}
 		static uint chLen(const byte *, size_t);
 		static validation_result validChar(const byte *, size_t) noexcept;
 		static uint decode(jisx_213 *uni, const byte *by, size_t l);

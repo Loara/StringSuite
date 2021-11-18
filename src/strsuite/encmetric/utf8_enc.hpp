@@ -23,9 +23,9 @@ class UTF8{
 	public:
 		using ctype=unicode;
         using enc_base=ASCII;
-		static constexpr uint min_bytes() noexcept {return 1;}
-		static constexpr uint max_bytes() noexcept {return 4;}
-		static constexpr uint fixed_head() noexcept {return 1;}
+		static consteval uint min_bytes() noexcept {return 1;}
+		static consteval uint max_bytes() noexcept {return 4;}
+		static consteval uint fixed_head() noexcept {return 1;}
 		static uint chLen(const byte *, size_t);
 		static validation_result validChar(const byte *, size_t) noexcept;
 		static uint decode(unicode *uni, const byte *by, size_t l);

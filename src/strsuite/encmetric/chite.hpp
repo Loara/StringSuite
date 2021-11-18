@@ -32,7 +32,7 @@
 #include <cstddef>
 #include <functional>
 #include <strsuite/encmetric/config.hpp>
-#include <strsuite/encmetric/encoding.hpp>
+#include <strsuite/encmetric/encmetric.hpp>
 
 namespace sts{
 
