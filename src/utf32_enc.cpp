@@ -46,13 +46,12 @@ validation_result UTF32<Seq>::validChar(const byte *data, size_t siz) noexcept{
 }
 
 template<typename Seq>
-uint UTF32<Seq>::decode(unicode *uni, const byte *by, size_t l){
+tuple_ret<unicode> UTF32<Seq>::decode(const byte *by, size_t l){
 	if(l < 4)
 		throw buffer_small{4-static_cast<uint>(l)};
     char32_t tmp;
     myend<Seq>::decode(&tmp, by, l);
-    *uni = unicode{tmp};
-	return 4;
+    return tuple_ret<unicode>{4, unicode{tmp}};
 }
 
 template<typename Seq>

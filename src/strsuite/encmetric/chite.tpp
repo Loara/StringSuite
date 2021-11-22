@@ -48,16 +48,16 @@ validation_result base_tchar_pt<T, U, B>::valid_next_update(size_t &siz) noexcep
 }
 
 template<general_enctype T, typename U, typename B>
-uint base_tchar_pt<T, U, B>::decode_next(ctype *uni, size_t l){
-    uint ret = decode(uni, l);
-    ptr += ret;
+auto base_tchar_pt<T, U, B>::decode_next(size_t l) -> tuple_ret<ctype>{
+    tuple_ret<ctype> ret = decode(l);
+    ptr += get_len_el(ret);
     return ret;
 }
 
 template<general_enctype T, typename U, typename B>
-uint base_tchar_pt<T, U, B>::decode_next_update(ctype *uni, size_t &l){
-    uint ret = decode_next(uni, l);
-    l -= ret;
+auto base_tchar_pt<T, U, B>::decode_next_update(size_t &l) -> tuple_ret<ctype>{
+    tuple_ret<ctype> ret = decode_next(l);
+    l -= get_len_el(ret);
     return ret;
 }
 
@@ -76,9 +76,9 @@ uint wbase_tchar_pt<T, U>::encode_next_update(const typename base_tchar_pt<T, U,
 }
 
 template<general_enctype T>
-uint tchar_relative<T>::decode_next(ctype *uni, size_t l) {
-    uint ret = decode(uni, l);
-    dif += ret;
+auto tchar_relative<T>::decode_next(size_t l) -> tuple_ret<ctype> {
+    tuple_ret<ctype> ret = decode(l);
+    dif += get_len_el(ret);
     return ret;
 }
 
@@ -90,9 +90,9 @@ uint tchar_relative<T>::encode_next(const ctype &uni, size_t l) {
 }
 
 template<general_enctype T>
-uint tchar_relative<T>::decode_next_update(ctype *uni, size_t &l) {
-    uint ret = decode_next(uni, l);
-    l -= ret;
+auto tchar_relative<T>::decode_next_update(size_t &l) -> tuple_ret<ctype>{
+    tuple_ret<ctype> ret = decode_next(l);
+    l -= get_len_el(ret);
     return ret;
 }
 

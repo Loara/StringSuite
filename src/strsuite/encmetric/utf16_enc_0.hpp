@@ -35,7 +35,7 @@ class UTF16{
 		static consteval uint fixed_head() noexcept {return 2;}
 		static uint chLen(const byte *, size_t);
 		static validation_result validChar(const byte *, size_t) noexcept;
-		static uint decode(unicode *uni, const byte *by, size_t l);
+		static tuple_ret<unicode> decode(const byte *by, size_t l);
 		static uint encode(const unicode &uni, byte *by, size_t l);
 };
 using UTF16LE = UTF16<LE_end<2>>;

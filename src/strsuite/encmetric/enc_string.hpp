@@ -50,7 +50,7 @@ bool encoding_terminating(const byte *data, const EncMetric_info<T> &format, siz
     using ctype = typename T::ctype;
     ctype cha;
     try{
-        format.decode(&cha, data, st);
+        std::tie(std::ignore, cha) = format.decode(data, st);
     }
     catch(const buffer_small &){
         return false;

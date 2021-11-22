@@ -29,7 +29,7 @@ class EncMetric{
 		virtual uint d_min_bytes() const noexcept=0;
 		virtual uint d_chLen(const byte *, size_t) const=0;
 		virtual validation_result d_validChar(const byte *, size_t) const noexcept =0;
-		virtual uint d_decode(ctype *, const byte *, size_t) const =0;
+		virtual tuple_ret<ctype> d_decode(const byte *, size_t) const =0;
 		virtual uint d_encode(const ctype &, byte *, size_t) const =0;
 
 		virtual bool d_has_max() const noexcept=0;
@@ -102,7 +102,7 @@ class DynEncoding : public EncMetric<typename T::ctype>{
 		validation_result d_validChar(const byte *b, size_t siz) const noexcept {return static_enc::validChar(b, siz);}
 		std::type_index index() const noexcept {return std::type_index{typeid(T)};}
 
-		uint d_decode(ctype *uni, const byte *by, size_t l) const {return static_enc::decode(uni, by, l);}
+		tuple_ret<ctype> d_decode(const byte *by, size_t l) const {return static_enc::decode(by, l);}
 		uint d_encode(const ctype &uni, byte *by, size_t l) const {return static_enc::encode(uni, by, l);}
 
 		bool d_fixed_size() const noexcept {return feat::fixed_size<T>::value;}
@@ -156,7 +156,7 @@ class EncMetric_info{
 
 		uint chLen(const byte *b, size_t siz) const {return T::chLen(b, siz);}
 		validation_result validChar(const byte *b, size_t l) const noexcept {return T::validChar(b, l);}
-		uint decode(ctype *uni, const byte *by, size_t l) const {return T::decode(uni, by, l);}
+		[[nodiscard]] tuple_ret<ctype> decode(const byte *by, size_t l) const {return T::decode(by, l);}
 		uint encode(const ctype &uni, byte *by, size_t l) const {return T::encode(uni, by, l);}
 		std::type_index index() const noexcept {return DynEncoding<T>::index();}
 
@@ -180,12 +180,14 @@ class EncMetric_info{
             }
         }
 
-        template<general_enctype S> requires same_data<T, S> && not_widenc<S>
+        template<general_enctype S> requires not_widenc<S>
         constexpr bool base_for(EncMetric_info<S>) const noexcept{
+            static_assert(same_data<T, S>, "Inconvertible encodings");
             return is_base_for<T, S>;
         }
-        template<general_enctype S> requires same_data<T, S> && widenc<S>
+        template<general_enctype S> requires widenc<S>
         bool base_for(EncMetric_info<S> b) const noexcept{
+            static_assert(same_data<T, S>, "Inconvertible encodings");
             return is_base_for_d(format(), b.format());
         }
 
@@ -224,7 +226,7 @@ class EncMetric_info<WIDE<tt>>{
 
 		uint chLen(const byte *b, size_t siz) const {return f->d_chLen(b, siz);}
 		validation_result validChar(const byte *b, size_t l) const noexcept {return f->d_validChar(b, l);}
-		uint decode(ctype *uni, const byte *by, size_t l) const {return f->d_decode(uni, by, l);}
+		[[nodiscard]] tuple_ret<ctype> decode(const byte *by, size_t l) const {return f->d_decode(by, l);}
 		uint encode(const ctype &uni, byte *by, size_t l) const {return f->d_encode(uni, by, l);}
 		std::type_index index() const noexcept {return f->index();}
 
@@ -237,8 +239,9 @@ class EncMetric_info<WIDE<tt>>{
             if(index() != o.index())
                 throw incorrect_encoding{"Different encodings"};
         }
-        template<typename S> requires general_enctype_of<S, tt>
+        template<typename S>
         bool base_for(EncMetric_info<S> b) const noexcept{
+            static_assert(general_enctype_of<S, tt>, "Inconvertible types");
             return is_base_for_d(format(), b.format());
         }
 

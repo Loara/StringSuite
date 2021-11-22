@@ -34,7 +34,7 @@ class UTF32{
 		static consteval uint max_bytes() noexcept {return 4;}
 		static uint chLen(const byte *, size_t){ return 4;}
 		static validation_result validChar(const byte *, size_t) noexcept;
-		static uint decode(unicode *uni, const byte *by, size_t l);
+		static tuple_ret<unicode> decode(const byte *by, size_t l);
 		static uint encode(const unicode &uni, byte *by, size_t l);
 };
 

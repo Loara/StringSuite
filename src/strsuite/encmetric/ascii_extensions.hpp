@@ -38,20 +38,19 @@ class ASCII_extension{
             return 1;
         }
 		static validation_result validChar(const byte *, size_t siz) noexcept {return validation_result{siz >= 1, 1};}
-		static uint decode(unicode *uni, const byte *by, size_t l){
+		static tuple_ret<unicode> decode(const byte *by, size_t l){
 			if(l == 0)
 				throw buffer_small{1};
 			if(bit_zero(*by, 7)){
-				*uni = read_unicode(by[0]);
-				return 1;
+				return tuple_ret<unicode>{1, read_unicode(by[0])};
 			}
 			else{
 				int idx = std::to_integer<int>(by[0]);
 				idx -= 0x80;
-				*uni = unicode{Enc::table[idx]};
-				return 1;
+				return tuple_ret<unicode>{1, unicode{Enc::table[idx]}};
 			}
 		}
+
 		static uint encode(const unicode &uni, byte *by, size_t l){
 			if(l == 0)
 				throw buffer_small{1};

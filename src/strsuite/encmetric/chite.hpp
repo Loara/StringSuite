@@ -58,6 +58,7 @@ class base_tchar_pt{
 		explicit constexpr base_tchar_pt(data_type_0 *b, EncMetric_info<T> f) noexcept : ptr{b}, ei{f} {}
 	public:
         using data_type = data_type_0;
+
 		using ctype = typename EncMetric_info<T>::ctype;
 		using static_enc = T;
 		/*
@@ -75,7 +76,7 @@ class base_tchar_pt{
 		bool is_fixed() const noexcept {return ei.is_fixed();}
 		uint chLen(size_t siz) const {return ei.chLen(ptr, siz);}
 		validation_result validChar(size_t l) const noexcept {return ei.validChar(ptr, l);}
-		uint decode(ctype *uni, size_t l) const {return ei.decode(uni, ptr, l);}
+		std::tuple<uint, ctype> decode(size_t l) const {return ei.decode(ptr, l);}
 
 		std::type_index index() const noexcept {return ei.index();}
 		/*
@@ -86,8 +87,8 @@ class base_tchar_pt{
 		validation_result valid_next(size_t siz) noexcept;
 		validation_result valid_next_update(size_t &siz) noexcept;
 
-		uint decode_next(ctype *uni, size_t l);
-		uint decode_next_update(ctype *uni, size_t &l);
+		tuple_ret<ctype> decode_next(size_t l);
+		tuple_ret<ctype> decode_next_update(size_t &l);
 		/*
 		    Access ptr as a byte array
 		*/
@@ -155,8 +156,6 @@ class const_tchar_pt : public base_tchar_pt<T, const_tchar_pt<T>, byte const>{
 		constexpr explicit const_tchar_pt(std::nullptr_t, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : const_tchar_pt{static_cast<const byte *>(nullptr), EncMetric_info<T>{f}} {}
 
 		const_tchar_pt new_instance(const byte *c) const noexcept{return const_tchar_pt<T>{c, this->ei};}
-		//const_tchar_pt new_instance(const char *c) const{return const_tchar_pt<T>{reinterpret_cast<const byte *>(c), this->ei};}
-		//const_tchar_pt new_instance(std::nullptr_t) const{return const_tchar_pt<T>{nullptr, this->ei};}
 };
 
 template<general_enctype T>
@@ -183,8 +182,6 @@ class tchar_pt : public wbase_tchar_pt<T, tchar_pt<T>>{
 		constexpr operator const_tchar_pt<T>() const noexcept{ return cast();}
 
 		tchar_pt new_instance(byte *c) const noexcept{return tchar_pt<T>{c, this->ei};}
-		//tchar_pt new_instance(char *c) const{return tchar_pt<T>{reinterpret_cast<byte *>(c), this->ei};}
-		//tchar_pt new_instance(std::nullptr_t) const{return tchar_pt<T>{nullptr, this->ei};}
 };
 
 //---------------------------------------------
@@ -203,7 +200,6 @@ class tchar_relative{
         constexpr tchar_relative(tchar_pt<T> &&, std::size_t = 0) =delete;
 
         constexpr tchar_relative(const tchar_relative &e) noexcept : ptr{e.ptr}, dif{e.dif} {}
-        //tchar_relative(tchar_relative &&)=delete;
 
         tchar_relative &operator=(const tchar_relative &)=delete;
         tchar_relative &operator=(tchar_relative &&)=delete;
@@ -219,15 +215,15 @@ class tchar_relative{
 		constexpr bool is_fixed() const noexcept {return raw_format().is_fixed();}
 		uint chLen(size_t siz) const {return raw_format().chLen(data(), siz);}
 		validation_result validChar(size_t l) const noexcept {return raw_format().validChar(data(), l);}
-		uint decode(ctype *uni, size_t l) const {return raw_format().decode(uni, data(), l);}
+		tuple_ret<ctype> decode(size_t l) const {return raw_format().decode(data(), l);}
 		uint encode(const ctype &uni, size_t l) const {return raw_format().encode(uni, data(), l);}
 
 		uint next(size_t siz);
 		uint next_update(size_t &siz);
 
-		uint decode_next(ctype *uni, size_t l);
+		tuple_ret<ctype> decode_next(size_t l);
 		uint encode_next(const ctype &uni, size_t l);
-		uint decode_next_update(ctype *uni, size_t &l);
+		tuple_ret<ctype> decode_next_update(size_t &l);
 		uint encode_next_update(const ctype &uni, size_t &l);
 
 		tchar_pt<T> convert() const noexcept {return ptr.new_instance(data());}

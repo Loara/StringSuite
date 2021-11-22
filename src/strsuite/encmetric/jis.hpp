@@ -37,7 +37,7 @@ class EUC_JP{
 		static consteval uint max_bytes() noexcept {return 3;}
 		static uint chLen(const byte *, size_t);
 		static validation_result validChar(const byte *, size_t) noexcept;
-		static uint decode(jisx_213 *uni, const byte *by, size_t l);
+		static tuple_ret<jisx_213> decode(const byte *by, size_t l);
 		static uint encode(const jisx_213 &uni, byte *by, size_t l);
 };
 /*
@@ -65,7 +65,7 @@ class SHIFT_JIS{
 		static consteval uint max_bytes() noexcept {return 2;}
 		static uint chLen(const byte *, size_t);
 		static validation_result validChar(const byte *, size_t) noexcept;
-		static uint decode(jisx_213 *uni, const byte *by, size_t l);
+		static tuple_ret<jisx_213> decode(const byte *by, size_t l);
 		static uint encode(const jisx_213 &uni, byte *by, size_t l);
 };
 

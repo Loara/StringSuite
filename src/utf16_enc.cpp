@@ -86,11 +86,11 @@ validation_result UTF16<Seq>::validChar(const byte *data, size_t siz) noexcept{
 }
 
 template<typename Seq>
-uint UTF16<Seq>::decode(unicode *uni, const byte *by, size_t l){
+tuple_ret<unicode> UTF16<Seq>::decode(const byte *by, size_t l){
 	if(l < 2)
 		throw buffer_small{2-static_cast<uint>(l)};
 	uint y_byte = 0;
-	*uni = unicode{0};
+	unicode uni{0};
 	
 	if(uhelp<Seq>::range(by))
 		y_byte = 4;
@@ -105,19 +105,14 @@ uint UTF16<Seq>::decode(unicode *uni, const byte *by, size_t l){
         char16_t temph, templ;
         myend<Seq>::decode(&temph, by, 2);
         myend<Seq>::decode(&templ, by+2, 2);
-        *uni = unicode{0x10000 + (( static_cast<uint>(temph) - 0xd800) << 10) + ( static_cast<uint>(templ) - 0xdc00)};
-		/*
-		unicode p_word{(read_unicode( leave_b(access(by, be, 2, 0), 0, 1) ) << 8) + read_unicode(access(by, be, 2, 1))};
-		unicode s_word{(read_unicode( leave_b(access(by+2, be, 2, 0), 0, 1) ) << 8) + read_unicode(access(by+2, be, 2, 1))};
-		*uni = unicode{(p_word << 10) + s_word + 0x10000};
-        */
+        uni = unicode{0x10000 + (( static_cast<uint>(temph) - 0xd800) << 10) + ( static_cast<uint>(templ) - 0xdc00)};
 	}
 	else{
         char16_t temp;
         myend<Seq>::decode(&temp, by, 2);
-		*uni = unicode{temp};
+		uni = unicode{temp};
 	}
-	return y_byte;
+	return tuple_ret<unicode>{y_byte, uni};
 }
 
 template<typename Seq>

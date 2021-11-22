@@ -65,12 +65,12 @@ validation_result UTF8::validChar(const byte *data, size_t siz) noexcept{
 	return validation_result{true, add};
 }
 
-uint UTF8::decode(unicode *uni, const byte *by, size_t l){
+tuple_ret<unicode> UTF8::decode(const byte *by, size_t l){
 	if(l == 0)
 		throw buffer_small{1};
 	uint y_byte = 0;
 	byte b = *by;
-	*uni = unicode{0};
+	unicode uni{0};
 	
 	if(bit_zero(b, 7)){
 		y_byte = 1;
@@ -94,13 +94,13 @@ uint UTF8::decode(unicode *uni, const byte *by, size_t l){
 
 	if(l < y_byte )
 		throw buffer_small{y_byte-static_cast<uint>(l)};
-	*uni = read_unicode(b);
+	uni = read_unicode(b);
 	for(uint i = 1; i < y_byte; i++){
 		byte temp = by[i];
 		reset_bits(temp, 6, 7);
-		*uni = unicode{(*uni << 6) + read_unicode(temp)};
+		uni = unicode{(uni << 6) + read_unicode(temp)};
 	}
-	return y_byte;
+	return tuple_ret<unicode>{y_byte, uni};
 }
 
 uint UTF8::encode(const unicode &unin, byte *by, size_t l){

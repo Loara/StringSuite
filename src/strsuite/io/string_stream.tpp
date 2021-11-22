@@ -171,10 +171,25 @@ size_t string_stream<T>::do_string_write(const adv_string_view<T> &str){
 template<general_enctype T>
 template<general_enctype R>
 uint string_stream<T>::char_write_conv(const_tchar_pt<R> pt, size_t buf){
-    if((pt.raw_format().base_for(format)))
-        return this->char_write(pt, buf);
+    if constexpr(strong_enctype<R> && strong_enctype<T>){
+        if constexpr(is_base_for<R, T>)
+            return CharOStream<T>::char_write(pt, buf);
+        else
+            return char_write_conv_0(pt, buf);
+    }
+    else{
+        if(pt.raw_format().base_for(format))
+            return CharOStream<T>::char_write(pt, buf);
+        else
+            return char_write_conv_0(pt, buf);
+    }
+}
+
+template<general_enctype T>
+template<general_enctype R>
+uint string_stream<T>::char_write_conv_0(const_tchar_pt<R> pt, size_t buf){
     ctype temp;
-    pt.decode(&temp, buf);
+    std::tie(std::ignore, temp) = pt.decode( buf);
     uint ret;
     bool enc=false;
     do{

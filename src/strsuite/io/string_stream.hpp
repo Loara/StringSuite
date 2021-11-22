@@ -29,6 +29,8 @@ namespace sts{
         basic_ptr buffer;
         size_t len;
         EncMetric_info<T> format;
+        template<general_enctype R>
+        uint char_write_conv_0(const_tchar_pt<R>, size_t);
     public:
         using ctype=typename T::ctype;
         friend class basic_buffer<string_stream<T>, true, true>;
@@ -58,7 +60,6 @@ namespace sts{
         uint put_char(OStream &);
         template<write_char_stream<T> OStream>
         size_t put_all(OStream &);
-
 
         //Make encoding conversion
         template<general_enctype R>

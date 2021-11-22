@@ -57,20 +57,21 @@ sts::validation_result sts::EUC_JP::validChar(const sts::byte *b, sts::size_t s)
     }
 }
 
-sts::uint sts::EUC_JP::decode(sts::jisx_213 *uni, const sts::byte *b, sts::size_t s){
+sts::tuple_ret<sts::jisx_213> sts::EUC_JP::decode(const sts::byte *b, sts::size_t s){
     if(s == 0)
         throw sts::buffer_small{1};
+    sts::jisx_213 uni{};
     if(sts::bit_zero(b[0], 7)){
-        uni->row = sts::byte{0};
-        uni->col = b[0];
-        return 1;
+        uni.row = sts::byte{0};
+        uni.col = b[0];
+        return sts::tuple_ret<sts::jisx_213>{1, uni};
     }
     else if(b[0] == sts::byte{0x8e}){
         if(s < 2)
             throw sts::buffer_small{2 - static_cast<uint>(s)};
-        uni->row = sts::byte{0};
-        uni->col = b[1];
-        return 2;
+        uni.row = sts::byte{0};
+        uni.col = b[1];
+        return sts::tuple_ret<sts::jisx_213>{2, uni};
     }
     else if(b[0] == sts::byte{0x8f}){
         if(s < 3)
@@ -78,20 +79,20 @@ sts::uint sts::EUC_JP::decode(sts::jisx_213 *uni, const sts::byte *b, sts::size_
         // 0x20 + 0x80 = 0xa0 (minimum is 0xa1)
         if(sts::byte_less(b[1], sts::byte{0xa1}) || sts::byte_less(b[2], sts::byte{0xa1}))
             throw sts::incorrect_encoding{"Out of range JIS values"};
-        uni->row = sts::byte_minus(b[1], sts::byte{0xa0});
-        uni->col = sts::byte_minus(b[2], sts::byte{0xa0});
-        uni->plane = sts::jisx_213::PLANE_2;
-        return 3;
+        uni.row = sts::byte_minus(b[1], sts::byte{0xa0});
+        uni.col = sts::byte_minus(b[2], sts::byte{0xa0});
+        uni.plane = sts::jisx_213::PLANE_2;
+        return sts::tuple_ret<sts::jisx_213>{3, uni};
     }
     else{
         if(s < 2)
             throw sts::buffer_small{2 - static_cast<uint>(s)};
         if(sts::byte_less(b[0], sts::byte{0xa1}) || sts::byte_less(b[1], sts::byte{0xa1}))
             throw sts::incorrect_encoding{"Out of range JIS values"};
-        uni->row = sts::byte_minus(b[0], sts::byte{0xa0});
-        uni->col = sts::byte_minus(b[1], sts::byte{0xa0});
-        uni->plane = sts::jisx_213::PLANE_1;
-        return 2;
+        uni.row = sts::byte_minus(b[0], sts::byte{0xa0});
+        uni.col = sts::byte_minus(b[1], sts::byte{0xa0});
+        uni.plane = sts::jisx_213::PLANE_1;
+        return sts::tuple_ret<sts::jisx_213>{2, uni};
     }
 }
 
@@ -149,13 +150,14 @@ sts::validation_result sts::SHIFT_JIS::validChar(const sts::byte *b, sts::size_t
     else return sts::validation_result{true, 1};
 }
 
-sts::uint sts::SHIFT_JIS::decode(sts::jisx_213 *uni, const sts::byte *by, sts::size_t l){
+sts::tuple_ret<sts::jisx_213> sts::SHIFT_JIS::decode(const sts::byte *by, sts::size_t l){
     if(l == 0)
         throw sts::buffer_small{1};
+    sts::jisx_213 uni{};
     if(sts::is_in_range(by[0], 0, 0x80) || sts::is_in_range(by[0], 0xa0, 0xdf) || sts::is_in_range(by[0], 0xfd, 0xff)){
-        uni->col = by[0];
-        uni->row = sts::byte{0};
-        return 1;
+        uni.col = by[0];
+        uni.row = sts::byte{0};
+        return sts::tuple_ret<sts::jisx_213>{1, uni};
     }
     else{
         if(l < 2)
@@ -163,43 +165,43 @@ sts::uint sts::SHIFT_JIS::decode(sts::jisx_213 *uni, const sts::byte *by, sts::s
         bool even;
         if(sts::is_in_range(by[1], 0x40, 0x7e)){
             even=false;
-            uni->col = by[1] - 0x3f;
+            uni.col = by[1] - 0x3f;
         }
         else if(sts::is_in_range(by[1], 0x80, 0x9e)){
             even=false;
-            uni->col = by[1] - 0x40;
+            uni.col = by[1] - 0x40;
         }
         else if(sts::is_in_range(by[1], 0x9f, 0xfc)){
             even=true;
-            uni->col = by[1] - 0x9e;
+            uni.col = by[1] - 0x9e;
         }
         else throw sts::incorrect_encoding{"Invalid Shift JIS second byte"};
 
         if(sts::is_in_range(by[0], 0x81, 0x9f)){
-            uni->plane = sts::jisx_213::PLANE_1;
-            uni->row = even ? by[0] * 2 + 1 - 0x101 : by[0] * 2 - 0x101;
+            uni.plane = sts::jisx_213::PLANE_1;
+            uni.row = even ? by[0] * 2 + 1 - 0x101 : by[0] * 2 - 0x101;
         }
         else if(sts::is_in_range(by[0], 0xe0, 0xef)){
-            uni->plane = sts::jisx_213::PLANE_1;
-            uni->row = even ? by[0] * 2 + 1 - 0x181 : by[0] * 2 - 0x181;
+            uni.plane = sts::jisx_213::PLANE_1;
+            uni.row = even ? by[0] * 2 + 1 - 0x181 : by[0] * 2 - 0x181;
         }
         else if(sts::is_in_range(by[0], 0xf0, 0xfc)){
-            uni->plane = sts::jisx_213::PLANE_2;
+            uni.plane = sts::jisx_213::PLANE_2;
             sts::byte rtest = even ? by[0] * 2 + 1 - 0x1df : by[0] * 2 - 0x1df;
             if(rtest == 1_by || rtest == 3_by || rtest == 4_by || rtest == 5_by)
-                uni->row = rtest;
+                uni.row = rtest;
             else{
                 rtest = even ? (by[0] + 3) * 2 + 1 - 0x1df : (by[0] + 3) * 2 - 0x1df;
                 if(rtest == 8_by || rtest == 12_by || rtest == 13_by || rtest == 14_by || rtest == 15_by)
-                    uni->row = rtest;
+                    uni.row = rtest;
                 else{
-                    uni->row = even ? by[0] * 2 + 1 - 0x19b : by[0] * 2 - 0x19b;
+                    uni.row = even ? by[0] * 2 + 1 - 0x19b : by[0] * 2 - 0x19b;
                 }
             }
         }
         else throw sts::incorrect_encoding{"Invalid Shift JIS first byte"};
 
-        return 2;
+        return sts::tuple_ret<sts::jisx_213>{2, uni};
     }
 }
 

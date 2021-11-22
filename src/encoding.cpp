@@ -28,11 +28,10 @@ validation_result ASCII::validChar(const byte *data, size_t siz) noexcept{
 	return validation_result{true, 1};
 }
 
-uint ASCII::decode(unicode *uni, const byte *by, size_t l){
+tuple_ret<unicode> ASCII::decode(const byte *by, size_t l){
 	if(l == 0)
 		throw buffer_small{1};
-	*uni = read_unicode(by[0]);
-	return 1;
+	return tuple_ret<unicode>{1u, read_unicode(by[0])};
 }
 
 uint ASCII::encode(const unicode &uni, byte *by, size_t l){
@@ -50,11 +49,10 @@ validation_result Latin1::validChar(const byte *, size_t siz) noexcept{
 	return validation_result{siz >= 1, 1};
 }
 
-uint Latin1::decode(unicode *uni, const byte *by, size_t l){
+tuple_ret<unicode> Latin1::decode(const byte *by, size_t l){
 	if(l == 0)
 		throw buffer_small{1};
-	*uni = read_unicode(by[0]);
-	return 1;
+	return tuple_ret<unicode>{1u, read_unicode(by[0])};
 }
 
 uint Latin1::encode(const unicode &uni, byte *by, size_t l){

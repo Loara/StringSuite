@@ -29,8 +29,8 @@
         is only to calculate le length of a character, not to verify it. The second character is the size of your byte array
      - validation_result validChar(const byte *, size_t) noexcept  => Test is the first character is valid with
         respect to this encoding. This function returns also the character length that can be retrived with get() function member.
-     - unsigned int decode(T *, const byte *, size_t)  => sets the Unicode code of the first encoded characters
-        and returns the number of bytes read. If there aren't enough bytes it must throw buffer_small
+     - std::tuple<unsigned int, T> decode(const byte *, size_t)  =>  returns the number of bytes read and the decoded character.
+       If there aren't enough bytes it must throw buffer_small
      - unsigned int encode(const T &, byte *, size_t)  => encode the Unicode character and writes it in the memory pointed
         and returns the number of bytes written. If there isn't enough space it must throw buffer_small
 
@@ -42,12 +42,21 @@
 #include <type_traits>
 #include <cstring>
 #include <concepts>
+#include <tuple>
 #include <strsuite/encmetric/base.hpp>
 #include <strsuite/encmetric/exceptions.hpp>
 
 namespace sts{
 
 inline void copyN(const byte *src, byte *des, size_t l) {std::memcpy(des, src, l);}
+
+template<typename ctype>
+using tuple_ret = std::tuple<uint, ctype>;
+
+template<typename ctype>
+constexpr uint get_len_el(const tuple_ret<ctype> &tupl) noexcept{
+    return std::get<0>(tupl);
+}
 
 /*
     Placeholder: the encoding is determined at runtime
@@ -76,7 +85,7 @@ class RAW{
 		static validation_result validChar(const byte *, size_t i) noexcept{
 			return validation_result{i >= 1, 1};
 		}
-		static uint decode(tt *, const byte *, size_t) {throw raw_error{};}
+		static tuple_ret<tt> decode(const byte *, size_t) {throw raw_error{};}
 		static uint encode(const tt &, byte *, size_t) {throw raw_error{};}
 };
 
@@ -87,11 +96,11 @@ using RAWchr=RAW<unicode>;
  */
 
 template<typename T>
-concept strong_enctype = requires {typename T::ctype;} && requires(const byte * const a, byte * const b, typename T::ctype tu, const size_t sz){
+concept strong_enctype = requires {typename T::ctype;} && requires(const byte * const a, byte * const b, const typename T::ctype &tu, const size_t sz){
         typename std::integral_constant<uint, T::min_bytes()>;
         {T::chLen(a, sz)}->std::convertible_to<uint>;
         {T::validChar(a, sz)}noexcept->std::same_as<validation_result>;
-        {T::decode(&tu, a, sz)}->std::convertible_to<uint>;
+        {T::decode(a, sz)}->std::same_as<tuple_ret<typename T::ctype>>;
         {T::encode(tu, b, sz)}->std::convertible_to<uint>;
     };
 
@@ -235,17 +244,25 @@ namespace feat{
      */
 
     template<typename T>
-    concept has_proxy_type = strong_enctype<T> && std::convertible_to<typename T::proxy_ctype, typename T::ctype>;
+    concept has_proxy_type = strong_enctype<T> && requires (const typename T::proxy_ctype &re, byte * const buff, const size_t siz){
+        {T::encode(re, buff, siz)}->std::convertible_to<uint>;
+    };
 
     template<typename T>
     concept has_not_proxy_type = strong_enctype<T> && !requires(){typename T::proxy_ctype;};
+/*
+    template<typename T>
+    concept has_light_decoder = has_proxy_type<T> && requires(const byte *by, size_t l){
+        {T::light_decode(by, l)}->std::same_as<tuple_ret<typename T::proxy_ctype>>;
+    };
+*/
 
     template<typename T>
     struct Proxy_wrapper{
         static_assert(strong_enctype<T>, "Not a encoding type");
 
         using proxy_ctype = typename T::ctype;
-		static uint light_decode(proxy_ctype *uni, const byte *by, size_t l){
+		static tuple_ret<proxy_ctype> light_decode(proxy_ctype *uni, const byte *by, size_t l){
             return T::decode(uni, by, l);
         }
     };
@@ -253,17 +270,10 @@ namespace feat{
     template<typename T> requires has_proxy_type<T>
     struct Proxy_wrapper<T>{
         using proxy_ctype = typename T::proxy_ctype;
-		static uint light_decode(proxy_ctype *uni, const byte *by, size_t l) requires requires(proxy_ctype *uni, const byte *by, size_t l){
-            {T::light_decode(uni, by, l)}->std::convertible_to<uint>;
-        }
+
+		static tuple_ret<proxy_ctype> light_decode( const byte *by, size_t l)
         {
-            return T::light_decode(uni, by, l);
-        }
-		static uint light_decode(proxy_ctype *uni, const byte *by, size_t l) requires (!requires(proxy_ctype *uni, const byte *by, size_t l){
-            {T::light_decode(uni, by, l)}->std::convertible_to<uint>;
-        })
-        {
-            return T::decode(static_cast<typename T::ctype *>(uni), by, l);
+            return T::light_decode(by, l);
         }
     };
 }
@@ -288,7 +298,7 @@ class ASCII{
 		static consteval uint max_bytes() noexcept {return 1;}
 		static uint chLen(const byte *, size_t) {return 1;}
 		static validation_result validChar(const byte *, size_t) noexcept;
-		static uint decode(unicode *uni, const byte *by, size_t l);
+		static tuple_ret<unicode> decode(const byte *by, size_t l);
 		static uint encode(const unicode &uni, byte *by, size_t l);
 };
 
@@ -300,7 +310,7 @@ class Latin1{
 		static consteval uint max_bytes() noexcept {return 1;}
 		static uint chLen(const byte *, size_t) {return 1;}
 		static validation_result validChar(const byte *, size_t) noexcept;
-		static uint decode(unicode *uni, const byte *by, size_t l);
+		static tuple_ret<unicode> decode(const byte *by, size_t l);
 		static uint encode(const unicode &uni, byte *by, size_t l);
 };
 
