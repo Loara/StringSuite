@@ -78,7 +78,7 @@ install(FILES "strsuite/io/enc_io_core.hpp"
     "strsuite/io/buffers.hpp"
     "strsuite/io/integral_format.hpp"
     "strsuite/io/middle_enc.hpp"
-    "strsuite/io/files.hpp" DESTINATION include/strsuite/io)
+    "strsuite/io/cio_stream.hpp" DESTINATION include/strsuite/io)
 
 install(FILES "strsuite/tokens/tokens.hpp" DESTINATION include/strsuite/tokens)
 

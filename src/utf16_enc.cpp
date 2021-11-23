@@ -28,7 +28,7 @@ template<typename Seq>
 struct uhelp{
 static bool H_range(const byte *datas) noexcept{
     char16_t val;
-    myend<Seq>::decode(&val, datas, 2);
+    std::tie(std::ignore, val) = myend<Seq>::decode(datas, 2);
     return val >= 0xd800 && val < 0xdc00;
     /*
 	byte data = access(datas, be, 2, 0);
@@ -38,7 +38,7 @@ static bool H_range(const byte *datas) noexcept{
 
 static bool L_range(const byte *datas) noexcept{
     char16_t val;
-    myend<Seq>::decode(&val, datas, 2);
+    std::tie(std::ignore, val) = myend<Seq>::decode(datas, 2);
     return val >= 0xdc00 && val < 0xe000;
     /*
 	byte data = access(datas, be, 2, 0);
@@ -48,7 +48,7 @@ static bool L_range(const byte *datas) noexcept{
 
 static bool range(const byte *datas) noexcept{
     char16_t val;
-    myend<Seq>::decode(&val, datas, 2);
+    std::tie(std::ignore, val) = myend<Seq>::decode(datas, 2);
     return val >= 0xd800 && val < 0xe000;
     /*
 	byte data = access(datas, be, 2, 0);
@@ -103,13 +103,13 @@ tuple_ret<unicode> UTF16<Seq>::decode(const byte *by, size_t l){
         if(!uhelp<Seq>::H_range(by) || !uhelp<Seq>::L_range(by+2))
             throw incorrect_encoding{};
         char16_t temph, templ;
-        myend<Seq>::decode(&temph, by, 2);
-        myend<Seq>::decode(&templ, by+2, 2);
+        std::tie(std::ignore, temph) = myend<Seq>::decode(by, 2);
+        std::tie(std::ignore, templ) = myend<Seq>::decode(by+2, 2);
         uni = unicode{0x10000 + (( static_cast<uint>(temph) - 0xd800) << 10) + ( static_cast<uint>(templ) - 0xdc00)};
 	}
 	else{
         char16_t temp;
-        myend<Seq>::decode(&temp, by, 2);
+        std::tie(std::ignore, temp) = myend<Seq>::decode(by, 2);
 		uni = unicode{temp};
 	}
 	return tuple_ret<unicode>{y_byte, uni};
@@ -137,28 +137,10 @@ uint UTF16<Seq>::encode(const unicode &unin, byte *by, size_t l){
         char16_t Hee = static_cast<char16_t>(leave_b(codec, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19) >> 10);
         myend<Seq>::encode(Hee + 0xd800, by, 2);
         myend<Seq>::encode(Lee + 0xdc00, by+2, 2);
-        /*
-		access(by+2, be, 2, 1) = byte{static_cast<uint8_t>(uni & 0xff)};
-		uni=unicode{uni >> 8};
-		access(by+2, be, 2, 0) = byte{static_cast<uint8_t>(uni & 0x03)};
-		uni=unicode{uni >> 2};
-		access(by, be, 2, 1) = byte{static_cast<uint8_t>(uni & 0xff)};
-		uni=unicode{uni >> 8};
-		access(by, be, 2, 0) = byte{static_cast<uint8_t>(uni & 0x03)};
-
-		set_bits(access(by+2, be, 2, 0), 7, 6, 4, 3, 2);
-		set_bits(access(by, be, 2, 0), 7, 6, 4, 3);
-		*/
 	}
 	else{
         char16_t val = static_cast<char16_t>(unin);
         myend<Seq>::encode(val, by, 2);
-        /*
-		unicode uni = unin;
-		access(by, be, 2, 1) = byte{static_cast<uint8_t>(uni & 0xff)};
-		uni=unicode{uni >> 8};
-		access(by, be, 2, 0) = byte{static_cast<uint8_t>(uni & 0xff)};
-        */
 	}
 	return y_byte;
 }

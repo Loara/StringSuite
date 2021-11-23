@@ -33,7 +33,6 @@ concept write_byte_stream = requires(T stream, const byte * const b, const size_
 template<typename T>
 concept byte_stream = read_byte_stream<T> && write_byte_stream<T>;
 
-
 template<typename T, typename S>
 concept read_char_stream = general_enctype<S> && requires(T stream){
         {stream.raw_format()} noexcept->std::same_as<EncMetric_info<typename T::enc>>;

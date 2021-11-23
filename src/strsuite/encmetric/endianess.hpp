@@ -46,65 +46,21 @@ public:
     static constexpr uint max_bytes() noexcept{ return N;}
 	static uint chLen(const byte *, size_t) {return N;}
 	static validation_result validChar(const byte *, size_t l) noexcept {return validation_result{l >= static_cast<size_t>(N), N};}
-	static uint decode(T *uni, const byte *by, size_t l){
+	static tuple_ret<T> decode(const byte *by, size_t l){
         if(l < N)
             throw buffer_small{N - static_cast<uint>(l)};
-        decode_help(uni, by, std::make_index_sequence<N>{}, Seq{});
-        return N;
-        /*
-        if constexpr(be){
-            decode_help(uni, by, std::make_index_sequence<N>{}, sts::make_rev_index_sequence<N>{});
-        }
-        else{
-            decode_help(uni, by, std::make_index_sequence<N>{}, std::make_index_sequence<N>{});
-        }
-        return N;
-
-        *uni = T{0};
-        if constexpr(be){
-            for(uint i=0; i < N; i++){
-                *uni = (*uni * 0x100u) + static_cast<T>(by[i]);
-            }
-            return N;
-        }
-        else{
-            for(uint i=0; i < N ; i++){
-                *uni = (*uni * 0x100u) + static_cast<T>(by[N - 1 - i]);
-            }
-            return N;
-        }
-        */
+        T uni{};
+        decode_help(&uni, by, std::make_index_sequence<N>{}, Seq{});
+        return tuple_ret<T>{N, uni};
+    }
+    static T decode_direct(const byte *by, size_t l){
+        return std::get<1>(decode(by, l));
     }
 	static uint encode(const T &uni, byte *by, size_t l){
         if(l < N)
             throw buffer_small{N - static_cast<uint>(l)};
         encode_help(uni, by, std::make_index_sequence<N>{}, Seq{});
         return N;
-        /*
-        if constexpr(be){
-            encode_help(uni, by, std::make_index_sequence<N>{}, sts::make_rev_index_sequence<N>{});
-        }
-        else{
-            encode_help(uni, by, std::make_index_sequence<N>{}, std::make_index_sequence<N>{});
-        }
-        return N;
-
-        T temp = uni;
-        if constexpr(!be){
-            for(uint i=0; i < N; i++){
-                by[i] = static_cast<byte>(temp & 0xffu);
-                temp /= 0x100u;
-            }
-            return N;
-        }
-        else{
-            for(uint i=0; i < N; i++){
-                by[N - 1 - i] = static_cast<byte>(temp & 0xffu);
-                temp /= 0x100u;
-            }
-            return N;
-        }
-        */
     }
 };
 
@@ -119,11 +75,14 @@ public:
     static constexpr uint max_bytes() noexcept{ return N;}
 	static uint chLen(const byte *, size_t siz) {return N;}
 	static validation_result validChar(const byte *, size_t l) noexcept {return validation_result{l >= static_cast<size_t>(N), N};}
-	static uint decode(T *uni, const byte *by, size_t l){
+	static tuple_ret<T> decode(const byte *by, size_t l){
         unsigned_ctype iv;
-        uint ret = Endian_enc_size<unsigned_ctype, N, Seq>::decode(&iv, by, l);
-        *uni = static_cast<T>(iv);
-        return ret;
+        uint n;
+        std::tie(n, iv) = Endian_enc_size<unsigned_ctype, N, Seq>::decode(&iv, by, l);
+        return tuple_ret<T>{n, static_cast<T>(iv)};
+    }
+    static T decode_direct(const byte *by, size_t l){
+        return std::get<1>(decode(by, l));
     }
 	static uint encode(const T &uni, byte *by, size_t l){
         return Endian_enc_size<unsigned_ctype, N, Seq>::encode(static_cast<unsigned_ctype>(uni), by, l);
