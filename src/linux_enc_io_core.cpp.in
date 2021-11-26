@@ -89,54 +89,26 @@ struct Linux_syscalls{
 
 class Linux_istream : public sts::InputStream{
     private:
-        sts::istr_buffer<sts::UTF8, Linux_syscalls> buffer;
-        static_assert(Linux_syscalls::buffer_size > 4, "buffer too small");
+        sts::istr_buffer<Linux_syscalls, 60> buffer;
+        sts::string_stream<sts::UTF8> conv;
     protected:
         sts::adv_string_view<sts::UTF8> do_newline() const noexcept{ return u8"\n"_asv;}
         uint do_char_read(sts::tchar_pt<sts::UTF8> pt, size_t siz){
-            sts::EncMetric_info<sts::UTF8> format{};
-            if(siz == 0)
-                throw sts::IOBufsmall{1};
-            uint totl = buffer.get_chLen(format);
-            if(siz < static_cast<size_t>(totl))
-                throw sts::IOBufsmall{static_cast<size_t>(totl) - siz};
-            std::memcpy(pt.data(), buffer.base + buffer.fir, totl);
-            buffer.raw_fir_step(totl);
-            return totl;
-            /*
-            buffer.ghost_copy(pt.data(), 1);
-            uint totl = pt.chLen(1);
-            if(totl > siz)
-                throw sts::IOBufsmall{totl-siz};
-            buffer.copy_to(pt.data(), totl);
-            return totl;
-            */
+            if(conv.length() == 0)
+                conv.get_char_bytes(buffer, false);
+            return conv.char_read(pt, siz);
         }
 
         uint do_ghost_read(sts::tchar_pt<sts::UTF8> pt, size_t siz){
-            if(siz == 0)
-                throw sts::IOBufsmall{1};
-            sts::EncMetric_info<sts::UTF8> format{};
-            uint totl = buffer.get_chLen(format);
-            if(siz < static_cast<size_t>(totl))
-                throw sts::IOBufsmall{static_cast<size_t>(totl) - siz};
-            std::memcpy(pt.data(), buffer.base + buffer.fir, totl);
-            return totl;
-            /*
-            if(siz == 0)
-                throw sts::IOBufsmall{1};
-            buffer.ghost_copy(pt.data(), 1);
-            uint totl = pt.chLen(1);
-            if(totl > siz)
-                throw sts::IOBufsmall{totl-siz};
-            buffer.ghost_copy(pt.data(), totl);
-            return totl;
-            */
+            if(conv.length() == 0)
+                conv.get_char_bytes(buffer, false);
+            return conv.ghost_read(pt, siz);
         }
 
         void do_close() {}
 
         void do_discard(){
+            conv.discard();
             pollfd readany{};
             while(true){
                 readany.fd = buffer.get_system_id().fd;
@@ -167,36 +139,26 @@ class Linux_istream : public sts::InputStream{
 
 class Linux_ostream : public sts::OutputStream{
     private:
-        sts::ostr_buffer<sts::UTF8, Linux_syscalls> buffer;
-        static_assert(Linux_syscalls::buffer_size > 4, "buffer too small");
+        sts::ostr_buffer<Linux_syscalls, 60> buffer;
+        sts::string_stream<sts::UTF8> conv;
     protected:
         sts::adv_string_view<sts::UTF8> do_newline() const noexcept{ return u8"\n"_asv;}
         uint do_char_write(sts::const_tchar_pt<sts::UTF8> pt, size_t siz){
-            if(siz == 0)
-                throw sts::IOBufsmall{1};
-            uint totl = pt.chLen(siz);
-            if(totl > siz)
-                throw sts::IOBufsmall{totl-siz};
-            buffer.force_frspc(totl);
-            std::memcpy(buffer.base + buffer.las, pt.data(), totl);
-            buffer.raw_las_step(totl);
-            return totl;
+            uint ret = conv.char_write(pt, siz);
+            while(conv.length() > 0)
+                conv.put_char_bytes(buffer);
+            return ret;
         }
         size_t do_string_write(const sts::adv_string_view<sts::UTF8> &str){
-            size_t rem = str.size();
-            const byte *b = str.data();
-            while(rem > 0){
-                size_t wrt = buffer.req_frspc(rem);
-                std::memcpy(buffer.base + buffer.las, b, wrt);
-                buffer.raw_las_step(wrt);
-                rem -= wrt;
-            }
-            return str.size();
+            size_t ret = conv.string_write(str);
+            conv.put_all_char_bytes(buffer);
+            return ret;
         }
 
         void do_close() {}
 
         void do_flush(){
+            conv.put_all_char_bytes(buffer);
             buffer.flush();
         }
 

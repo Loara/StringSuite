@@ -19,6 +19,7 @@
 #include <cstdio>
 #include <strsuite/encmetric/byte_tools.hpp>
 #include <strsuite/io/char_stream.hpp>
+#include <strsuite/io/middle_enc.hpp>
 
 namespace sts{
 
@@ -51,11 +52,21 @@ public:
     }
 
     size_t read(byte *b, size_t siz) requires (fg == read){
-        return fread(b, 1, siz, file);
+        std::size_t ret = fread(b, 1, siz, file);
+        if(std::feof(file))
+            throw IOEOF{};
+        else if(std::ferror(file))
+            throw IOFail{};
+        else return ret;
     }
 
     size_t write(const byte *b, size_t siz) requires (fg == write_append || fg == write_trunc){
-        return fwrite(b, 1, siz, file);
+        size_t ret = fwrite(b, 1, siz, file);
+        if(std::feof(file))
+            throw IOEOF{};
+        else if(std::ferror(file))
+            throw IOFail{};
+        else return ret;
     }
 };
 

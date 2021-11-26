@@ -104,11 +104,36 @@ class basic_buffer{
             las = siz;
             rem += skip;
         }
+
+        size_t req_sizle(size_t nl) requires read{
+            if(fir != 0)
+                rewind();
+            if(siz >= nl)
+                return nl;
+            else{
+                mycast()->inc_siz(nl - siz);
+                return siz >= nl ? nl : siz;
+            }
+        }
+
+        void force_sizle(size_t nl) requires read{
+            if(fir != 0)
+                rewind();
+            if(siz >= nl)
+                return;
+            else{
+                mycast()->inc_siz(nl - siz);
+                if(siz < nl)
+                    throw IOFail{};
+            }
+        }
+
         template<typename T>
         uint get_chLen(EncMetric_info<T> rf) requires read{
-            static_assert(general_enctype<T>, "Not an encoding");
+            //static_assert(general_enctype<T>, "Not an encoding");
             uint ret;
             bool get=false;
+            force_sizle(rf.min_bytes());
             do{
                 try{
                     ret = rf.chLen(base + fir, siz);
@@ -121,12 +146,14 @@ class basic_buffer{
                 }
             }
             while(!get);
-
+            force_sizle(ret);
+            /*
             while(ret > siz){
                 if(fir != 0)
                     rewind();
                 mycast()->inc_siz(ret - static_cast<uint>(siz));
             }
+            */
             return ret;
         }
 
