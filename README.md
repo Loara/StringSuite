@@ -1,8 +1,9 @@
 # StringSuite
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/Loara/Encmetric?color=brightgreen)
-![GitHub](https://img.shields.io/github/license/Loara/Encmetric?color=blue&label=License&style=plastic)
-![GitHub top language](https://img.shields.io/github/languages/top/Loara/Encmetric?color=blue)
-[![GitHub issues](https://img.shields.io/github/issues/Loara/Encmetric)](https://github.com/Loara/Encmetric/issues)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/Loara/StringSuite?color=brightgreen&style=for-the-badge)
+![GitHub](https://img.shields.io/github/license/Loara/StringSuite?color=brightgreen&style=for-the-badge)
+![GitHub](https://img.shields.io/static/v1?label=C%2B%2B&message=20%2B&color=blue&style=for-the-badge)
+![GitHub](https://img.shields.io/static/v1?label=Platforms&message=Linux%2C%20OSX%2C%20Windows&color=blue&style=for-the-badge)
+![GitHub issues](https://img.shields.io/github/issues/Loara/StringSuite?style=for-the-badge)
 
 C++ library to manage strings and (almost) any kind of encoded data.
 
