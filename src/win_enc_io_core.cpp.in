@@ -209,6 +209,8 @@ sts::OutputStream &sts::get_console_stderr(){
     return input;
 }
 
+
+
 sts::param_helper::param_helper(int, const char **) : argn{0}, args{nullptr} {
     auto pointer = GetCommandLineW();
     auto ret = CommandLineToArgvW(pointer, &argn);
