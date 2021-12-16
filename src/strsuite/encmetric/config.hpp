@@ -17,11 +17,6 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 
-/*
-    Defines system-dependant constants
-*/
-#cmakedefine using_windows
-
 #undef Encmetric_end
 
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
