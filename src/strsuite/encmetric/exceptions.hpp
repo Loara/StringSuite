@@ -22,6 +22,14 @@
 
 namespace sts{
 
+using std::out_of_range;
+
+class invalid_placeholder : public std::exception{
+	public:
+		invalid_placeholder() {}
+		const char *what() const noexcept override {return "Invalid character placeholder";}
+};
+
 class encoding_error : public std::exception{
 	private:
 		const char *c;

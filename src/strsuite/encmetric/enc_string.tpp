@@ -97,6 +97,25 @@ adv_string_view<T>::adv_string_view(const_tchar_pt<T> cu, size_t maxsiz, size_t 
 }
 
 template<typename T>
+void adv_string_view<T>::validate(const placeholder &plc) const{
+    if(plc.start != ptr.data())
+        throw invalid_placeholder{};
+}
+
+template<typename T>
+const byte * adv_string_view<T>::placeholder::data() const noexcept{
+    return start + siz;
+}
+template<typename T>
+size_t adv_string_view<T>::placeholder::nbytes() const noexcept{
+    return siz;
+}
+template<typename T>
+size_t adv_string_view<T>::placeholder::nchr() const noexcept{
+    return len;
+}
+
+template<typename T>
 void adv_string_view<T>::verify() const{
 	size_t remlen = siz;
 	const_tchar_pt<T> mem{ptr};
@@ -135,11 +154,70 @@ adv_string_view<S> adv_string_view<T>::rebase(EncMetric_info<S> o) const{
     return direct_build(rebase_pointer(ptr, o), len, siz);
 }
 
+template<typename T>
+adv_string_view<T>::placeholder adv_string_view<T>::select(size_t chr) const{
+	if(chr > len)
+		throw out_of_range{"Out of range"};
+    const byte *dat = ptr.data();
+	if(chr == 0){
+		return placeholder{dat, 0, 0};
+    }
+    if(chr == len){
+        return placeholder{dat, siz, len};
+    }
+	if(ptr.is_fixed()){
+		return placeholder{dat, chr * ptr.raw_format().min_bytes(), chr};
+	}
+	else{
+		const_tchar_pt<T> mem = ptr;
+		size_t ret = 0;
+		for(size_t i=0; i< chr; i++)
+			ret += mem.next(siz);
+		return placeholder{dat, ret, chr};
+	}
+}
+
+template<typename T>
+adv_string_view<T>::placeholder adv_string_view<T>::select(const placeholder &base, size_t nchr) const{
+    validate(base);
+    size_t totalchr = base.len + nchr;
+	if(totalchr > len)
+		throw out_of_range{"Out of range"};
+    const byte *dat = ptr.data();
+	if(nchr == 0){
+		return base;
+    }
+    if(totalchr == len){
+        return placeholder{dat, siz, len};
+    }
+	if(ptr.is_fixed()){
+		return placeholder{dat, base.siz + nchr * ptr.raw_format().min_bytes(), base.len + nchr};
+	}
+	else{
+		const_tchar_pt<T> mem = ptr.new_instance(base.data());
+		size_t ret = 0;
+		for(size_t i=0; i< nchr; i++)
+			ret += mem.next(siz);
+		return placeholder{dat, base.siz + ret, base.len + nchr};
+	}
+}
+
+template<typename T>
+adv_string_view<T>::placeholder adv_string_view<T>::select_begin() const noexcept{
+    return placeholder{ptr.data(), 0, 0};
+}
+template<typename T>
+adv_string_view<T>::placeholder adv_string_view<T>::select_end() const noexcept{
+    return placeholder{ptr.data(), siz, len};
+}
 
 template<typename T>
 const_tchar_pt<T> adv_string_view<T>::at(size_t chr) const{
+    placeholder plc = select(chr);
+    return ptr.new_instance(plc.data());
+    /*
 	if(chr > len)
-		throw std::out_of_range{"Out of range"};
+		throw out_of_range{"Out of range"};
 	if(chr == 0)
 		return ptr;
 	if(ptr.is_fixed()){
@@ -153,6 +231,7 @@ const_tchar_pt<T> adv_string_view<T>::at(size_t chr) const{
 			ret.next(siz);
 		return ret;
 	}
+	*/
 };
 
 template<typename T>

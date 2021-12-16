@@ -67,7 +67,30 @@ class adv_string_view{
 	protected:
 		explicit adv_string_view(size_t length, size_t size, const_tchar_pt<T> bin) noexcept : ptr{bin}, len{length}, siz{size} {}
 	public:
+
         using ctype = typename T::ctype;
+
+        class placeholder{
+        private:
+            const byte *start;
+            size_t siz, len;
+            placeholder(const byte *p, size_t s, size_t l) : start{p}, siz{s}, len{l} {}
+        public:
+            ~placeholder() {}
+
+            const byte *data() const noexcept;
+            size_t nbytes() const noexcept;
+            size_t nchr() const noexcept;
+
+            bool operator==(const placeholder &p) const noexcept{
+                return start == p.start && len == p.len;
+            }
+            bool operator!=(const placeholder &p) const noexcept{
+                return start == p.start && len != p.len;
+            }
+            friend class adv_string_view<T>;
+        };
+
         explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz);
 		explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz, const terminate_func<T> &);
 		/*
@@ -119,6 +142,12 @@ class adv_string_view{
         adv_string_view<WIDE<ctype>> rebase(const EncMetric<ctype> *denc) const {return rebase(EncMetric_info<WIDE<ctype>>{denc});}
         template<general_enctype S>
         adv_string_view<S> rebase_as(const adv_string_view<S> &as) const{ return rebase(as.raw_format());}
+
+        void validate(const placeholder &) const;
+        placeholder select(size_t nchr) const;
+        placeholder select(const placeholder &base, size_t nchr) const;
+        placeholder select_begin() const noexcept;
+        placeholder select_end() const noexcept;
 		
 		adv_string_view<T> substring(size_t b, size_t e, bool endstr) const;
 		adv_string_view<T> substring(size_t b, size_t e) const {return substring(b, e, false);}
