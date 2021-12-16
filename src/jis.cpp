@@ -18,6 +18,7 @@
 
 #include <strsuite/encmetric/jis.hpp>
 
+
 sts::uint sts::EUC_JP::chLen(const sts::byte *b, sts::size_t s){
     if(s == 0)
         throw sts::buffer_small{1};
