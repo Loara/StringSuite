@@ -15,9 +15,9 @@ To build the library you need cmake version 3.20 or later and a C++ compiler tha
 
 To build and install the library you can run these commands:
 
-    cmake src/
-    cmake --build .
-    cmake --install .
+    cmake -S src -B build
+    cmake --build build
+    cmake --install build
 
 ## Arch Linux
 On Arch Linux you can use package `stringsuite` in AUR, additional informations can be found at https://aur.archlinux.org/packages/stringsuite/.
