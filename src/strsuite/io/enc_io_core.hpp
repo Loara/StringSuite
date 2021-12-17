@@ -20,6 +20,7 @@
 #include <strsuite/encmetric/config.hpp>
 #include <strsuite/encmetric/all_enc.hpp>
 #include <strsuite/io/enc_io_exc.hpp>
+#include <strsuite/io/enc_io_buffer.hpp>
 #include <strsuite/io/nl_stream.hpp>
 
 namespace sts{
@@ -55,6 +56,75 @@ class param_helper{
         int npar() const noexcept {return argn;}
         const byte *get(int i) const noexcept {return args[i];}
 };
+
+/*
+ * Base implementations of Console streams
+ */
+
+template<typename Sys>
+class Console_istream : public InputStream{
+    private:
+        istr_buffer<Sys, 60> buffer;
+        string_stream<IOenc> conv;
+    protected:
+        adv_string_view<IOenc> do_newline() const noexcept{ return buffer.get_system_id().do_newline();}
+        uint do_char_read(tchar_pt<IOenc> pt, size_t siz){
+            if(conv.length() == 0)
+                conv.get_char_bytes(buffer, false);
+            return conv.char_read(pt, siz);
+        }
+
+        uint do_ghost_read(tchar_pt<IOenc> pt, size_t siz){
+            if(conv.length() == 0)
+                conv.get_char_bytes(buffer, false);
+            return conv.ghost_read(pt, siz);
+        }
+
+        void do_close() {}
+
+        void do_discard(){
+            conv.discard();
+            buffer.discard_buffer();
+            buffer.get_system_id().discard_all_input();
+        }
+
+        EncMetric_info<IOenc> do_encmetric() const noexcept{ return EncMetric_info<IOenc>{};}
+    public:
+        Console_istream(const Sys &s) : buffer{s} {}
+};
+
+template<typename Sys>
+class Console_ostream : public OutputStream{
+    private:
+        ostr_buffer<Sys, 60> buffer;
+        string_stream<IOenc> conv;
+    protected:
+        adv_string_view<IOenc> do_newline() const noexcept{ return buffer.get_system_id().do_newline();}
+        uint do_char_write(const_tchar_pt<IOenc> pt, size_t siz){
+            uint ret = conv.char_write(pt, siz);
+            while(conv.length() > 0)
+                conv.put_char_bytes(buffer);
+            return ret;
+        }
+        size_t do_string_write(const adv_string_view<IOenc> &str){
+            size_t ret = conv.string_write(str);
+            conv.put_all_char_bytes(buffer);
+            return ret;
+        }
+
+        void do_close() {}
+
+        void do_flush(){
+            conv.put_all_char_bytes(buffer);
+            buffer.flush();
+        }
+
+        EncMetric_info<IOenc> do_encmetric() const noexcept{ return EncMetric_info<IOenc>{};}
+    public:
+        Console_ostream (const Sys &s) : buffer{s} {}
+};
+
+
 }
 
 

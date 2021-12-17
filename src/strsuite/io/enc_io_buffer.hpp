@@ -65,6 +65,10 @@ class istr_buffer : private basic_buffer<istr_buffer<Sys, bufsiz>, true, false>{
             return inc + read(by + inc, stm - inc);
         }
 
+        void discard_buffer(){
+            this->base_flush();
+        }
+
         friend class basic_buffer<istr_buffer<Sys, bufsiz>, true, false>;
 };
 
@@ -91,8 +95,8 @@ class ostr_buffer : private basic_buffer<ostr_buffer<Sys, bufsiz>, false, true>{
         }
 
     public:
-        ostr_buffer(const Sys &f) : basic_buffer<ostr_buffer<Sys, bufsiz>, false, true>{buf, Sys::buffer_size}, sy{f} {}
-        ostr_buffer(Sys &&f) : basic_buffer<ostr_buffer<Sys, bufsiz>, false, true>{buf, Sys::buffer_size}, sy{std::move(f)} {}
+        ostr_buffer(const Sys &f) : basic_buffer<ostr_buffer<Sys, bufsiz>, false, true>{buf, bufsiz}, sy{f} {}
+        ostr_buffer(Sys &&f) : basic_buffer<ostr_buffer<Sys, bufsiz>, false, true>{buf, bufsiz}, sy{std::move(f)} {}
 
         size_t write(const byte *by, size_t stm){
             if(stm == 0)

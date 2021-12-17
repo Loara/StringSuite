@@ -30,10 +30,10 @@ target_compile_options(lang_req INTERFACE
 
 if(CMAKE_SYSTEM_NAME MATCHES Win)
 	#set(using_windows ON)
-	configure_file(win_enc_io_core.cpp.in enc_io_core.cpp)
+	configure_file(win_enc_io_core.cpp.in sys_enc_io_core.cpp)
 else()
 	#set(using_windows OFF)
-	configure_file(linux_enc_io_core.cpp.in enc_io_core.cpp)
+	configure_file(linux_enc_io_core.cpp.in sys_enc_io_core.cpp)
 endif()
 
 add_library(strsuite STATIC
@@ -46,7 +46,7 @@ add_library(strsuite STATIC
     iso8859_enc.cpp
     koi8.cpp
     win_codepages.cpp
-    enc_io_core.cpp
+    sys_enc_io_core.cpp
     base64.cpp
     jis.cpp)
 

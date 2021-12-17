@@ -156,14 +156,13 @@ adv_string_view<S> adv_string_view<T>::rebase(EncMetric_info<S> o) const{
 
 template<typename T>
 adv_string_view<T>::placeholder adv_string_view<T>::select(size_t chr) const{
-	if(chr > len)
-		throw out_of_range{"Out of range"};
     const byte *dat = ptr.data();
+	if(chr >= len){
+		//throw out_of_range{"Out of range"};
+        return placeholder{dat, siz, len};
+    }
 	if(chr == 0){
 		return placeholder{dat, 0, 0};
-    }
-    if(chr == len){
-        return placeholder{dat, siz, len};
     }
 	if(ptr.is_fixed()){
 		return placeholder{dat, chr * ptr.raw_format().min_bytes(), chr};
@@ -181,14 +180,12 @@ template<typename T>
 adv_string_view<T>::placeholder adv_string_view<T>::select(const placeholder &base, size_t nchr) const{
     validate(base);
     size_t totalchr = base.len + nchr;
-	if(totalchr > len)
-		throw out_of_range{"Out of range"};
     const byte *dat = ptr.data();
+    if(totalchr >= len){
+        return placeholder{dat, siz, len};
+    }
 	if(nchr == 0){
 		return base;
-    }
-    if(totalchr == len){
-        return placeholder{dat, siz, len};
     }
 	if(ptr.is_fixed()){
 		return placeholder{dat, base.siz + nchr * ptr.raw_format().min_bytes(), base.len + nchr};
@@ -212,30 +209,17 @@ adv_string_view<T>::placeholder adv_string_view<T>::select_end() const noexcept{
 }
 
 template<typename T>
-const_tchar_pt<T> adv_string_view<T>::at(size_t chr) const{
-    placeholder plc = select(chr);
-    return ptr.new_instance(plc.data());
-    /*
-	if(chr > len)
-		throw out_of_range{"Out of range"};
-	if(chr == 0)
-		return ptr;
-	if(ptr.is_fixed()){
-		return ptr + (chr * ptr.raw_format().min_bytes());
-	}
-	else{
-		const_tchar_pt<T> ret = ptr;
-		if(chr == len)
-			return ret + siz;
-		for(size_t i=0; i< chr; i++)
-			ret.next(siz);
-		return ret;
-	}
-	*/
+const_tchar_pt<T> adv_string_view<T>::at(placeholder plc) const{
+    validate(plc);
+    return ptr + plc.siz;
 };
 
 template<typename T>
 size_t adv_string_view<T>::size(size_t a, size_t n) const{
+    placeholder b = select(a);
+    placeholder e = select(b, n);
+    return e.siz - b.siz;
+    /*
 	if(a+n < n || a+n > len)
 		throw std::out_of_range{"Out of range"};
 	if(n == 0)
@@ -253,10 +237,20 @@ size_t adv_string_view<T>::size(size_t a, size_t n) const{
 		}
 		return ret;
 	}
+	*/
 }
 
 template<typename T>
-adv_string_view<T> adv_string_view<T>::substring(size_t b, size_t e, bool ign) const{
+adv_string_view<T> adv_string_view<T>::substring(placeholder b, placeholder e) const{
+    validate(b);
+    validate(e);
+    //if(e > select_end())
+    //    e = select_end();
+    //useless
+    if(b > e)
+        b = e;
+    return adv_string_view<T>{e.len - b.len, e.siz - b.siz, at(b)};
+    /*
 	if(ign)
 		e = len;
 	else if(e > len)
@@ -278,6 +272,7 @@ adv_string_view<T> adv_string_view<T>::substring(size_t b, size_t e, bool ign) c
 			nlen += temp.next(siz);
 		return adv_string_view<T>{e - b, nlen, nei};
 	}
+	*/
 }
 
 template<typename T>

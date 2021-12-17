@@ -82,11 +82,15 @@ class adv_string_view{
             size_t nbytes() const noexcept;
             size_t nchr() const noexcept;
 
-            bool operator==(const placeholder &p) const noexcept{
-                return start == p.start && len == p.len;
+            bool comparable(const placeholder &p) const noexcept{
+                return start == p.start;
             }
-            bool operator!=(const placeholder &p) const noexcept{
-                return start == p.start && len != p.len;
+
+            std::partial_ordering operator<=>(const placeholder &p) const noexcept{
+                if(!comparable(p))
+                    return std::partial_ordering::unordered;
+                else
+                    return len <=> p.len;
             }
             friend class adv_string_view<T>;
         };
@@ -149,12 +153,20 @@ class adv_string_view{
         placeholder select_begin() const noexcept;
         placeholder select_end() const noexcept;
 		
-		adv_string_view<T> substring(size_t b, size_t e, bool endstr) const;
-		adv_string_view<T> substring(size_t b, size_t e) const {return substring(b, e, false);}
-		adv_string_view<T> substring(size_t b) const {return substring(b, 0, true);}
+		adv_string_view<T> substring(placeholder b, placeholder e) const;
+		adv_string_view<T> substring(placeholder b, size_t e) const{ return substring(b, select(e));}
+		adv_string_view<T> substring(size_t b, placeholder e) const{ return substring(select(b), e);}
+		adv_string_view<T> substring(size_t b, size_t e) const{
+            placeholder bb = select(b);
+            placeholder ee = select(bb, e >= b ? e - b : 0);
+            return substring(bb, ee);
+        }
+		adv_string_view<T> substring(placeholder b) const;
+		adv_string_view<T> substring(size_t b) const;
+
 		size_t length() const noexcept {return len;}
 		size_t size() const noexcept {return siz;}
-		size_t size(size_t a, size_t n) const;//bytes of first n characters starting from the (a+1)-th character
+		size_t size(size_t a, size_t n) const;
 		size_t size(size_t n) const {return size(0, n);}
 
 		template<general_enctype S>
@@ -201,13 +213,11 @@ class adv_string_view{
 		/*
 			Mustn't throw any exception if 0 <= a <= len
 		*/
-		const_tchar_pt<T> at(size_t chr) const;
+		const_tchar_pt<T> at(placeholder) const;
+		const_tchar_pt<T> at(size_t chr) const {return at(select(chr));}
 		const_tchar_pt<T> begin() const noexcept {return at(0);}
 		const_tchar_pt<T> end() const noexcept {return at(len);}
-        /*
-		template<general_enctype S>
-		adv_string<T> concatenate(const adv_string_view<S> &, std::pmr::memory_resource * = std::pmr::get_default_resource()) const;
-        */
+
 		template<general_enctype S>
 		bool cut_end(const adv_string_view<S> &) noexcept;
 

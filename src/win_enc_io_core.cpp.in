@@ -67,51 +67,32 @@ struct Windows_syscalls{
             throw sts::IOEOF{};
         return 2 * static_cast<size_t>(chrr);
     }
-};
 
-
-class Windows_istream : public sts::InputStream{
-    private:
-        sts::istr_buffer<Windows_syscalls, 60> buffer;
-        sts::string_stream<sts::UTF16LE> conv;
-    protected:
-        sts::adv_string_view<sts::UTF16LE> do_newline() const noexcept{ return u"\r\n"_asv;}
-        sts::uint do_char_read(sts::tchar_pt<sts::UTF16LE> pt, size_t siz){
-            if(conv.length() == 0)
-                conv.get_char_bytes(buffer, false);
-            return conv.char_read(pt, siz);
+    void discard_all_input(){
+        while(true){
+            DWORD err = WaitForSingleObject(fd, 0);
+            if(err == WAIT_TIMEOUT || err == WAIT_FAILED){
+                break;
+            }
+            sts::byte dis[60];
+            size_t red = read_wrap(dis, 60);
+            if(red < 60)
+                break;
             /*
-            sts::EncMetric_info<sts::UTF16LE> format{};
-            if(siz < 2)
-                throw sts::IOBufsmall{2-siz};
-            sts::uint totl = buffer.get_chLen(format);
-            if(siz < static_cast<size_t>(totl))
-                throw sts::IOBufsmall{static_cast<size_t>(totl) - siz};
-            std::memcpy(pt.data(), buffer.base + buffer.fir, totl);
-            buffer.raw_fir_step(totl);
-            return totl;
+            byte chr[4];
+            sts::tchar_pt<sts::UTF8> o{chr};
+            do{
+                try{
+                    do_char_read(o, 4);
+                }
+                catch(...){
+                    return;
+                }
+            }
+            while(chr[0] != byte{'\n'});
             */
         }
-        sts::uint do_ghost_read(sts::tchar_pt<sts::UTF16LE> pt, size_t siz){
-            if(conv.length() == 0)
-                conv.get_char_bytes(buffer, false);
-            return conv.ghost_read(pt, siz);
-            /*
-            if(siz < 2)
-                throw sts::IOBufsmall{2-siz};
-            sts::EncMetric_info<sts::UTF16LE> format{};
-            sts::uint totl = buffer.get_chLen(format);
-            if(siz < static_cast<size_t>(totl))
-                throw sts::IOBufsmall{static_cast<size_t>(totl) - siz};
-            std::memcpy(pt.data(), buffer.base + buffer.fir, totl);
-            return totl;
-            */
-        }
-
-        void do_close() {}
-
-        void do_discard(){
-            conv.discard();
+        /*
             sts::byte rc[] = {sts::byte{0x0d}, sts::byte{0x00}};
             sts::byte nl[] = {sts::byte{0x0a}, sts::byte{0x00}};
             sts::byte buf[4];
@@ -134,78 +115,26 @@ class Windows_istream : public sts::InputStream{
                 }
             }
             while(!hr || !hn);
-        }
+            */
+    }
 
-
-        sts::EncMetric_info<sts::UTF16LE> do_encmetric() const noexcept{ return sts::EncMetric_info<sts::UTF16LE>{};}
-    public:
-        Windows_istream () : buffer{Windows_syscalls{GetStdHandle(STD_INPUT_HANDLE)}} {}
+    sts::adv_string_view<sts::UTF16LE> do_newline() const noexcept{ return u"\r\n"_asv;}
 };
 
-class Windows_ostream : public sts::OutputStream{
-    private:
-        sts::ostr_buffer<Windows_syscalls, 60> buffer;
-        sts::string_stream<sts::UTF16LE> conv;
-    protected:
-        sts::adv_string_view<sts::UTF16LE> do_newline() const noexcept{ return u"\r\n"_asv;}
-        sts::uint do_char_write(sts::const_tchar_pt<sts::UTF16LE> pt, size_t siz){
-            sts::uint ret = conv.char_write(pt, siz);
-            while(conv.length() > 0)
-                conv.put_char_bytes(buffer);
-            return ret;
-            /*
-            if(siz < 2)
-                throw sts::IOBufsmall{2-siz};
-            sts::uint totl = pt.chLen(siz);
-            if(totl > siz)
-                throw sts::IOBufsmall{totl-siz};
-            buffer.force_frspc(totl);
-            std::memcpy(buffer.base + buffer.las, pt.data(), totl);
-            buffer.raw_las_step(totl);
-            return totl;
-            */
-        }
-        size_t do_string_write(const sts::adv_string_view<sts::UTF16LE> &str){
-            size_t ret = conv.string_write(str);
-            conv.put_all_char_bytes(buffer);
-            return ret;
-            /*
-            size_t rem = str.size();
-            const sts::byte *b = str.data();
-            while(rem > 0){
-                sts::size_t wrt = buffer.req_frspc(rem);
-                std::memcpy(buffer.base + buffer.las, b, wrt);
-                buffer.raw_las_step(wrt);
-                rem -= wrt;
-            }
-            return str.size();
-            */
-        }
 
-        void do_close() {}
-
-        void do_flush(){
-            conv.put_all_char_bytes(buffer);
-            buffer.flush();
-        }
-
-        sts::EncMetric_info<sts::UTF16LE> do_encmetric() const noexcept{ return sts::EncMetric_info<sts::UTF16LE>{};}
-    public:
-        Windows_ostream (HANDLE f) : buffer{Windows_syscalls{f}} {}
-};
 
 sts::InputStream &sts::get_console_stdin(){
-    static Windows_istream input{};
+    static Console_istream<Windows_syscalls> input{Windows_syscalls{GetStdHandle(STD_INPUT_HANDLE)}};
     return input;
 }
 
 sts::OutputStream &sts::get_console_stdout(){
-    static Windows_ostream input{GetStdHandle(STD_OUTPUT_HANDLE)};
+    static Console_ostream<Windows_syscalls> input{Windows_syscalls{GetStdHandle(STD_OUTPUT_HANDLE)}};
     return input;
 }
 
 sts::OutputStream &sts::get_console_stderr(){
-    static Windows_ostream input{GetStdHandle(STD_ERROR_HANDLE)};
+    static Console_ostream<Windows_syscalls> input{Windows_syscalls{GetStdHandle(STD_ERROR_HANDLE)}};
     return input;
 }
 
