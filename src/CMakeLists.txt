@@ -18,9 +18,10 @@ set(gcc_like_cxx "$<COMPILE_LANG_AND_ID:CXX,ARMClang,AppleClang,Clang,GNU>")
 set(msvc_cxx "$<COMPILE_LANG_AND_ID:CXX,MSVC>")
 set(on_win "$<PLATFORM_ID:Windows>")
 
+
 target_compile_options(lang_req INTERFACE
-  "$<${gcc_like_cxx}:$<$<CONFIG:Debug>:-g;-Wall;-Wextra;-pedantic;-Werror>>"
-  "$<${msvc_cxx}:$<$<CONFIG:Debug>:/Wall /WX>>"
+  "$<${gcc_like_cxx}:$<$<CONFIG:Debug>:-g;-Wall;-Wextra;-pedantic;-Werror>$<$<CONFIG:Release>:-O2>>"
+  "$<${msvc_cxx}:$<$<CONFIG:Debug>:/Wall;/WX>>"
 )
 
 #option(debugging "Enable all warnings and set them as errors" OFF)
