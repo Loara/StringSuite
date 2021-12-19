@@ -52,6 +52,8 @@ namespace sts{
         adv_string<T> move();
         adv_string<T> allocate_new(std::pmr::memory_resource *res) const;
         adv_string<T> allocate_new() const {return allocate_new(buffer.get_allocator());}
+        template<general_enctype S>
+        bool opt_cut_endl(const adv_string_view<S> &);
 
         template<read_char_stream<T> IStream>
         uint get_char(IStream &);

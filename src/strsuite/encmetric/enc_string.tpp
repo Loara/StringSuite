@@ -141,25 +141,23 @@ bool adv_string_view<T>::verify_safe() const noexcept{
 template<general_enctype T>
 template<general_enctype S>
 constexpr bool adv_string_view<T>::can_rebase(EncMetric_info<S> o) const noexcept{
-    //raw_format().assert_base_for(o);
-    //return direct_build(const_tchar_pt<S>{ptr.data(), o}, len, siz);
     return can_rebase_pointer(ptr, o);
 }
 
 template<general_enctype T>
 template<general_enctype S>
 adv_string_view<S> adv_string_view<T>::rebase(EncMetric_info<S> o) const{
-    //raw_format().assert_base_for(o);
-    //return direct_build(const_tchar_pt<S>{ptr.data(), o}, len, siz);
     return direct_build(rebase_pointer(ptr, o), len, siz);
 }
 
 template<typename T>
-adv_string_view<T>::placeholder adv_string_view<T>::select(size_t chr) const{
+adv_string_view<T>::placeholder adv_string_view<T>::select(size_t chr, bool exc) const{
     const byte *dat = ptr.data();
 	if(chr >= len){
-		//throw out_of_range{"Out of range"};
-        return placeholder{dat, siz, len};
+        if(exc && chr > len)
+            throw out_of_range{"Past to end"};
+        else
+            return placeholder{dat, siz, len};
     }
 	if(chr == 0){
 		return placeholder{dat, 0, 0};
@@ -177,12 +175,15 @@ adv_string_view<T>::placeholder adv_string_view<T>::select(size_t chr) const{
 }
 
 template<typename T>
-adv_string_view<T>::placeholder adv_string_view<T>::select(const placeholder &base, size_t nchr) const{
+adv_string_view<T>::placeholder adv_string_view<T>::select(const placeholder &base, size_t nchr, bool exc) const{
     validate(base);
     size_t totalchr = base.len + nchr;
     const byte *dat = ptr.data();
     if(totalchr >= len){
-        return placeholder{dat, siz, len};
+        if(exc && totalchr > len)
+            throw out_of_range{"Past to end"};
+        else
+            return placeholder{dat, siz, len};
     }
 	if(nchr == 0){
 		return base;
@@ -250,29 +251,6 @@ adv_string_view<T> adv_string_view<T>::substring(placeholder b, placeholder e) c
     if(b > e)
         b = e;
     return adv_string_view<T>{e.len - b.len, e.siz - b.siz, at(b)};
-    /*
-	if(ign)
-		e = len;
-	else if(e > len)
-		e = len;
-	if(b > e)
-		b = e;
-	if(ptr.is_fixed()){
-        uint cl = ptr.raw_format().min_bytes();
-		const_tchar_pt<T> nei = ptr + (b * cl);
-		return adv_string_view<T>{e-b, (e-b) * cl, nei};
-	}
-	else{
-		const_tchar_pt<T> nei = ptr;
-		for(size_t i=0; i<b; i++)
-			nei.next(siz);
-		size_t nlen = 0;
-		const_tchar_pt<T> temp = nei;
-		for(size_t i=0; i<(e-b); i++)
-			nlen += temp.next(siz);
-		return adv_string_view<T>{e - b, nlen, nei};
-	}
-	*/
 }
 
 template<typename T>
@@ -374,6 +352,36 @@ index_result adv_string_view<T>::indexOf(const adv_string_view<S> &sq) const{
 
 template<typename T>
 template<general_enctype S>
+adv_string_view<T>::placeholder adv_string_view<T>::placeOf(const adv_string_view<S> &sq) const{
+	if(!sq.can_rebase(raw_format()))
+		throw incorrect_encoding{"Impossible to perform encode rebase"};
+	if(sq.size() == 0){
+		return select_begin();
+	}
+	if(siz < sq.size()){
+		return select_end();
+	}
+	size_t rem = siz - sq.size();
+	size_t byt = 0;
+	size_t chr = 0;
+	const_tchar_pt<T> newi = ptr;
+    const byte *data = ptr.data();
+    /*
+     * In this case we can't use the preceding optimization since we want to know
+     * also the number of characters
+     */
+	while(byt <= rem){
+		if(compare(newi.data(), sq.begin().data(), sq.size())){
+            return placeholder{data, byt, chr};
+		}
+		byt += newi.next(siz);
+		chr++;
+	}
+    return select_end();
+}
+
+template<typename T>
+template<general_enctype S>
 index_result adv_string_view<T>::containsChar(const adv_string_view<S> &cu) const{
 	if(!cu.can_rebase(raw_format()))
 		throw incorrect_encoding{"Impossible to perform encode rebase"};
@@ -381,24 +389,6 @@ index_result adv_string_view<T>::containsChar(const adv_string_view<S> &cu) cons
         return index_result{true, 0};
     adv_string_view<T> strip = cu.substring(0, 1);
     return indexOf(strip);
-    /*
-	if(!sameEnc(ptr, cu))
-		return false;
-
-	size_t chl = cu.chLen();
-	if(siz < chl)
-		return false;
-	size_t rem = siz - chl;
-	size_t byt = 0;
-	const_tchar_pt<T> newi = ptr;
-	while(byt <= rem){
-		if(compare(newi.data(), cu.data(), chl)){
-			return true;
-		}
-		byt += newi.next();
-	}
-	return false;
-    */
 }
 
 template<typename T>
@@ -441,21 +431,41 @@ bool adv_string_view<T>::endsWith(const adv_string_view<S> &sq) const{
 
 template<typename T>
 template<general_enctype S>
-bool adv_string_view<T>::cut_end(const adv_string_view<S> &sq) noexcept{
-    if(!endsWith(sq))
-        return false;
-    siz -= sq.size();
-    len -= sq.length();
-    return true;
+conditional_result<typename adv_string_view<T>::placeholder> adv_string_view<T>::endsWith_placeholder(const adv_string_view<S> &sq) const{
+	if(!sq.can_rebase(raw_format()))
+		throw incorrect_encoding{"Impossible to perform encode rebase"};
+	if(sq.size() == 0){
+		return conditional_result{true, select_end()};
+	}
+	if(siz < sq.size() || len < sq.length()){
+		return conditional_result{false, select_end()};
+	}
+	size_t psiz = siz - sq.size();
+    size_t plen = len - sq.length();
+	if(raw_format().has_head()){
+        const byte *poi = ptr.data() + psiz;
+        if(compare(poi, sq.begin().data(), sq.size())){
+            return conditional_result{true, placeholder{ptr.data(), psiz, plen}};
+        }
+        else
+            return conditional_result{false, select_end()};
+    }
+    else{
+        placeholder pu = select(plen);
+        if(pu.siz != psiz)
+            return conditional_result{false, select_end()};
+        if(compare(pu.data(), sq.begin().data(), sq.size()))
+            return conditional_result{true, pu};
+        else
+            return conditional_result{false, select_end()};
+    }
 }
 
-/*
 template<typename T>
-template<general_enctype S>
-adv_string<T> adv_string_view<T>::concatenate(const adv_string_view<S> &err, std::pmr::memory_resource *alloc) const{
-    adv_string_buf<T> buffer{*this, alloc};
-    buffer.append_string_c(err);
-    return buffer.move();
+adv_string_view<T>::ctype adv_string_view<T>::get_char(placeholder pch) const{
+    if(pch == select_end())
+        throw out_of_range{"Placeholder to end"};
+    auto chr = ptr.new_instance(pch.data()).decode(siz - pch.siz);
+    return get_chr_el(chr);
 }
-*/
 

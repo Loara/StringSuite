@@ -94,6 +94,11 @@ class basic_buffer{
             siz += inc;
             rem -= inc;
         }
+        void cut_ending(size_t dec){
+            las -= dec;
+            siz -= dec;
+            rem += dec;
+        }
 
         void rewind(){
             if(fir == 0)

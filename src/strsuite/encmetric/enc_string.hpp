@@ -92,6 +92,8 @@ class adv_string_view{
                 else
                     return len <=> p.len;
             }
+
+            bool operator==(const placeholder &p) const noexcept { return (*this <=> p) == 0;}
             friend class adv_string_view<T>;
         };
 
@@ -148,10 +150,16 @@ class adv_string_view{
         adv_string_view<S> rebase_as(const adv_string_view<S> &as) const{ return rebase(as.raw_format());}
 
         void validate(const placeholder &) const;
-        placeholder select(size_t nchr) const;
-        placeholder select(const placeholder &base, size_t nchr) const;
+        placeholder select(size_t nchr, bool exc =false) const;
+        placeholder select(const placeholder &base, size_t nchr, bool exc =false) const;
         placeholder select_begin() const noexcept;
         placeholder select_end() const noexcept;
+        void select_next(placeholder &p) const{
+            p = select(p, 1, true);
+        }
+        void select_next(placeholder &p, size_t n) const{
+            p = select(p, n, true);
+        }
 		
 		adv_string_view<T> substring(placeholder b, placeholder e) const;
 		adv_string_view<T> substring(placeholder b, size_t e) const{ return substring(b, select(e));}
@@ -199,6 +207,9 @@ class adv_string_view{
 		template<general_enctype S>
 		index_result indexOf(const adv_string_view<S> &) const;
 
+        template<general_enctype S>
+        placeholder placeOf(const adv_string_view<S> &) const;
+
 		template<general_enctype S>
 		index_result containsChar(const adv_string_view<S> &) const;
 
@@ -207,6 +218,13 @@ class adv_string_view{
 
 		template<general_enctype S>
 		bool endsWith(const adv_string_view<S> &) const;
+        /*
+         * If true returns also placeholder of found substring
+         *
+         *
+         */
+		template<general_enctype S>
+		conditional_result<placeholder> endsWith_placeholder(const adv_string_view<S> &) const;
 
 		const byte *data() const noexcept {return ptr.data();}
 		const char *raw() const noexcept {return (const char *)(ptr.data());}
@@ -215,11 +233,12 @@ class adv_string_view{
 		*/
 		const_tchar_pt<T> at(placeholder) const;
 		const_tchar_pt<T> at(size_t chr) const {return at(select(chr));}
-		const_tchar_pt<T> begin() const noexcept {return at(0);}
-		const_tchar_pt<T> end() const noexcept {return at(len);}
+		const_tchar_pt<T> begin() const noexcept {return at(select_begin());}
+		const_tchar_pt<T> end() const noexcept {return at(select_end());}
 
-		template<general_enctype S>
-		bool cut_end(const adv_string_view<S> &) noexcept;
+		ctype get_char(placeholder) const;
+        ctype get_char(size_t chr) const {return get_char(select(chr));}
+        ctype get_first_char() const {return get_char(select_begin());}
 
 	friend adv_string_view<T> direct_build<T>(const_tchar_pt<T> ptr, size_t len, size_t siz) noexcept;
 };
@@ -233,54 +252,6 @@ template<general_enctype T>
 adv_string_view<T> direct_build(const_tchar_pt<T> ptr, size_t len, size_t siz) noexcept{
     return adv_string_view<T>{len, siz, ptr};
 }
-
-/*
- * Basic string comparator
- *
-
-template<general_enctype S, general_enctype T>
-class adv_string_comparator{
-public:
-    static bool cmp(const adv_string_view<S> &a1, const adv_string_view<T> &a2){
-        if(!sameEnc(a1.begin(), a2.begin()))
-            return false;
-        const byte *b1 = a1.data();
-        const byte *b2 = a2.data();
-        size_t smin = a1.size() > a2.size() ? a2.size() : a1.size();
-        for(size_t i = 0; i < smin; i++){
-            if(byte_less(b1[i], b2[i]))
-                return true;
-            if(byte_less(b2[i], b1[i]))
-                return false;
-        }
-        return a1.size() < a2.size();
-    }
-    static bool cmp_rev(const adv_string_view<T> &a1, const adv_string_view<S> &a2){
-        if(!sameEnc(a1.begin(), a2.begin()))
-            return false;
-        const byte *b1 = a1.data();
-        const byte *b2 = a2.data();
-        size_t smin = a1.size() > a2.size() ? a2.size() : a1.size();
-        for(size_t i = 0; i < smin; i++){
-            if(byte_less(b1[i], b2[i]))
-                return true;
-            if(byte_less(b2[i], b1[i]))
-                return false;
-        }
-        return a1.size() < a2.size();
-    }
-};
-
-
-template<general_enctype T>
-class strless{
-public:
-    bool operator()(const adv_string_view<T> &a1, const adv_string_view<T> &a2) const{
-        return adv_string_comparator<T, T>::cmp(a1, a2);
-    }
-};
-
-*/
 
 using wstr_view = adv_string_view<WIDE<unicode>>;
 

@@ -312,4 +312,15 @@ adv_string<T> string_stream<T>::allocate_new(std::pmr::memory_resource *res) con
     return adv_string<T>{vw, res};//Make a copy
 }
 
+template<general_enctype T>
+template<general_enctype S>
+bool string_stream<T>::opt_cut_endl(const adv_string_view<S> &en){
+    if(view().endsWith(en)){
+        this->cut_ending(en.size());
+        len -= en.length();
+        return true;
+    }
+    else return false;
+}
+
 
