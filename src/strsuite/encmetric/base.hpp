@@ -28,7 +28,7 @@
 
 namespace sts{
 using std::size_t;
-enum unicode : std::uint_least32_t {};
+enum unicode : std::uint_fast32_t {};
 
 inline unicode read_unicode(byte b){
 	return unicode{static_cast<std::uint_least32_t>(b)};

@@ -48,7 +48,7 @@ class incorrect_encoding : public encoding_error{
 class buffer_small : public encoding_error{
 	private:
 		/*
-			Minimum size required to encode next character, 0 if not determined
+			bytes to add in order to decode the object correctly
 		*/
 		uint mins;
 	public:
