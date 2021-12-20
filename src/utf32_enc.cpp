@@ -30,19 +30,8 @@ validation_result UTF32<Seq>::validChar(const byte *data, size_t siz) noexcept{
         return validation_result{false, 0};
     }
     char32_t value;
-    myend<Seq>::decode(&value, data, siz);
+    std::tie(std::ignore, value) = myend<Seq>::decode(data, siz);
     return validation_result{value < 0x110000, 4};
-        /*
-	if(access(data, be, 4, 0) != byte{0}){
-		return validation_result{false, 0};
-    }
-	byte rew = access(data, be, 4, 1);
-	if(!bit_zero(rew, 7, 6, 5))
-		return validation_result{false, 0};
-	if(bit_one(rew, 4) && !bit_zero(rew, 3, 2, 1, 0))
-		return validation_result{false, 0};
-	return validation_result{true, 4};
-    */
 }
 
 template<typename Seq>
@@ -50,7 +39,7 @@ tuple_ret<unicode> UTF32<Seq>::decode(const byte *by, size_t l){
 	if(l < 4)
 		throw buffer_small{4-static_cast<uint>(l)};
     char32_t tmp;
-    myend<Seq>::decode(&tmp, by, l);
+    std::tie(std::ignore, tmp) = myend<Seq>::decode(by, l);
     return tuple_ret<unicode>{4, unicode{tmp}};
 }
 

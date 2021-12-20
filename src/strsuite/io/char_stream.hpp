@@ -33,6 +33,31 @@ concept write_byte_stream = requires(T stream, const byte * const b, const size_
 template<typename T>
 concept byte_stream = read_byte_stream<T> && write_byte_stream<T>;
 
+template<read_byte_stream T>
+size_t force_byte_read(T &stream, byte *b, size_t siz){
+    size_t ret = 0;
+    size_t step = 0;
+    while(siz > 0){
+        step = stream.read(b, siz);
+        b += step;
+        siz -= step;
+        ret += step;
+    }
+    return ret;
+}
+
+template<write_byte_stream T>
+size_t force_byte_write(T &stream, const byte *b, size_t siz){
+    size_t ret = 0;
+    size_t step = 0;
+    while(siz > 0){
+        step = stream.write(b, siz);
+        b += step;
+        siz -= step;
+        ret += step;
+    }
+    return ret;
+}
 
 template<typename T, typename S>
 concept read_char_stream = general_enctype<S> && requires(T stream){

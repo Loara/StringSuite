@@ -53,9 +53,16 @@ inline void copyN(const byte *src, byte *des, size_t l) {std::memcpy(des, src, l
 template<typename ctype>
 using tuple_ret = std::tuple<uint, ctype>;
 
+/*
+ * Use these instead of std::get in order to hol portability across different implementations
+ */
 template<typename ctype>
 constexpr uint get_len_el(const tuple_ret<ctype> &tupl) noexcept{
     return std::get<0>(tupl);
+}
+template<typename ctype>
+constexpr ctype get_chr_el(const tuple_ret<ctype> &tupl) noexcept{
+    return std::get<1>(tupl);
 }
 
 /*

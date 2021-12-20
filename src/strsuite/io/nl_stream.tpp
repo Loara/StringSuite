@@ -47,12 +47,11 @@ template<general_enctype T>
 adv_string<T> NewlineIStream<T>::do_get_line(std::pmr::memory_resource *all){
     string_stream stream{this->do_encmetric(), all};
     adv_string_view<T> nl = do_newline();
-    bool endl=false, end=false;
+    bool  end=false;
     while(!end){
         try{
             stream.get_char(*this);
-            if(stream.view().endsWith(nl)){
-                endl=true;
+            if(stream.opt_cut_endl(nl)){
                 end=true;
             }
         }
@@ -60,14 +59,7 @@ adv_string<T> NewlineIStream<T>::do_get_line(std::pmr::memory_resource *all){
             end=true;
         }
     }
-    if(endl){
-        stream.view().verify();
-        auto ret = stream.move();
-        ret.cut_end(nl);
-        return ret;
-    }
-    else
-        return stream.move();
+    return stream.move();
 }
     /*
             basic_ptr ptda{all};

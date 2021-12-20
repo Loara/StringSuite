@@ -24,7 +24,7 @@
 
 namespace sts{
     template<general_enctype T>
-    class string_stream : protected basic_buffer<string_stream<T>, true, true>, public virtual CharIStream<T>, public virtual CharOStream<T>{
+    class string_stream : protected basic_buffer<string_stream<T>, true, true>, public CharIStream<T>, public CharOStream<T>{
     private:
         basic_ptr buffer;
         size_t len;
@@ -46,11 +46,14 @@ namespace sts{
         size_t size() const noexcept {return this->siz;}
         size_t length() const noexcept {return len;}
         size_t remaining() const noexcept {return this->rem;}
+        void discard() noexcept;
 
         adv_string_view<T> view() const noexcept {return direct_build(this->get_fir_as(format), len, this->siz);}
         adv_string<T> move();
         adv_string<T> allocate_new(std::pmr::memory_resource *res) const;
         adv_string<T> allocate_new() const {return allocate_new(buffer.get_allocator());}
+        template<general_enctype S>
+        bool opt_cut_endl(const adv_string_view<S> &);
 
         template<read_char_stream<T> IStream>
         uint get_char(IStream &);
@@ -61,13 +64,20 @@ namespace sts{
         template<write_char_stream<T> OStream>
         size_t put_all(OStream &);
 
+        template<read_byte_stream IBStream>
+        uint get_char_bytes(IBStream &, bool verify = true);
+        template<write_byte_stream OBStream>
+        uint put_char_bytes(OBStream &);
+        template<write_byte_stream OBStream>
+        void put_all_char_bytes(OBStream &);
+
         //Make encoding conversion
         template<general_enctype R>
         uint char_write_conv(const_tchar_pt<R>, size_t);
         template<general_enctype R>
         size_t string_write_conv(const adv_string_view<R> &);
 
-        uint char_write(const ctype &);
+        uint ctype_write(const ctype &);
     protected:
         void inc_siz(uint);
         void inc_rem(size_t);

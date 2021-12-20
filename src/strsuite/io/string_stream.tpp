@@ -15,29 +15,6 @@
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
-/*
-template<general_enctype T>
-void string_stream<T>::rewind(){
-    if(fir.difff() == 0)
-        return;
-    buffer.shift(fir.difff(), siz);
-    fir.set_diff(0);
-    las.set_diff(siz);
-}
-template<general_enctype T>
-void string_stream<T>::increase(uint inc){
-    buffer.exp_fit(buffer.dimension + inc);
-    base = base.new_instance(buffer.memory);
-}
-
-
-template<general_enctype T>
-tchar_pt<T> string_stream<T>::reserve_space(size_t needed){
-    buffer.exp_fit(las.difff() + needed);
-    base = base.new_instance(buffer.memory);
-    return las.convert();
-}
-*/
 
 template<general_enctype T>
 void string_stream<T>::inc_siz(uint){
@@ -48,6 +25,12 @@ template<general_enctype T>
 void string_stream<T>::inc_rem(size_t inc){
     buffer.exp_fit(buffer.dimension + inc);
     this->rebase(buffer.memory, buffer.dimension);
+}
+
+template<general_enctype T>
+void string_stream<T>::discard() noexcept{
+    len=0;
+    this->base_flush();
 }
 
 template<general_enctype T>
@@ -71,6 +54,7 @@ uint string_stream<T>::get_char(IStream &stm){
     }
     return ret;
 }
+
 template<general_enctype T>
 template<read_char_stream<T> IStream>
 uint string_stream<T>::get_ghost(IStream &stm){
@@ -114,6 +98,58 @@ size_t string_stream<T>::put_all(OStream &stm){
     len=0;
     this->base_flush();
     return ret;
+}
+
+template<general_enctype T>
+template<read_byte_stream IBStream>
+uint string_stream<T>::get_char_bytes(IBStream &stm, bool verify){
+    uint msiz = format.min_bytes();
+    uint get_siz = msiz;
+    uint totlen = 0;
+
+    this->force_frspc(get_siz);
+    auto ptlas = this->get_las_as(format);
+    byte *tmp = this->base + this->las;
+    uint red = force_byte_read(stm, tmp, get_siz);
+    totlen += red;
+    tmp += red;
+
+    get_siz = ptlas.chLen(msiz) - msiz;
+    this->force_frspc(get_siz);
+    red = force_byte_read(stm, tmp, get_siz);
+    totlen += red;
+
+    if(!verify || ptlas.validChar(totlen)){
+        this->raw_las_step(totlen);
+        len++;
+        return totlen;
+    }
+    else
+        throw IOFail{"Invalid character encoding"};
+}
+
+template<general_enctype T>
+template<write_byte_stream OBStream>
+uint string_stream<T>::put_char_bytes(OBStream &stm){
+    if(len == 0)
+        throw IOEOF{};
+    uint ret = this->get_chLen(format);
+    const byte *tmp = this->get_fir_as(format).data();
+
+    uint eff = force_byte_write(stm, tmp, ret);
+    len--;
+    this->raw_fir_step(eff);
+    return eff;
+}
+
+template<general_enctype T>
+template<write_byte_stream OBStream>
+void string_stream<T>::put_all_char_bytes(OBStream &stm){
+    if(len > 0){
+        force_byte_write(stm, this->base + this->fir, this->siz);
+        len=0;
+    }
+    this->base_flush();
 }
 
 template<general_enctype T>
@@ -241,7 +277,7 @@ size_t string_stream<T>::string_write_conv(const adv_string_view<R> &str){
 }
 
 template<general_enctype T>
-uint string_stream<T>::char_write(const ctype &c){
+uint string_stream<T>::ctype_write(const ctype &c){
     uint ret;
     bool ext=false;
     do{
@@ -274,6 +310,17 @@ template<general_enctype T>
 adv_string<T> string_stream<T>::allocate_new(std::pmr::memory_resource *res) const{
     adv_string_view<T> vw = direct_build(this->get_fir_as(format), len, this->siz);
     return adv_string<T>{vw, res};//Make a copy
+}
+
+template<general_enctype T>
+template<general_enctype S>
+bool string_stream<T>::opt_cut_endl(const adv_string_view<S> &en){
+    if(view().endsWith(en)){
+        this->cut_ending(en.size());
+        len -= en.length();
+        return true;
+    }
+    else return false;
 }
 
 

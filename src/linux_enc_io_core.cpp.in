@@ -23,7 +23,6 @@ extern "C"{
 #include <poll.h>
 }
 #include <strsuite/io/enc_io_core.hpp>
-#include <strsuite/io/enc_io_buffer.hpp>
 #include <strsuite/encmetric/enc_c.hpp>
 
 using sts::byte;
@@ -43,7 +42,6 @@ struct Linux_syscalls{
     int fd;
     Linux_syscalls(int f) : fd{f} {}
 
-    static constexpr size_t buffer_size=64;
     /*
      * Return must be >0
      * if ==0 then repeat must be true
@@ -65,6 +63,7 @@ struct Linux_syscalls{
             throw sts::IOEOF{};
         return static_cast<size_t>(wt);
     }
+
     size_t write_wrap(const byte *v, size_t l){
         ssize_t wt = write(fd, v, l);
         if(wt < 0){
@@ -85,138 +84,51 @@ struct Linux_syscalls{
             throw sts::IOEOF{};
         return static_cast<size_t>(wt);
     }
-};
 
-class Linux_istream : public sts::InputStream{
-    private:
-        sts::istr_buffer<sts::UTF8, Linux_syscalls> buffer;
-        static_assert(Linux_syscalls::buffer_size > 4, "buffer too small");
-    protected:
-        sts::adv_string_view<sts::UTF8> do_newline() const noexcept{ return u8"\n"_asv;}
-        uint do_char_read(sts::tchar_pt<sts::UTF8> pt, size_t siz){
-            sts::EncMetric_info<sts::UTF8> format{};
-            if(siz == 0)
-                throw sts::IOBufsmall{1};
-            uint totl = buffer.get_chLen(format);
-            if(siz < static_cast<size_t>(totl))
-                throw sts::IOBufsmall{static_cast<size_t>(totl) - siz};
-            std::memcpy(pt.data(), buffer.base + buffer.fir, totl);
-            buffer.raw_fir_step(totl);
-            return totl;
+    void discard_all_input(){
+        pollfd readany{};
+        while(true){
+            readany.fd = fd;
+            readany.events = POLLIN;
+            int err = poll(&readany, 1, 0);
+            if(err == -1 || (readany.revents & POLLIN) == 0){
+                break;
+            }
+            byte dis[60];
+            size_t red = read_wrap(dis, 60);
+            if(red < 60)
+                break;
             /*
-            buffer.ghost_copy(pt.data(), 1);
-            uint totl = pt.chLen(1);
-            if(totl > siz)
-                throw sts::IOBufsmall{totl-siz};
-            buffer.copy_to(pt.data(), totl);
-            return totl;
+            byte chr[4];
+            sts::tchar_pt<sts::UTF8> o{chr};
+            do{
+                try{
+                    do_char_read(o, 4);
+                }
+                catch(...){
+                    return;
+                }
+            }
+            while(chr[0] != byte{'\n'});
             */
         }
+    }
 
-        uint do_ghost_read(sts::tchar_pt<sts::UTF8> pt, size_t siz){
-            if(siz == 0)
-                throw sts::IOBufsmall{1};
-            sts::EncMetric_info<sts::UTF8> format{};
-            uint totl = buffer.get_chLen(format);
-            if(siz < static_cast<size_t>(totl))
-                throw sts::IOBufsmall{static_cast<size_t>(totl) - siz};
-            std::memcpy(pt.data(), buffer.base + buffer.fir, totl);
-            return totl;
-            /*
-            if(siz == 0)
-                throw sts::IOBufsmall{1};
-            buffer.ghost_copy(pt.data(), 1);
-            uint totl = pt.chLen(1);
-            if(totl > siz)
-                throw sts::IOBufsmall{totl-siz};
-            buffer.ghost_copy(pt.data(), totl);
-            return totl;
-            */
-        }
-
-        void do_close() {}
-
-        void do_discard(){
-            pollfd readany{};
-            while(true){
-                readany.fd = buffer.get_system_id().fd;
-                readany.events = POLLIN;
-                int err = poll(&readany, 1, 0);
-                if(err == -1 || (readany.revents & POLLIN) == 0){
-
-                    break;
-                }
-                byte chr[4];
-                sts::tchar_pt<sts::UTF8> o{chr};
-                do{
-                    try{
-                        do_char_read(o, 4);
-                    }
-                    catch(...){
-                        return;
-                    }
-                }
-                while(chr[0] != byte{'\n'});
-            }
-        }
-
-        sts::EncMetric_info<sts::UTF8> do_encmetric() const noexcept{ return sts::EncMetric_info<sts::UTF8>{};}
-    public:
-        Linux_istream () : buffer{Linux_syscalls{STDIN_FILENO}} {}
-};
-
-class Linux_ostream : public sts::OutputStream{
-    private:
-        sts::ostr_buffer<sts::UTF8, Linux_syscalls> buffer;
-        static_assert(Linux_syscalls::buffer_size > 4, "buffer too small");
-    protected:
-        sts::adv_string_view<sts::UTF8> do_newline() const noexcept{ return u8"\n"_asv;}
-        uint do_char_write(sts::const_tchar_pt<sts::UTF8> pt, size_t siz){
-            if(siz == 0)
-                throw sts::IOBufsmall{1};
-            uint totl = pt.chLen(siz);
-            if(totl > siz)
-                throw sts::IOBufsmall{totl-siz};
-            buffer.force_frspc(totl);
-            std::memcpy(buffer.base + buffer.las, pt.data(), totl);
-            buffer.raw_las_step(totl);
-            return totl;
-        }
-        size_t do_string_write(const sts::adv_string_view<sts::UTF8> &str){
-            size_t rem = str.size();
-            const byte *b = str.data();
-            while(rem > 0){
-                size_t wrt = buffer.req_frspc(rem);
-                std::memcpy(buffer.base + buffer.las, b, wrt);
-                buffer.raw_las_step(wrt);
-                rem -= wrt;
-            }
-            return str.size();
-        }
-
-        void do_close() {}
-
-        void do_flush(){
-            buffer.flush();
-        }
-
-        sts::EncMetric_info<sts::UTF8> do_encmetric() const noexcept{ return sts::EncMetric_info<sts::UTF8>{};}
-    public:
-        Linux_ostream (int f) : buffer{Linux_syscalls{f}} {}
+    sts::adv_string_view<sts::UTF8> do_newline() const noexcept{ return u8"\n"_asv;}
 };
 
 sts::InputStream &sts::get_console_stdin(){
-    static Linux_istream input{};
+    static Console_istream<Linux_syscalls> input{Linux_syscalls{STDIN_FILENO}};
     return input;
 }
 
 sts::OutputStream &sts::get_console_stdout(){
-    static Linux_ostream input{STDOUT_FILENO};
+    static Console_ostream<Linux_syscalls> input{Linux_syscalls{STDOUT_FILENO}};
     return input;
 }
 
 sts::OutputStream &sts::get_console_stderr(){
-    static Linux_ostream input{STDERR_FILENO};
+    static Console_ostream<Linux_syscalls> input{Linux_syscalls{STDERR_FILENO}};
     return input;
 }
 

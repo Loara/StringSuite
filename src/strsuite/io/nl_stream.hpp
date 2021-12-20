@@ -30,9 +30,12 @@ class NewlineIStream : public CharIStream<T>{
     public:
         adv_string_view<T> newline() const noexcept{return do_newline();}
         index_result is_endl(const byte *b, size_t siz)const noexcept{ return do_is_endl(b, siz);}
-        adv_string<T> getline(std::pmr::memory_resource *all=std::pmr::get_default_resource()){ return do_getline(all);}
         /*
-         * Same as getline, but removes newlines
+         * do not remove newline
+         */
+        adv_string<T> get_line_nl(std::pmr::memory_resource *all=std::pmr::get_default_resource()){ return do_getline(all);}
+        /*
+         * remove newline
          */
         adv_string<T> get_line(std::pmr::memory_resource *all=std::pmr::get_default_resource()){ return do_get_line(all);}
 };

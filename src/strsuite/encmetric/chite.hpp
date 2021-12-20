@@ -213,6 +213,7 @@ class tchar_relative{
 		constexpr bool has_max() const noexcept {return raw_format().has_max();}
 		constexpr uint max_bytes() const noexcept {return raw_format().max_bytes();}
 		constexpr bool is_fixed() const noexcept {return raw_format().is_fixed();}
+
 		uint chLen(size_t siz) const {return raw_format().chLen(data(), siz);}
 		validation_result validChar(size_t l) const noexcept {return raw_format().validChar(data(), l);}
 		tuple_ret<ctype> decode(size_t l) const {return raw_format().decode(data(), l);}
