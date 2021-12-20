@@ -33,15 +33,11 @@ On Arch Linux you can use package `stringsuite` in AUR, additional informations 
 
 Clearly you can write and use your own encoding classes.
 
+# Basic documentation
+You can take a look at our [index](doc/md/Index.md) for a quick introduction to `StringSuite` library. Additional informations can be took inside the source code.
+
 # Basic usage
 ## `encmetric` subset
-Include `strsuite/encmetric.hpp` header in order to use this module.
-### String encodings
-A string encoding class is simply a static class that manages how a string is encoded with that encoding. Some encoding classes provided with StringSuire are `ASCII`, `UTF8`, `UTF16BE` `UTF16LE`, `UTF32BE` `UTF32LE`, `Latin1`/`ISO_8859_1`, `ISO_8859_2`, `KOI8_R`, `KOI8_U`, `KOI8_RU`.
-
-Usually encoding classes should be specified as template arguments of string classes, but you can decide todynamically specify an encoding by using the `WIDEchr` template argument. Remember that if you initialize any string with the `WIDEchr` template argument you should pass a dynamic pointer to `EncMetric<unicode>` class representing your encoding, this can be obtained via the `DynEncoding` template argument. For example a dynamic pointer of `UTF8` encofing can be obtained with
-
-    const EncMetric<unicode> *utf8 = DynEncoding<UTF8>::instance();
 
 ### String dimensions
 Encoded strings have two different types of lengths:
