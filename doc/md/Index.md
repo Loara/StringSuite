@@ -10,7 +10,7 @@ Use `#include <strsuite/encmetric.hpp>` inside your code in order to use these u
 * [Wide encodings](encmetric/wid_class.md)
 * Pointer classes
 * [Strings](encmetric/strings.md)
-* Included encodings
+* [Included encodings](encmetric/encods.md)
 
 ## `io` module
 
