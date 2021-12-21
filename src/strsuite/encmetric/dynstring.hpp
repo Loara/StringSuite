@@ -18,7 +18,6 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 #include <strsuite/encmetric/enc_string.hpp>
-#include <strsuite/encmetric/raw_buffer.hpp>
 
 namespace sts{
 

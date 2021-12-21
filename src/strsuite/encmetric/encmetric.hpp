@@ -230,26 +230,26 @@ class EncMetric_info<WIDE<tt>>{
 		uint encode(const ctype &uni, byte *by, size_t l) const {return f->d_encode(uni, by, l);}
 		std::type_index index() const noexcept {return f->index();}
 
-		template<general_enctype S>
+		template<typename S>
 		bool equalTo(EncMetric_info<S> o) const noexcept{
+            static_assert(general_enctype_of<S, tt>, "Inconvertible types");
             return index() == o.index();
         }
-        template<general_enctype S>
+        template<typename S>
         void assert_same_enc(EncMetric_info<S> o) const{
+            static_assert(general_enctype_of<S, tt>, "Inconvertible types");
             if(index() != o.index())
                 throw incorrect_encoding{"Different encodings"};
         }
         template<typename S>
         bool base_for(EncMetric_info<S> b) const noexcept{
-            static_assert(general_enctype_of<S, tt>, "Inconvertible types");
             return is_base_for_d(format(), b.format());
         }
 
-        template<general_enctype S>
+        template<typename S>
         void assert_base_for(EncMetric_info<S> b) const{
-            if constexpr(!general_enctype_of<S, tt>)
-                throw incorrect_encoding{"Cannot convert these encodings"};
-            else if(!is_base_for_d(format(), b.format()))
+            static_assert(general_enctype_of<S, tt>, "Cannot convert these encodings");
+            if(!is_base_for_d(format(), b.format()))
                 throw incorrect_encoding{"Cannot convert these encodings"};
         }
 };

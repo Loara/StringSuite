@@ -31,7 +31,7 @@ namespace sts{
     class Win_1251{
 	public:
 		using ctype=unicode;
-        using alias=ASCII;
+        using enc_base=ASCII;
         static const unsigned int table[];
 		static constexpr uint min_bytes() noexcept {return 1;}
 		static constexpr bool has_max() noexcept {return true;}

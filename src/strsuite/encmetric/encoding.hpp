@@ -257,12 +257,6 @@ namespace feat{
 
     template<typename T>
     concept has_not_proxy_type = strong_enctype<T> && !requires(){typename T::proxy_ctype;};
-/*
-    template<typename T>
-    concept has_light_decoder = has_proxy_type<T> && requires(const byte *by, size_t l){
-        {T::light_decode(by, l)}->std::same_as<tuple_ret<typename T::proxy_ctype>>;
-    };
-*/
 
     template<typename T>
     struct Proxy_wrapper{

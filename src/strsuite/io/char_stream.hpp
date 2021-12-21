@@ -17,7 +17,6 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 #include <strsuite/encmetric/dynstring.hpp>
-#include <strsuite/encmetric/raw_buffer.hpp>
 #include <strsuite/io/enc_io_exc.hpp>
 
 namespace sts{
