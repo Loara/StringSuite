@@ -54,8 +54,8 @@ adv_string<T> direct_build_dyn(basic_ptr data, size_t len, size_t siz, EncMetric
 //------------------------
 
 
-template<strong_enctype T, typename U>
-adv_string<T> alloc_string(const U *b, size_t maxsiz, const terminate_func<T> &t, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){
+template<strong_enctype T, typename U, typename FuncType>
+adv_string<T> alloc_string(const U *b, size_t maxsiz, const FuncType &t, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){
         return adv_string<T>{adv_string_view<T>{new_const_pt<T>(b), maxsiz, t}, alloc};
 }
 
@@ -69,8 +69,8 @@ adv_string<T> alloc_string(const U *b, size_t siz, size_t len, std::pmr::memory_
         return adv_string<T>{adv_string_view<T>{new_const_pt<T>(b), siz, len}, alloc};
 }
 
-template<widenc T, typename U>
-adv_string<T> alloc_string(const U *b, const EncMetric<typename T::ctype> *f, size_t maxsiz, const terminate_func<T> &t, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){
+template<widenc T, typename U, typename FuncType>
+adv_string<T> alloc_string(const U *b, const EncMetric<typename T::ctype> *f, size_t maxsiz, const FuncType &t, std::pmr::memory_resource *alloc = std::pmr::get_default_resource()){
         return adv_string<T>{adv_string_view<T>{new_const_pt<T>(b, f), maxsiz, t}, alloc};
 }
 

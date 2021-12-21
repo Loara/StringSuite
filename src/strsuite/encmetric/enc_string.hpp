@@ -25,8 +25,16 @@
 
 namespace sts{
 
+/*
 template<general_enctype T>
 using terminate_func = std::function<bool(const byte *, const EncMetric_info<T> &, size_t)>;
+
+better a costrained class
+*/
+template<typename FuncType, typename T>
+concept is_terminate_func = requires(const FuncType &ft, const byte *b, const EncMetric_info<T> &info, const size_t &siz){
+    {ft(b, info, siz)}->std::same_as<bool>;
+};
 
 /*
  * Basic terminate function: string is terminated if and only if the encoded character is all 0 bytes
@@ -98,7 +106,9 @@ class adv_string_view{
         };
 
         explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz);
-		explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz, const terminate_func<T> &);
+
+        template<typename FuncType>
+		explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz, const FuncType &);
 		/*
 		    read at least len characters and/or siz bytes
 		*/
@@ -106,22 +116,23 @@ class adv_string_view{
 
 
         explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz} {}
-		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz, const terminate_func<T> &tf) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, tf} {}
+        template<typename FuncType>
+		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz, const FuncType &tf) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, tf} {}
 		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz, size_t maxlen) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, maxlen} {}
 
 
 		template<typename U>
         explicit adv_string_view(const U *b, size_t maxsiz) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, maxsiz} {}
-		template<typename U>
-		explicit adv_string_view(const U *b, size_t maxsiz, const terminate_func<T> &tf) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, maxsiz, tf} {}
+		template<typename U, typename FuncType>
+		explicit adv_string_view(const U *b, size_t maxsiz, const FuncType &tf) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, maxsiz, tf} {}
 		template<typename U>
 		explicit adv_string_view(const U *b, size_t siz, size_t len) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, siz, len} {}
 
 
 		template<typename U>
-        explicit adv_string_view(const_tchar_pt<T> b, size_t maxsiz, const EncMetric<typename T::ctype> *f) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz} {}
-		template<typename U>
-		explicit adv_string_view(const U *b, size_t maxsiz, const EncMetric<typename T::ctype> *f, const terminate_func<T> &tf) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, tf} {}
+        explicit adv_string_view(const U *b, size_t maxsiz, const EncMetric<typename T::ctype> *f) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz} {}
+		template<typename U, typename FuncType>
+		explicit adv_string_view(const U *b, size_t maxsiz, const EncMetric<typename T::ctype> *f, const FuncType &tf) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, tf} {}
 		template<typename U>
 		explicit adv_string_view(const U *b, const EncMetric<typename T::ctype> *f, size_t siz, size_t len) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, siz, len} {}
 
@@ -190,6 +201,7 @@ class adv_string_view{
 
 		template<general_enctype S>
 		bool operator==(const adv_string_view<S> &t) const {return (*this <=> t) == 0;}
+		/*
 		template<general_enctype S>
 		bool operator!=(const adv_string_view<S> &t) const {return !(*this == t);}
 		template<general_enctype S>
@@ -200,6 +212,7 @@ class adv_string_view{
 		bool operator>=(const adv_string_view<S> &t) const {return (*this <=> t) >= 0;}
 		template<general_enctype S>
 		bool operator<=(const adv_string_view<S> &t) const {return (*this <=> t) <= 0;}
+		*/
 
 		template<general_enctype S>
 		index_result bytesOf(const adv_string_view<S> &) const;
@@ -239,6 +252,9 @@ class adv_string_view{
 		ctype get_char(placeholder) const;
         ctype get_char(size_t chr) const {return get_char(select(chr));}
         ctype get_first_char() const {return get_char(select_begin());}
+
+        template<typename Container>
+        void get_all_char(Container &) const;
 
 	friend adv_string_view<T> direct_build<T>(const_tchar_pt<T> ptr, size_t len, size_t siz) noexcept;
 };
