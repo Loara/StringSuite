@@ -257,8 +257,8 @@ namespace feat{
         static_assert(strong_enctype<T>, "Not a encoding type");
 
         using proxy_ctype = typename T::ctype;
-		static tuple_ret<proxy_ctype> light_decode(proxy_ctype *uni, const byte *by, size_t l){
-            return T::decode(uni, by, l);
+		static tuple_ret<proxy_ctype> light_decode(const byte *by, size_t l){
+            return T::decode(by, l);
         }
     };
 
@@ -271,6 +271,9 @@ namespace feat{
             return T::light_decode(by, l);
         }
     };
+
+    template<typename T>
+    using Proxy_wrapper_ctype = typename Proxy_wrapper<T>::proxy_ctype;
 }
 
 

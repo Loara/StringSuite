@@ -296,6 +296,26 @@ uint string_stream<T>::ctype_write(const ctype &c){
 }
 
 template<general_enctype T>
+string_stream<T>::ctype string_stream<T>::ctype_read(){
+    if(len == 0)
+        throw IOEOF{};
+    tuple_ret<ctype> r = format.decode(this->base + this->fir, this->siz);
+    len--;
+    this->raw_fir_step(get_len_el(r));
+    return get_chr_el(r);
+}
+
+template<general_enctype T>
+feat::Proxy_wrapper_ctype<T> string_stream<T>::light_ctype_read() requires strong_enctype<T>{
+    if(len == 0)
+        throw IOEOF{};
+    tuple_ret<feat::Proxy_wrapper_ctype<T>> r = feat::Proxy_wrapper<T>::light_decode(this->base + this->fir, this->siz);
+    len--;
+    this->raw_fir_step(get_len_el(r));
+    return get_chr_el(r);
+}
+
+template<general_enctype T>
 adv_string<T> string_stream<T>::move(){
     this->rewind();
     basic_ptr res = std::move(buffer);

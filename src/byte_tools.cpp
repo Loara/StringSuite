@@ -1,4 +1,3 @@
-#pragma once
 /*
     This file is part of Encmetric.
     Copyright (C) 2021 Paolo De Donato.
@@ -16,26 +15,14 @@
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
-#include <strsuite/io/enc_io_core.hpp>
-//#include <strsuite/io/integral_format.hpp>
-#include <strsuite/io/cio_stream.hpp>
 
-namespace sts{
+#include <strsuite/encmetric/byte_tools.hpp>
+#include <cstring>
 
-//explicit declaration of template - for compilation improvment
-using iochar_pt = tchar_pt<IOenc>;
-using c_iochar_pt = const_tchar_pt<IOenc>;
-using iostr_view = adv_string_view<IOenc>;
-using iostr = adv_string<IOenc>;
-
-/*
- * in order to define IOenc string literals you should use STS_IO_asv macro, for example
- * iostr_view v = STS_IO_asv("Hello")
- *initializes a system-aware "Hello" string
- */
-
+bool sts::compare(const sts::byte *a, const sts::byte *b, std::size_t nsiz) noexcept{
+	return std::memcmp(a, b, nsiz) == 0;
 }
 
-
-
-
+void sts::copy_bytes(sts::byte *a, const sts::byte *b, std::size_t nsiz) noexcept{
+	std::memcpy(a, b, nsiz);
+}

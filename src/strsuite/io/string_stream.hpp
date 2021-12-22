@@ -78,6 +78,8 @@ namespace sts{
         size_t string_write_conv(const adv_string_view<R> &);
 
         uint ctype_write(const ctype &);
+        ctype ctype_read();
+        feat::Proxy_wrapper_ctype<T> light_ctype_read() requires strong_enctype<T>;
     protected:
         void inc_siz(uint);
         void inc_rem(size_t);

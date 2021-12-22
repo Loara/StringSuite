@@ -38,6 +38,7 @@ else()
 endif()
 
 add_library(strsuite STATIC
+    byte_tools.cpp
     basic_ptr.cpp
     encoding.cpp
     utf8_enc.cpp
@@ -93,18 +94,20 @@ install(FILES "strsuite/io/enc_io_core.hpp"
     "strsuite/io/string_stream.hpp"
     "strsuite/io/nl_stream.hpp"
     "strsuite/io/buffers.hpp"
-    "strsuite/io/integral_format.hpp"
     "strsuite/io/cio_stream.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/io)
 
 install(FILES "strsuite/tokens/tokens.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/tokens)
+
+install(FILES "strsuite/format/integral_format.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/format)
 
 install(FILES "strsuite/encmetric/chite.tpp"
     "strsuite/encmetric/enc_string.tpp"
     "strsuite/encmetric/dynstring.tpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/encmetric)
 
 install(FILES "strsuite/io/nl_stream.tpp"
-    "strsuite/io/string_stream.tpp"
-    "strsuite/io/integral_format.tpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/io)
+    "strsuite/io/string_stream.tpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/io)
+
+install(FILES "strsuite/format/integral_format.tpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/format)
 
 install(FILES "strsuite/encmetric.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite)
 install(FILES "strsuite/io.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite)

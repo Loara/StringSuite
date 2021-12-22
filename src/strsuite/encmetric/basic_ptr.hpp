@@ -47,7 +47,13 @@ class basic_ptr{
 		basic_ptr &operator=(basic_ptr &&ref);
 		basic_ptr &operator=(const basic_ptr &)=delete;
 
+        /*
+         * aligned with the first byte of memory
+         */
 		void reallocate(std::size_t dim);
+        /*
+         * aligned with the last byte of memory
+         */
         void reallocate_reverse(std::size_t dim);
         /*
          * shift n bytes from first to 0

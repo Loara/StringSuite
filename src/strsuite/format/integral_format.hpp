@@ -1,4 +1,5 @@
 #pragma once
+
 /*
     This file is part of Encmetric.
     Copyright (C) 2021 Paolo De Donato.
@@ -16,26 +17,31 @@
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
-#include <strsuite/io/enc_io_core.hpp>
-//#include <strsuite/io/integral_format.hpp>
-#include <strsuite/io/cio_stream.hpp>
+#include <concepts>
+#include <forward_list>
+#include <strsuite/encmetric/base.hpp>
 
 namespace sts{
 
-//explicit declaration of template - for compilation improvment
-using iochar_pt = tchar_pt<IOenc>;
-using c_iochar_pt = const_tchar_pt<IOenc>;
-using iostr_view = adv_string_view<IOenc>;
-using iostr = adv_string<IOenc>;
+    struct Int_opts{
+        uint base;
+        bool plus;
+        Int_opts() : base{10}, plus{false} {}
+        Int_opts(uint b) : base{b}, plus{false} {}
+        Int_opts(uint b, bool p) : base{b}, plus{p} {}
 
-/*
- * in order to define IOenc string literals you should use STS_IO_asv macro, for example
- * iostr_view v = STS_IO_asv("Hello")
- *initializes a system-aware "Hello" string
- */
+        template<std::unsigned_integral I>
+        constexpr unicode convert_unit(I i) const noexcept{
+            I j = i % base;
+            if(j < 10)
+                return unicode{0x30u + j};
+            else
+                return unicode{0x61u + (j - 10u)};
+        }
+    };
 
+    template<typename Stream, std::integral I>
+    void write_integer(Stream &out, I val, const Int_opts &opt);
+
+#include <strsuite/format/integral_format.tpp>
 }
-
-
-
-
