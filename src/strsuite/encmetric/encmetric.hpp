@@ -100,10 +100,11 @@ class DynEncoding : public EncMetric<typename T::ctype>{
         }
 		uint d_chLen(const byte *b, size_t siz) const {return static_enc::chLen(b, siz);}
 		validation_result d_validChar(const byte *b, size_t siz) const noexcept {return static_enc::validChar(b, siz);}
-		std::type_index index() const noexcept {return std::type_index{typeid(T)};}
 
 		tuple_ret<ctype> d_decode(const byte *by, size_t l) const {return static_enc::decode(by, l);}
 		uint d_encode(const ctype &uni, byte *by, size_t l) const {return static_enc::encode(uni, by, l);}
+
+		std::type_index index() const noexcept {return std::type_index{typeid(T)};}
 
 		bool d_fixed_size() const noexcept {return feat::fixed_size<T>::value;}
 
@@ -157,6 +158,9 @@ class EncMetric_info{
 		uint chLen(const byte *b, size_t siz) const {return T::chLen(b, siz);}
 		validation_result validChar(const byte *b, size_t l) const noexcept {return T::validChar(b, l);}
 		[[nodiscard]] tuple_ret<ctype> decode(const byte *by, size_t l) const {return T::decode(by, l);}
+		ctype decode_direct(const byte *by, size_t l) const{
+            return get_chr_el(decode(by, l));
+        }
 		uint encode(const ctype &uni, byte *by, size_t l) const {return T::encode(uni, by, l);}
 		std::type_index index() const noexcept {return DynEncoding<T>::index();}
 
@@ -227,6 +231,9 @@ class EncMetric_info<WIDE<tt>>{
 		uint chLen(const byte *b, size_t siz) const {return f->d_chLen(b, siz);}
 		validation_result validChar(const byte *b, size_t l) const noexcept {return f->d_validChar(b, l);}
 		[[nodiscard]] tuple_ret<ctype> decode(const byte *by, size_t l) const {return f->d_decode(by, l);}
+		ctype decode_direct(const byte *by, size_t l) const{
+            return get_chr_el(decode(by, l));
+        }
 		uint encode(const ctype &uni, byte *by, size_t l) const {return f->d_encode(uni, by, l);}
 		std::type_index index() const noexcept {return f->index();}
 

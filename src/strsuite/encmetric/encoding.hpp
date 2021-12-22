@@ -61,7 +61,11 @@ constexpr uint get_len_el(const tuple_ret<ctype> &tupl) noexcept{
     return std::get<0>(tupl);
 }
 template<typename ctype>
-constexpr ctype get_chr_el(const tuple_ret<ctype> &tupl) noexcept{
+constexpr const ctype &get_chr_el(const tuple_ret<ctype> &tupl) noexcept{
+    return std::get<1>(tupl);
+}
+template<typename ctype>
+constexpr ctype &&get_chr_el(tuple_ret<ctype> &&tupl) noexcept{
     return std::get<1>(tupl);
 }
 

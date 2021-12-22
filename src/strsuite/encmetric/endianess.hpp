@@ -78,7 +78,7 @@ public:
 	static tuple_ret<T> decode(const byte *by, size_t l){
         unsigned_ctype iv;
         uint n;
-        std::tie(n, iv) = Endian_enc_size<unsigned_ctype, N, Seq>::decode(&iv, by, l);
+        std::tie(n, iv) = Endian_enc_size<unsigned_ctype, N, Seq>::decode(by, l);
         return tuple_ret<T>{n, static_cast<T>(iv)};
     }
     static T decode_direct(const byte *by, size_t l){
