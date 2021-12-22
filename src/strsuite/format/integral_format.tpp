@@ -16,8 +16,6 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 
-
-
     template<typename Stream, std::integral I>
     void write_integer(Stream &out, I val, const Int_opts &opt){
         if(opt.base < 2 || opt.base > 26)

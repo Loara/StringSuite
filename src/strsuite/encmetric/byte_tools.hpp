@@ -42,6 +42,7 @@ inline namespace literals{
 
 bool compare(const byte *a, const byte *b, std::size_t nsiz) noexcept;
 void copy_bytes(byte *to, const byte *from, std::size_t siz) noexcept;
+void move_bytes(byte *to, const byte *from, std::size_t siz) noexcept;
 
 /*
     Create a bit mask of type RET with ones at positions oth.

@@ -26,3 +26,6 @@ bool sts::compare(const sts::byte *a, const sts::byte *b, std::size_t nsiz) noex
 void sts::copy_bytes(sts::byte *a, const sts::byte *b, std::size_t nsiz) noexcept{
 	std::memcpy(a, b, nsiz);
 }
+void sts::move_bytes(sts::byte *a, const sts::byte *b, std::size_t nsiz) noexcept{
+	std::memmove(a, b, nsiz);
+}

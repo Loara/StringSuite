@@ -32,6 +32,10 @@ concept write_byte_stream = requires(T stream, const byte * const b, const size_
 template<typename T>
 concept byte_stream = read_byte_stream<T> && write_byte_stream<T>;
 
+/*
+ * A read/write byte stream can return lesser bytes than required, in order to force it you need to call these functions
+ */
+
 template<read_byte_stream T>
 size_t force_byte_read(T &stream, byte *b, size_t siz){
     size_t ret = 0;

@@ -48,7 +48,7 @@ namespace sts{
         size_t remaining() const noexcept {return this->rem;}
         void discard() noexcept;
 
-        adv_string_view<T> view() const noexcept {return direct_build(this->get_fir_as(format), len, this->siz);}
+        adv_string_view<T> view() const noexcept {return direct_build(const_tchar_pt{this->base + this->fir, format}, len, this->siz);}
         adv_string<T> move();
         adv_string<T> allocate_new(std::pmr::memory_resource *res) const;
         adv_string<T> allocate_new() const {return allocate_new(buffer.get_allocator());}
@@ -74,8 +74,9 @@ namespace sts{
         //Make encoding conversion
         template<general_enctype R>
         uint char_write_conv(const_tchar_pt<R>, size_t);
-        template<general_enctype R>
-        size_t string_write_conv(const adv_string_view<R> &);
+
+        //template<general_enctype R>
+        //size_t string_write_conv(const adv_string_view<R> &);
 
         uint ctype_write(const ctype &);
         ctype ctype_read();
