@@ -43,5 +43,12 @@ namespace sts{
     template<typename Stream, std::integral I>
     void write_integer(Stream &out, I val, const Int_opts &opt);
 
+    struct IntFormatter{
+        template<general_enctype T, std::integral I>
+        void format(string_stream<T> &str, I i, const adv_string_view<T> &){
+            write_integer(str, i, Int_opts{});
+        }
+    };
+
 #include <strsuite/format/integral_format.tpp>
 }

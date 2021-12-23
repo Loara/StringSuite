@@ -114,21 +114,21 @@ class adv_string_view{
 		*/
 		explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz, size_t maxlen);
 
-
+        explicit adv_string_view(EncMetric_info<T> f) : adv_string_view{0, 0, const_tchar_pt{nullptr, f}} {}
         explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz} {}
         template<typename FuncType>
 		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz, const FuncType &tf) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, tf} {}
 		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz, size_t maxlen) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, maxlen} {}
 
-
+        explicit adv_string_view() requires strong_enctype<T> : adv_string_view{EncMetric_info<T>{}} {}
 		template<typename U>
-        explicit adv_string_view(const U *b, size_t maxsiz) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, maxsiz} {}
+        explicit adv_string_view(const U *b, size_t maxsiz) requires strong_enctype<T> : adv_string_view{const_tchar_pt<T>{b}, maxsiz} {}
 		template<typename U, typename FuncType>
-		explicit adv_string_view(const U *b, size_t maxsiz, const FuncType &tf) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, maxsiz, tf} {}
+		explicit adv_string_view(const U *b, size_t maxsiz, const FuncType &tf) requires strong_enctype<T> : adv_string_view{const_tchar_pt<T>{b}, maxsiz, tf} {}
 		template<typename U>
-		explicit adv_string_view(const U *b, size_t siz, size_t len) requires not_widenc<T> : adv_string_view{const_tchar_pt<T>{b}, siz, len} {}
+		explicit adv_string_view(const U *b, size_t siz, size_t len) requires strong_enctype<T> : adv_string_view{const_tchar_pt<T>{b}, siz, len} {}
 
-
+        explicit adv_string_view(const EncMetric<typename T::ctype> *f) requires widenc<T> : adv_string_view{EncMetric_info<T>{f}} {}
 		template<typename U>
         explicit adv_string_view(const U *b, size_t maxsiz, const EncMetric<typename T::ctype> *f) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz} {}
 		template<typename U, typename FuncType>
@@ -170,6 +170,12 @@ class adv_string_view{
         }
         void select_next(placeholder &p, size_t n) const{
             p = select(p, n, true);
+        }
+        bool select_next_eof(placeholder &p) const{
+            if(p == select_end())
+                return true;
+            select_next(p);
+            return false;
         }
 		
 		adv_string_view<T> substring(placeholder b, placeholder e) const;

@@ -98,7 +98,8 @@ install(FILES "strsuite/io/enc_io_core.hpp"
 
 install(FILES "strsuite/tokens/tokens.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/tokens)
 
-install(FILES "strsuite/format/integral_format.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/format)
+install(FILES "strsuite/format/integral_format.hpp"
+    "strsuite/format/format_tmp.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/format)
 
 install(FILES "strsuite/encmetric/chite.tpp"
     "strsuite/encmetric/enc_string.tpp"
@@ -107,7 +108,9 @@ install(FILES "strsuite/encmetric/chite.tpp"
 install(FILES "strsuite/io/nl_stream.tpp"
     "strsuite/io/string_stream.tpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/io)
 
-install(FILES "strsuite/format/integral_format.tpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/format)
+install(FILES "strsuite/format/integral_format.tpp"
+    "strsuite/format/format_tmp.tpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/format)
 
 install(FILES "strsuite/encmetric.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite)
 install(FILES "strsuite/io.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite)
+install(FILES "strsuite/format.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite)

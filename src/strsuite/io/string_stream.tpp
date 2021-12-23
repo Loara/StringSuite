@@ -348,7 +348,7 @@ adv_string<T> string_stream<T>::move(){
 
 template<general_enctype T>
 adv_string<T> string_stream<T>::allocate_new(std::pmr::memory_resource *res) const{
-    adv_string_view<T> vw = direct_build(this->get_fir_as(format), len, this->siz);
+    adv_string_view<T> vw = direct_build(const_tchar_pt{this->base + this->fir, format}, len, this->siz);
     return adv_string<T>{vw, res};//Make a copy
 }
 
