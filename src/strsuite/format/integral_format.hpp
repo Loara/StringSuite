@@ -20,6 +20,7 @@
 #include <concepts>
 #include <forward_list>
 #include <strsuite/encmetric/base.hpp>
+#include <strsuite/io/string_stream.hpp>
 
 namespace sts{
 

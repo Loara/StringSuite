@@ -17,6 +17,8 @@
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <bit>
+
 #undef Encmetric_end
 
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
@@ -72,10 +74,6 @@ constexpr bool is_windows() noexcept{
 	#endif
 }
 
-#ifdef Encmetric_end
-inline constexpr bool bend = true;
-#else
-inline constexpr bool bend = false;
-#endif
+inline constexpr bool bend = std::endian::native == std::endian::big;
 
 }

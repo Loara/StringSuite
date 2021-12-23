@@ -22,5 +22,7 @@
 #include <strsuite/encmetric/iso8859_enc.hpp>
 #include <strsuite/encmetric/win_codepages.hpp>
 #include <strsuite/encmetric/koi8.hpp>
+#include <strsuite/encmetric/jis.hpp>
 #include <strsuite/encmetric/base64.hpp>
 #include <strsuite/encmetric/endianess.hpp>
+#include <strsuite/encmetric/fixed_point.hpp>
