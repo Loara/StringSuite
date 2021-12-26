@@ -178,6 +178,20 @@ inline constexpr bool is_in_range(byte t, uint a, uint b) noexcept{
     return static_cast<uint>(t) >= a && static_cast<uint>(t) <= b;
 }
 
+/*
+ * extends the sign
+ * N is the dimension of integer which sign you want to extend
+ */
+template<size_t N, typename Int> requires std::integral<Int>
+constexpr void extends_sign(Int &val) noexcept{
+    if constexpr(N >= 1 && N < sizeof(Int)){
+        if(bit_one(val, 8 * (N - 1) + 7))
+            val |= (~Int{0}) << (8 * N);
+        else
+            val &= ~((~Int{0}) << (8 * N));
+    }
+}
+
 }
 
 

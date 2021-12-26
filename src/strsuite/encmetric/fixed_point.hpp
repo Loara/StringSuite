@@ -21,53 +21,42 @@
 
 namespace sts{
 
-template<typename T, uint M, typename Seq, uint N, typename Seq2>
+    /*
+     * Store floating point numbers as fixed point
+     * M = integer part size in bytes
+     * N = fractional part in bytes
+     */
+template<typename T, uint M, uint N, typename Seq>
 struct Fixed_point_size{
-    static_assert(is_index_seq_of_len<Seq, M>, "Invalid endianess type");
-    static_assert(is_index_seq_of_len<Seq2, N>, "Invalid endianess type");
+    static_assert(is_index_seq_of_len<Seq, M + N>, "Invalid endianess type");
     static_assert(std::floating_point<T>, "Not a floating point type");
     using ctype = T;
-    static consteval uint min_bytes() noexcept { return M+N;}
-    static consteval uint max_bytes() noexcept { return M+N;}
+    using integer_type = s_make_size_t<M + N>;
+    static consteval uint min_bytes() noexcept { return M + N;}
+    static consteval uint max_bytes() noexcept { return M + N;}
 	static uint chLen(const byte *, size_t) {return M+N;}
 	static validation_result validChar(const byte *, size_t l) noexcept {return validation_result{l >= static_cast<size_t>(M+N), M+N};}
-
-	static void disassemble(const T &ev, std::int_fast64_t &int_p, std::uint_fast64_t &fra_p) noexcept{
-        T i_p;
-        T f_p = std::modf(ev, &i_p);
-        if(f_p < 0)
-            f_p = -f_p;
-        int_p = static_cast<std::int_fast64_t>(i_p);
-        fra_p = static_cast<std::uint_fast64_t>(std::floor(f_p * (1 << (8 * N))));
-    }
-
-    static void assemble(T &ev, const std::int_fast64_t &int_p, const std::uint_fast64_t &fra_p) noexcept{
-        ev = static_cast<T>(int_p) + (int_p < 0 ? -1 : 1) * static_cast<T>(fra_p) / (1 << (8 * N));
-    }
 
 	static tuple_ret<T> decode(const byte *b, size_t s){
         if(s < M + N)
             throw buffer_small{M + N - static_cast<uint>(s)};
-        auto i = Endian_enc_size<std::int_fast64_t, M, Seq>::decode_direct(b, M);
-        auto f = Endian_enc_size<std::uint_fast64_t, N, Seq2>::decode_direct(b + M, N);
-        T ret;
-        assemble(ret, i, f);
-        return tuple_ret<T>{M + N, ret};
+        integer_type i = Endian_enc_size<integer_type, M + N, Seq>::decode_direct(b, s);
+        extends_sign<M + N>(i);
+        return tuple_ret<T>{M + N, std::ldexp(static_cast<T>(i), -(8 * N))};
     }
 
     static uint encode(const T &val, byte *out, size_t s){
         if(s < M + N)
             throw buffer_small{M + N - static_cast<uint>(s)};
-        std::int_fast64_t i;
-        std::uint_fast64_t f;
-        disassemble(val, i, f);
-        Endian_enc_size<std::int_fast64_t, M, Seq>::encode(i, out, M);
-        Endian_enc_size<std::uint_fast64_t, M, Seq>::encode(f, out + M, N);
-        return M + N;
+        integer_type i = static_cast<integer_type>(std::floor(std::ldexp(val, 8 * N)));
+        return Endian_enc_size<integer_type, M+N, Seq>::encode(i, out, s);
     }
 };
 
 template<bool be, typename T, uint M, uint N>
-using Fixed_point = Fixed_point_size<T, M, BLE_end<be, M>, N, BLE_end<be, N>>;
+using Fixed_point = Fixed_point_size<T, M, N, BLE_end<be, M + N>>;
+
+template<bool be, typename T = float>
+using Fix16 = Fixed_point<be, T, 2, 2>;
 
 }

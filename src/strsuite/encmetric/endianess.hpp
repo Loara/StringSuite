@@ -18,6 +18,7 @@
 */
 #include <concepts>
 #include <utility>
+#include <bit>
 #include <strsuite/encmetric/encoding.hpp>
 #include <strsuite/encmetric/byte_tools.hpp>
 
@@ -71,7 +72,7 @@ public:
     }
 };
 
-
+/*
 template<size_t N, typename B, typename I>
 struct ct_log;
 
@@ -92,31 +93,78 @@ template<size_t... A, size_t... B>
 constexpr bool is_negative(const byte *b, std::index_sequence<A...>, std::index_sequence<B...>) noexcept{
     return bit_one(b[ct_log<sizeof...(A) - 1, std::index_sequence<A...>, std::index_sequence<B...>>::eval()], 7);
 }
+*/
 
+template<size_t N>
+struct u_make_size;
 
+template<>
+struct u_make_size<1>{
+    using type = std::uint8_t;
+    using stype = std::int8_t;
+};
 
-template<typename T, unsigned int N, typename Seq> requires std::signed_integral<T>
+template<>
+struct u_make_size<2>{
+    using type = std::uint16_t;
+    using stype = std::int16_t;
+};
+
+template<>
+struct u_make_size<4>{
+    using type = std::uint32_t;
+    using stype = std::int32_t;
+};
+
+template<>
+struct u_make_size<8>{
+    using type = std::uint64_t;
+    using stype = std::int64_t;
+};
+
+template<size_t N>
+using u_make_size_t = typename u_make_size<N>::type;
+template<size_t N>
+using s_make_size_t = typename u_make_size<N>::stype;
+
+template<typename T>
+using u_same_size_t = u_make_size_t<sizeof(T)>;
+
+template<typename T>
+constexpr u_same_size_t<T> to_unsigned(const T &t) noexcept{
+    return std::bit_cast<u_same_size_t<T>>(t);
+}
+
+template<typename T>
+constexpr T from_unsigned(const u_same_size_t<T> &t) noexcept{
+    return std::bit_cast<T>(t);
+}
+
+/*
+ * Encoding for all types that are convertible to and from unsigned integers
+ *
+ * Notice for signed integers: when sizeof(T) > N once you decode a number you should extend its sign
+ * with 'constexpr void sts::extends_sign(Int &val) noexcept' function
+ */
+template<typename T, unsigned int N, typename Seq> requires (!std::unsigned_integral<T>)
 class Endian_enc_size<T, N, Seq>{
 public:
     static_assert(is_index_seq_of_len<Seq, N>, "Invalid endianess type");
     using ctype=T;
-    using unsigned_ctype=std::make_unsigned_t<T>;
+    using unsigned_ctype=u_same_size_t<T>;
     static constexpr uint min_bytes() noexcept{ return N;}
     static constexpr uint max_bytes() noexcept{ return N;}
 	static uint chLen(const byte *, size_t siz) {return N;}
 	static validation_result validChar(const byte *, size_t l) noexcept {return validation_result{l >= static_cast<size_t>(N), N};}
 	static tuple_ret<T> decode(const byte *by, size_t l){
         unsigned_ctype au = Endian_enc_size<unsigned_ctype, N, Seq>::decode_direct(by, l);
-        if(is_negative(by, std::make_index_sequence<N>{}, Seq{})){
-            au |= ~unsigned_ctype{0} << (8 * N);
-        }
-        return tuple_ret<T>{N, static_cast<T>(au)};
+        return tuple_ret<T>{N, from_unsigned<T>(au)};
     }
     static T decode_direct(const byte *by, size_t l){
         return std::get<1>(decode(by, l));
     }
 	static uint encode(const T &uni, byte *by, size_t l){
-        return Endian_enc_size<unsigned_ctype, N, Seq>::encode(static_cast<unsigned_ctype>(uni), by, l);
+        return Endian_enc_size<unsigned_ctype, N, Seq>::encode(to_unsigned(uni), by, l);
     }
 };
 

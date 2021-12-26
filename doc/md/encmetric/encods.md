@@ -14,4 +14,5 @@ StringSuite provides additional encoding classes for the most common encoding. T
 ### Not Unicode encodings
 
 * JIS encodings (`sts::EUC_JP`, `sts::SHIFT_JIS`) using `ctype=sts::jisx_213`;
+* Integer, fixed and floating point number encodings with Little and Big endian;
 * Base64 encoding (experimental).
