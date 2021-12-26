@@ -18,7 +18,7 @@
 
     template<typename Stream, std::integral I>
     void write_integer(Stream &out, I val, const Int_opts &opt){
-        if(opt.base < 2 || opt.base > 26)
+        if(opt.base < 2 || opt.base > 36)
             return;
         bool minus = false;
         std::forward_list<unicode> stack;
