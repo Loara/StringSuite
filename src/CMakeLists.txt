@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(StringSuite VERSION 3.0 DESCRIPTION "Library to manage encoded strings" LANGUAGES CXX)
+project(StringSuite VERSION 3.0.1 DESCRIPTION "Library to manage encoded strings" LANGUAGES CXX)
 
 include (GNUInstallDirs)
 
