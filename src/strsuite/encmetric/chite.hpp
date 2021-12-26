@@ -260,6 +260,10 @@ bool can_rebase_pointer(const_tchar_pt<S> from, EncMetric_info<T> f) noexcept{
     return from.raw_format().base_for(f);
 }
 template<general_enctype T, general_enctype S>
+void assert_rebase_pointer(const_tchar_pt<S> from, EncMetric_info<T> f){
+    from.raw_format().assert_base_for(f);
+}
+template<general_enctype T, general_enctype S>
 const_tchar_pt<T> rebase_pointer(const_tchar_pt<S> from, EncMetric_info<T> f){
     from.raw_format().assert_base_for(f);
     return const_tchar_pt<T>{from.data(), f};
@@ -277,9 +281,13 @@ tchar_pt<T> rebase_pointer(tchar_pt<S> from, EncMetric_info<T> f){
  * to convert it
  */
 template<general_enctype T, general_enctype S>
-tchar_pt<T> inv_rebase_pointer(tchar_pt<S> from, EncMetric_info<T> f){
-    f.assert_base_for(from.raw_format());
-    return tchar_pt<T>{from.data(), f};
+void assert_inv_rebase_pointer(tchar_pt<S> to, EncMetric_info<T> f){
+    f.assert_base_for(to.raw_format());
+}
+template<general_enctype T, general_enctype S>
+tchar_pt<T> inv_rebase_pointer(tchar_pt<S> to, EncMetric_info<T> f){
+    f.assert_base_for(to.raw_format());
+    return tchar_pt<T>{to.data(), f};
 }
 
 /*

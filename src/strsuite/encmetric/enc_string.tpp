@@ -31,8 +31,8 @@ dimensions deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz){
 	return ret;
 }
 
-template<typename T>
-dimensions deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz, const terminate_func<T> &terminate){
+template<typename T, typename FuncType>
+dimensions deduce_lens(const_tchar_pt<T> ptr, size_t maxsiz, const FuncType &terminate){
     dimensions ret{};
 	uint add=0;
 
@@ -83,7 +83,9 @@ adv_string_view<T>::adv_string_view(const_tchar_pt<T> cu, size_t maxsiz) : ptr{c
 }
 
 template<typename T>
-adv_string_view<T>::adv_string_view(const_tchar_pt<T> cu, size_t maxsiz, const terminate_func<T> &terminate) : ptr{cu}, len{0}, siz{0}{
+template<typename FuncType>
+adv_string_view<T>::adv_string_view(const_tchar_pt<T> cu, size_t maxsiz, const FuncType &terminate) : ptr{cu}, len{0}, siz{0}{
+    static_assert(is_terminate_func<FuncType, T>, "Not a terminate function");
 	dimensions d = deduce_lens(cu, maxsiz, terminate);
     len = d.len;
     siz = d.siz;
@@ -467,5 +469,16 @@ adv_string_view<T>::ctype adv_string_view<T>::get_char(placeholder pch) const{
         throw out_of_range{"Placeholder to end"};
     auto chr = ptr.new_instance(pch.data()).decode(siz - pch.siz);
     return get_chr_el(chr);
+}
+
+template<typename T>
+template<typename Container>
+void adv_string_view<T>::get_all_char(Container &cont) const{
+    const_tchar_pt<T> mem = ptr;
+    size_t rem = siz;
+    for(size_t i=0; i< len; i++){
+        auto ret = mem.decode_next_update(rem);
+        cont.push_back(get_chr_el(ret));
+    }
 }
 

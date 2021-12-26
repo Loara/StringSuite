@@ -32,6 +32,8 @@ namespace sts{
      *
      * If read=true then U must have inc_siz(uint) member function
      * If write=true then U must have inc_rem(size_t) member function
+     *
+     * Both these functions are hint, but not satisfying them implies force_ members throw exceptions
      */
 template<typename U, bool read, bool write>
 class basic_buffer{
@@ -60,29 +62,11 @@ class basic_buffer{
             las=0;
             end=0;
         }
-        void base_flush(){
+        void discard_all(){
             fir = 0;
             las = 0;
             siz = 0;
             rem = end;
-        }
-
-        template<general_enctype T>
-        const_tchar_pt<T> get_fir_as(EncMetric_info<T> format) const noexcept{
-            return const_tchar_pt<T>{base + fir, format};
-        }
-        template<general_enctype T>
-        const_tchar_pt<T> get_las_as(EncMetric_info<T> format) const noexcept{
-            return const_tchar_pt<T>{base + las, format};
-        }
-
-        template<general_enctype T>
-        tchar_pt<T> set_fir_as(EncMetric_info<T> format) const noexcept{
-            return tchar_pt<T>{base + fir, format};
-        }
-        template<general_enctype T>
-        tchar_pt<T> set_las_as(EncMetric_info<T> format) const noexcept{
-            return tchar_pt<T>{base + las, format};
         }
 
         void raw_fir_step(size_t inc){
@@ -100,17 +84,20 @@ class basic_buffer{
             rem += dec;
         }
 
+        /*
+         * moves data to begin in order to increase rem
+         */
         void rewind(){
             if(fir == 0)
                 return;
             size_t skip = fir;
-            std::memmove(base, base + fir, siz);
+            move_bytes(base, base + fir, siz);
             fir = 0;
             las = siz;
             rem += skip;
         }
 
-        size_t req_sizle(size_t nl) requires read{
+        size_t ask_size(size_t nl) requires read{
             if(fir != 0)
                 rewind();
             if(siz >= nl)
@@ -121,7 +108,7 @@ class basic_buffer{
             }
         }
 
-        void force_sizle(size_t nl) requires read{
+        void force_size(size_t nl) requires read{
             if(fir != 0)
                 rewind();
             if(siz >= nl)
@@ -135,10 +122,9 @@ class basic_buffer{
 
         template<typename T>
         uint get_chLen(EncMetric_info<T> rf) requires read{
-            //static_assert(general_enctype<T>, "Not an encoding");
             uint ret;
             bool get=false;
-            force_sizle(rf.min_bytes());
+            force_size(rf.min_bytes());
             do{
                 try{
                     ret = rf.chLen(base + fir, siz);
@@ -151,14 +137,7 @@ class basic_buffer{
                 }
             }
             while(!get);
-            force_sizle(ret);
-            /*
-            while(ret > siz){
-                if(fir != 0)
-                    rewind();
-                mycast()->inc_siz(ret - static_cast<uint>(siz));
-            }
-            */
+            force_size(ret);
             return ret;
         }
 
@@ -167,7 +146,7 @@ class basic_buffer{
          *
          * returns minimum between rem and nl
          */
-        size_t req_frspc(size_t nl) requires write{
+        size_t ask_rem(size_t nl) requires write{
             if(fir > 0)
                 rewind();
             if(rem >= nl)
@@ -177,7 +156,7 @@ class basic_buffer{
                 return rem >= nl ? nl : rem;
             }
         }
-        void force_frspc(size_t nl) requires write{
+        void force_rem(size_t nl) requires write{
             if(fir > 0)
                 rewind();
             if(rem >= nl)

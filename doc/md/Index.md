@@ -10,7 +10,7 @@ Use `#include <strsuite/encmetric.hpp>` inside your code in order to use these u
 * [Wide encodings](encmetric/wid_class.md)
 * Pointer classes
 * [Strings](encmetric/strings.md)
-* Included encodings
+* [Included encodings](encmetric/encods.md)
 
 ## `io` module
 
@@ -19,3 +19,7 @@ Use `#include <strsuite/io.hpp>` inside your code in order to use these utilitie
 * Char and Line streams
 * [`string_stream`](io/string_stream.md)
 * [Default Console encodings and streams](io/dfces.md)
+
+## `format` module
+
+This module is still under development. Currently it is intended as a encoding-aware counterpart of C++20 `std::format` feature.

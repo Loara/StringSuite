@@ -61,8 +61,12 @@ constexpr uint get_len_el(const tuple_ret<ctype> &tupl) noexcept{
     return std::get<0>(tupl);
 }
 template<typename ctype>
-constexpr ctype get_chr_el(const tuple_ret<ctype> &tupl) noexcept{
+constexpr const ctype &get_chr_el(const tuple_ret<ctype> &tupl) noexcept{
     return std::get<1>(tupl);
+}
+template<typename ctype>
+constexpr ctype &&get_chr_el(tuple_ret<ctype> &&tupl) noexcept{
+    return std::get<1>(std::move(tupl));
 }
 
 /*
@@ -76,10 +80,8 @@ class WIDE{
 
 using WIDEchr=WIDE<unicode>;
 
-struct RAWcmp{};
-
 /*
-    No encoding provided
+    Use when you don't know actual encoding of a string. It assumes size == length and doesn't allow any decode/encode
 */
 template<typename tt>
 class RAW{
@@ -87,9 +89,8 @@ class RAW{
 		using ctype=tt;
 		static consteval uint min_bytes() noexcept {return 1;}
 		static consteval uint max_bytes() {return 1;}
-		using compare_enc=RAWcmp;
-		static uint chLen(const byte *, size_t) {return 1;}
-		static validation_result validChar(const byte *, size_t i) noexcept{
+		static constexpr uint chLen(const byte *, size_t) {return 1;}
+		static constexpr validation_result validChar(const byte *, size_t i) noexcept{
 			return validation_result{i >= 1, 1};
 		}
 		static tuple_ret<tt> decode(const byte *, size_t) {throw raw_error{};}
@@ -193,9 +194,6 @@ constexpr int min_length(int nchr) noexcept{
 template<strong_enctype T>
 constexpr void assert_raw(){static_assert(!enc_raw<T>, "Using RAW format");}
 
-
-
-
 /*
  * Encoding optional features
  */
@@ -257,20 +255,14 @@ namespace feat{
 
     template<typename T>
     concept has_not_proxy_type = strong_enctype<T> && !requires(){typename T::proxy_ctype;};
-/*
-    template<typename T>
-    concept has_light_decoder = has_proxy_type<T> && requires(const byte *by, size_t l){
-        {T::light_decode(by, l)}->std::same_as<tuple_ret<typename T::proxy_ctype>>;
-    };
-*/
 
     template<typename T>
     struct Proxy_wrapper{
         static_assert(strong_enctype<T>, "Not a encoding type");
 
         using proxy_ctype = typename T::ctype;
-		static tuple_ret<proxy_ctype> light_decode(proxy_ctype *uni, const byte *by, size_t l){
-            return T::decode(uni, by, l);
+		static tuple_ret<proxy_ctype> light_decode(const byte *by, size_t l){
+            return T::decode(by, l);
         }
     };
 
@@ -283,6 +275,9 @@ namespace feat{
             return T::light_decode(by, l);
         }
     };
+
+    template<typename T>
+    using Proxy_wrapper_ctype = typename Proxy_wrapper<T>::proxy_ctype;
 }
 
 

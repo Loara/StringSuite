@@ -20,23 +20,29 @@
     Some usebul bitwise operations using bitmasks that can be built at compile-time
 */
 #include <cstddef>
-#include <cstring>
 #include <type_traits>
 #include <stdexcept>
 
 namespace sts{
 using uint = unsigned int;
-/*
-    Needed an 8-bit byte in order to work with encodings
-*/
-using std::uint8_t;
-//enum class byte : uint8_t {};
-using std::byte;
-static_assert(sizeof(uint8_t) == sizeof(byte), "byte has not 8 bits");
 
-inline bool compare(const byte *a, const byte *b, int nsiz) noexcept{
-	return std::memcmp(a, b, nsiz) == 0;
+using std::byte;
+static_assert(sizeof(std::uint8_t) == sizeof(byte), "byte has not 8 bits");
+
+template<typename Int>
+constexpr Int make_integer(const byte &b) noexcept{
+    return static_cast<Int>(b);
 }
+
+inline namespace literals{
+    consteval byte operator"" _by(unsigned long long int i) noexcept{
+        return static_cast<byte>(i);
+    }
+}
+
+bool compare(const byte *a, const byte *b, std::size_t nsiz) noexcept;
+void copy_bytes(byte *to, const byte *from, std::size_t siz) noexcept;
+void move_bytes(byte *to, const byte *from, std::size_t siz) noexcept;
 
 /*
     Create a bit mask of type RET with ones at positions oth.
@@ -172,9 +178,17 @@ inline constexpr bool is_in_range(byte t, uint a, uint b) noexcept{
     return static_cast<uint>(t) >= a && static_cast<uint>(t) <= b;
 }
 
-inline namespace literals{
-    inline constexpr byte operator"" _by(unsigned long long int i) noexcept{
-        return static_cast<byte>(i);
+/*
+ * extends the sign
+ * N is the dimension of integer which sign you want to extend
+ */
+template<size_t N, typename Int> requires std::integral<Int>
+constexpr void extends_sign(Int &val) noexcept{
+    if constexpr(N >= 1 && N < sizeof(Int)){
+        if(bit_one(val, 8 * (N - 1) + 7))
+            val |= (~Int{0}) << (8 * N);
+        else
+            val &= ~((~Int{0}) << (8 * N));
     }
 }
 

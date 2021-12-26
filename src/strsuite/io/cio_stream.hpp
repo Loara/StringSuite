@@ -19,7 +19,7 @@
 #include <cstdio>
 #include <strsuite/encmetric/byte_tools.hpp>
 #include <strsuite/io/char_stream.hpp>
-#include <strsuite/io/middle_enc.hpp>
+//#include <strsuite/io/middle_enc.hpp>
 
 namespace sts{
 
@@ -32,7 +32,7 @@ private:
     const char *compose_mode() const noexcept{
         if constexpr(fg == file_type::read)
             return "rb";
-        else if constexpr(fg == write_trunc)
+        else if constexpr(fg == file_type::write_trunc)
             return "wb";
         else
             return "ab";
@@ -51,7 +51,7 @@ public:
         file = nullptr;
     }
 
-    size_t read(byte *b, size_t siz) requires (fg == read){
+    size_t read(byte *b, size_t siz) requires (fg == file_type::read){
         std::size_t ret = fread(b, 1, siz, file);
         if(std::feof(file))
             throw IOEOF{};
@@ -60,7 +60,7 @@ public:
         else return ret;
     }
 
-    size_t write(const byte *b, size_t siz) requires (fg == write_append || fg == write_trunc){
+    size_t write(const byte *b, size_t siz) requires (fg == file_type::write_append || fg == file_type::write_trunc){
         size_t ret = fwrite(b, 1, siz, file);
         if(std::feof(file))
             throw IOEOF{};
@@ -68,6 +68,7 @@ public:
             throw IOFail{};
         else return ret;
     }
+
 };
 
 }

@@ -23,15 +23,7 @@ To build and install the library you can run these commands:
 On Arch Linux you can use package `stringsuite` in AUR, additional informations can be found at https://aur.archlinux.org/packages/stringsuite/.
 
 # Encodings currently included in this library
-* ASCII
-* Latin1 / ISO-8859-1, ISO-8859-2
-* UTF8, UTF16, UTF32
-* KOI8-R, KOI8-U, KOI8-RU
-* Base64
-* Windows codepages 1250, 1251, 1252
-* EUC-JP, Shift-JIS (experimental)
-
-Clearly you can write and use your own encoding classes.
+See [Included encodings](doc/md/encmetric/encods.md) for an up-to-date list of included encodings sort by library version.
 
 # Basic documentation (work in progress)
 You can take a look at our [index](doc/md/Index.md) for a quick introduction to `StringSuite` library. Additional informations can be took inside the source code.

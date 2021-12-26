@@ -24,13 +24,14 @@
 
 namespace sts{
     template<general_enctype T>
-    class string_stream : protected basic_buffer<string_stream<T>, true, true>, public CharIStream<T>, public CharOStream<T>{
+    class string_stream : protected basic_buffer<string_stream<T>, true, true>{
     private:
         basic_ptr buffer;
         size_t len;
         EncMetric_info<T> format;
         template<general_enctype R>
         uint char_write_conv_0(const_tchar_pt<R>, size_t);
+        uint char_write_0(const byte *, size_t);
     public:
         using ctype=typename T::ctype;
         friend class basic_buffer<string_stream<T>, true, true>;
@@ -48,20 +49,29 @@ namespace sts{
         size_t remaining() const noexcept {return this->rem;}
         void discard() noexcept;
 
-        adv_string_view<T> view() const noexcept {return direct_build(this->get_fir_as(format), len, this->siz);}
+        adv_string_view<T> view() const noexcept {return direct_build(const_tchar_pt{this->base + this->fir, format}, len, this->siz);}
         adv_string<T> move();
         adv_string<T> allocate_new(std::pmr::memory_resource *res) const;
         adv_string<T> allocate_new() const {return allocate_new(buffer.get_allocator());}
         template<general_enctype S>
         bool opt_cut_endl(const adv_string_view<S> &);
 
-        template<read_char_stream<T> IStream>
+        template<general_enctype S>
+        uint char_read(tchar_pt<S>, size_t);
+        template<general_enctype S>
+        uint ghost_read(tchar_pt<S>, size_t);
+        template<general_enctype S>
+        uint char_write(const_tchar_pt<S>, size_t);
+        template<general_enctype S>
+        size_t string_write(const adv_string_view<S> &);
+
+        template<typename IStream> requires read_char_stream<IStream, T>
         uint get_char(IStream &);
-        template<read_char_stream<T> IStream>
+        template<typename IStream> requires read_char_stream<IStream, T>
         uint get_ghost(IStream &);
-        template<write_char_stream<T> OStream>
+        template<typename OStream> requires write_char_stream<OStream, T>
         uint put_char(OStream &);
-        template<write_char_stream<T> OStream>
+        template<typename OStream> requires write_char_stream<OStream, T>
         size_t put_all(OStream &);
 
         template<read_byte_stream IBStream>
@@ -71,23 +81,23 @@ namespace sts{
         template<write_byte_stream OBStream>
         void put_all_char_bytes(OBStream &);
 
-        //Make encoding conversion
-        template<general_enctype R>
-        uint char_write_conv(const_tchar_pt<R>, size_t);
-        template<general_enctype R>
-        size_t string_write_conv(const adv_string_view<R> &);
+        //template<general_enctype R>
+        //size_t string_write_conv(const adv_string_view<R> &);
 
         uint ctype_write(const ctype &);
+        ctype ctype_read();
+        feat::Proxy_wrapper_ctype<T> light_ctype_read() requires strong_enctype<T>;
+
+        EncMetric_info<T> raw_format() const noexcept { return format; }
+
     protected:
         void inc_siz(uint);
         void inc_rem(size_t);
-        EncMetric_info<T> do_encmetric() const noexcept{ return format;}
-        uint do_char_read(tchar_pt<T>, size_t);
-        uint do_ghost_read(tchar_pt<T>, size_t);
-        uint do_char_write(const_tchar_pt<T>, size_t);
-        size_t do_string_write(const adv_string_view<T> &);
-        void do_close() {}
-        void do_flush() {}
+        //EncMetric_info<T> do_encmetric() const noexcept{ return format;}
+        //uint do_char_read(tchar_pt<T>, size_t);
+        //uint do_ghost_read(tchar_pt<T>, size_t);
+        //uint do_char_write(const_tchar_pt<T>, size_t);
+        //size_t do_string_write(const adv_string_view<T> &);
     };
 #include <strsuite/io/string_stream.tpp>
 }

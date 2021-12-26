@@ -61,29 +61,6 @@ adv_string<T> NewlineIStream<T>::do_get_line(std::pmr::memory_resource *all){
     }
     return stream.move();
 }
-    /*
-            basic_ptr ptda{all};
-            size_t retsiz=0, retlen=0;
-            tchar_pt<T> base{ptda.memory, this->raw_format()};
-            tchar_relative<T> to{base};
-            adv_string_view<T> nl = do_newline();
-            bool endl = false;
-            while(!endl){
-                try{
-                    uint chl = this->char_read(to.convert(), ptda.dimension - retsiz);
-                    to.next(ptda.dimension - retsiz);
-                    retsiz += chl;
-                    retlen++;
-                    endl = do_is_endl(ptda.memory, retsiz).success;
-                }
-                catch(IOBufsmall &bs){
-                    ptda.exp_fit(ptda.dimension + bs.get_required_size());
-                    base = base.new_instance(ptda.memory);
-                }
-            }
-            return direct_build_dyn<T>(std::move(ptda), retlen, retsiz, this->raw_format());
-        }
-        */
 
 template<general_enctype T>
 index_result NewlineOStream<T>::do_is_endl(const byte *b, size_t siz)const noexcept{

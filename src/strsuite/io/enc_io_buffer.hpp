@@ -59,14 +59,14 @@ class istr_buffer : private basic_buffer<istr_buffer<Sys, bufsiz>, true, false>{
         size_t read(byte *by, size_t stm){
             if(stm == 0)
                 return 0;
-            size_t inc = this->req_sizle(stm);
-            copyN(this->base + this->fir, by, inc);
+            size_t inc = this->ask_size(stm);
+            copy_bytes(by, this->base + this->fir, inc);
             this->raw_fir_step(inc);
-            return inc + read(by + inc, stm - inc);
+            return inc;
         }
 
         void discard_buffer(){
-            this->base_flush();
+            this->discard_all();
         }
 
         friend class basic_buffer<istr_buffer<Sys, bufsiz>, true, false>;
@@ -101,10 +101,10 @@ class ostr_buffer : private basic_buffer<ostr_buffer<Sys, bufsiz>, false, true>{
         size_t write(const byte *by, size_t stm){
             if(stm == 0)
                 return 0;
-            size_t mi = this->req_frspc(stm);
-            copyN(by, this->base + this->las, mi);
+            size_t mi = this->ask_rem(stm);
+            copy_bytes(this->base + this->las, by, mi);
             this->raw_las_step(mi);
-            return mi + write(by + mi, stm - mi);
+            return mi;
         }
 
         void flush(){
@@ -114,7 +114,7 @@ class ostr_buffer : private basic_buffer<ostr_buffer<Sys, bufsiz>, false, true>{
                     this->raw_fir_step(wt);
                 }
             }
-            this->base_flush();
+            this->discard_all();
         }
 
         Sys get_system_id() const noexcept {return sy;}

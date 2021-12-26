@@ -17,19 +17,6 @@
     You should have received a copy of the GNU Lesser General Public License
     along with Encmetric. If not, see <http://www.gnu.org/licenses/>.
 */
-#include <concepts>
-#include <forward_list>
-#include <strsuite/io/middle_enc.hpp>
-namespace sts{
 
-    struct Int_opts{
-        uint base;
-        bool plus;
-        Int_opts() : base{10}, plus{false} {}
-    };
-
-    template<feat::safe_hasmax T, std::integral I>
-    void write_integer(CharOStream<T> &, I, const Int_opts &, std::pmr::memory_resource * =std::pmr::get_default_resource());
-
-#include <strsuite/io/integral_format.tpp>
-}
+#include <strsuite/format/integral_format.hpp>
+#include <strsuite/format/format_tmp.hpp>
