@@ -25,36 +25,47 @@
 
 namespace sts{
 
-    struct Standard_number_chars{
-        static constexpr size_t max_base = 36;
-        static constexpr std::array<unicode, max_base> all_chars{'0'_uni, '1'_uni, '2'_uni, '3'_uni, '4'_uni, '5'_uni, '6'_uni, '7'_uni, '8'_uni, '9'_uni, 'a'_uni, 'b'_uni, 'c'_uni, 'd'_uni, 'e'_uni, 'f'_uni, 'g'_uni, 'h'_uni, 'i'_uni, 'j'_uni, 'k'_uni, 'l'_uni, 'm'_uni, 'n'_uni, 'o'_uni, 'p'_uni, 'q'_uni, 'r'_uni, 's'_uni, 't'_uni, 'u'_uni, 'v'_uni, 'w'_uni, 'x'_uni, 'y'_uni, 'z'_uni};
-    };
-
     struct Int_opts{
         uint base;
-        bool plus;
-        Int_opts() : base{10}, plus{false} {}
-        Int_opts(uint b) : base{b}, plus{false} {}
-        Int_opts(uint b, bool p) : base{b}, plus{p} {}
+        bool plus, MAI;
+        Int_opts() : base{10}, plus{false}, MAI{false} {}
+        Int_opts(uint b) : base{b}, plus{false}, MAI{false} {}
+        Int_opts(uint b, bool p, bool M) : base{b}, plus{p}, MAI{M} {}
 
-        template<std::unsigned_integral I, typename T = Standard_number_chars>
+        template<std::unsigned_integral I>
         constexpr unicode convert_unit(I i) const{
+            if(base >= 36)
+                throw out_of_range{"Invalid base"};
             I j = i % base;
-            return T::all_chars.at(j);
+            if(j < 10)
+                return static_cast<unicode>(j + '0');
+            else if(MAI)
+                return static_cast<unicode>((j - 10u) + 'A');
+            else
+                return static_cast<unicode>((j - 10u) + 'a');
         }
 
-        template<std::unsigned_integral I, typename T = Standard_number_chars>
+        template<std::unsigned_integral I>
         constexpr I get_number(unicode c) const{
-            size_t dec = T::max_base;
-            for(size_t i=0; i<T::max_base; i++){
-                if(c == T::all_chars[i]){
-                    dec = i;
-                    break;
-                }
-            }
-            if(dec >= base)
-                throw out_of_range{"Invalid number letter"};
-            return dec;
+            if(base >= 36)
+                throw out_of_range{"Invalid base"};
+            I zer = static_cast<I>('0');
+            I A = static_cast<I>('A');
+            I a = static_cast<I>('a');
+            size_t val = static_cast<size_t>(c);
+            I ret;
+            if(val >= zer && val < zer + 10u)
+                ret = val - zer;
+            else if(val >= A && val < A + 26u)
+                ret = val - A + 10u;
+            else if(val >= a && val < a + 26u)
+                ret = val - a + 10u;
+            else
+                throw out_of_range{"Invalid number"};
+
+            if(ret >= mase)
+                throw out_of_range{"Invalid number"};
+            return ret;
         }
     };
 

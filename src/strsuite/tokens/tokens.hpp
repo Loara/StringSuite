@@ -20,6 +20,14 @@
 
 namespace sts{
 
+class EOS : public std::exception{
+public:
+    EOS() {}
+    const char *what() const noexcept{
+        return "End of string";
+    }
+};
+
 /*
  * A simple class useful to divide a string into tokens
  */
@@ -49,10 +57,23 @@ class Token{
 		/*
          * Share a view of current token
          */
-		adv_string_view<T> share() const {return adv_string_view<T>(s, e-s, e-s);}
+		adv_string_view<T> share() const {return adv_string_view<T>(s, e-s);}
 		/*
          * Steps the token pointer until it encounter a character contained in the argumet
          */
+        bool isEqual(const typename T::ctype chr) const noexcept{
+            if(s == e)
+                return false;
+            auto ret = s.decode(e - s);
+            return chr == get_chr_el(ret);
+        }
+
+        typename T::ctype get_next_char() const{
+            if(e == end)
+                throw EOS{};
+            return get_chr_el(e.decode(end - e));
+        }
+
         template<general_enctype S>
 		bool goUp(const adv_string_view<S> &delim){
 			if(e == end)
