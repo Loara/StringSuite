@@ -63,7 +63,7 @@ namespace sts{
             else
                 throw out_of_range{"Invalid number"};
 
-            if(ret >= mase)
+            if(ret >= base)
                 throw out_of_range{"Invalid number"};
             return ret;
         }

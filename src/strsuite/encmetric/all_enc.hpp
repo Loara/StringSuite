@@ -26,3 +26,4 @@
 #include <strsuite/encmetric/base64.hpp>
 #include <strsuite/encmetric/endianess.hpp>
 #include <strsuite/encmetric/fixed_point.hpp>
+#include <strsuite/encmetric/serialize.hpp>

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(StringSuite VERSION 3.0.1 DESCRIPTION "Library to manage encoded strings" LANGUAGES CXX)
+project(StringSuite VERSION 3.1 DESCRIPTION "Library to manage encoded strings" LANGUAGES CXX)
 
 include (GNUInstallDirs)
 
@@ -86,7 +86,8 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
     "strsuite/encmetric/utf32_enc.hpp"
     "strsuite/encmetric/jis.hpp"
     "strsuite/encmetric/win_codepages.hpp"
-    "strsuite/encmetric/type_array.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/encmetric)
+    "strsuite/encmetric/type_array.hpp"
+    "strsuite/encmetric/serialize.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/encmetric)
 
 install(FILES "strsuite/io/enc_io_core.hpp"
     "strsuite/io/enc_io_buffer.hpp"

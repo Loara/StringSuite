@@ -18,10 +18,10 @@ In that case you can use the `quick_serialize<typename T, typename... Param>` te
 
 Param `T` is the type you want to rerialize, each `Param` is a class template argument saying how data member should be encoded/decoded. Actually only these parameter types are allowed:
 
-### `sts::q_param::enc_member<typename T, typename ty, ty T::* member, strong_encoding Enc = sts::Endian_enc<false, ty>>`
+`sts::q_param::enc_member<typename T, typename ty, ty T::* member, strong_enctype Enc = sts::Endian_enc<false, ty>>`
 
 Encode and decode the member `member` of type `ty` by using the `Enc` encoding.
 
-### `sts::q_param::noenc_member<typename T, typename ty, ty T::* member, ty (*func)()>`
+`sts::q_param::noenc_member<typename T, typename ty, ty T::* member, ty (*func)()>`
 
 Doesn't encode `member`, instead when decoding initialize `member` with `func()`.

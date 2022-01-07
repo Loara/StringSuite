@@ -72,29 +72,6 @@ public:
     }
 };
 
-/*
-template<size_t N, typename B, typename I>
-struct ct_log;
-
-template<size_t N>
-struct ct_log<N, std::index_sequence<>, std::index_sequence<>>{};
-
-template<size_t N, size_t a, size_t b, size_t... base, size_t... inc>
-struct ct_log<N, std::index_sequence<a, base...>, std::index_sequence<b, inc...>>{
-    static consteval size_t eval() noexcept{
-        if constexpr(N == b)
-            return a;
-        else
-            return ct_log<N, std::index_sequence<base...>, std::index_sequence<inc...>>::eval();
-    }
-};
-
-template<size_t... A, size_t... B>
-constexpr bool is_negative(const byte *b, std::index_sequence<A...>, std::index_sequence<B...>) noexcept{
-    return bit_one(b[ct_log<sizeof...(A) - 1, std::index_sequence<A...>, std::index_sequence<B...>>::eval()], 7);
-}
-*/
-
 template<size_t N>
 struct u_make_size;
 
@@ -146,7 +123,7 @@ constexpr T from_unsigned(const u_same_size_t<T> &t) noexcept{
  * Notice for signed integers: when sizeof(T) > N once you decode a number you should extend its sign
  * with 'constexpr void sts::extends_sign(Int &val) noexcept' function
  */
-template<typename T, unsigned int N, typename Seq> requires (!std::unsigned_integral<T>)
+template<typename T, unsigned int N, typename Seq> requires std::is_scalar_v<T> && (!std::unsigned_integral<T>)
 class Endian_enc_size<T, N, Seq>{
 public:
     static_assert(is_index_seq_of_len<Seq, N>, "Invalid endianess type");
