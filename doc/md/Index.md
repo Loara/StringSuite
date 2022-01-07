@@ -11,6 +11,7 @@ Use `#include <strsuite/encmetric.hpp>` inside your code in order to use these u
 * Pointer classes
 * [Strings](encmetric/strings.md)
 * [Included encodings](encmetric/encods.md)
+* [Serialization](encmetric/serialize.md)
 
 ## `io` module
 
