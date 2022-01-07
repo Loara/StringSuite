@@ -33,12 +33,12 @@ namespace sts{
         template<typename U>
         concept is_member = grab_member<U>::value;
 
-        template<typename U>
-        using grab_member_T = typename grab_member<U>::type;
-        template<typename U>
-        using grab_member_ty = typename grab_member<U>::member_type;
+        template<auto a>
+        using grab_member_T = typename grab_member<decltype(a)>::type;
+        template<auto a>
+        using grab_member_ty = typename grab_member<decltype(a)>::member_type;
 
-
+        /*
         template<typename>
         struct grab_fun : public std::false_type{};
 
@@ -52,14 +52,14 @@ namespace sts{
 
         template<typename U>
         using grab_fun_ret = typename grab_fun<U>::ret_type;
+        */
 
-
-        template<auto member, typename Enc = Endian_enc<false, grab_member_ty<decltype(member)> > >
+        template<auto member, typename Enc = Endian_enc<false, grab_member_ty<member> > >
         struct enc_member{
             static_assert(is_member<decltype(member)>, "Must pass a valid pointer to member");
 
-            using T = grab_member_T<decltype(member)>;
-            using ty = grab_member_ty<decltype(member)>;
+            using T = grab_member_T<member>;
+            using ty = grab_member_ty<member>;
 
             static_assert(strong_enctype_of<Enc, ty>, "Must be a valid class encoding");
 
@@ -85,7 +85,7 @@ namespace sts{
         template<auto member, auto func>
         struct noenc_member{
             static_assert(is_member<decltype(member)>, "Must pass a valid pointer to member");
-            using T = grab_member_T<decltype(member)>;
+            using T = grab_member_T<member>;
 
             static consteval uint g_min() noexcept{
                 return 0;
