@@ -21,8 +21,46 @@
 
 namespace sts{
     namespace q_param{
-        template<typename T, typename ty, ty T::* member, typename Enc = Endian_enc<false, ty>>
+        template<typename>
+        struct grab_member : public std::false_type{};
+
+        template<typename T, typename ty>
+        struct grab_member<ty T::*> : public std::true_type{
+            using type = T;
+            using member_type = ty;
+        };
+
+        template<typename U>
+        concept is_member = grab_member<U>::value;
+
+        template<typename U>
+        using grab_member_T = typename grab_member<U>::type;
+        template<typename U>
+        using grab_member_ty = typename grab_member<U>::member_type;
+
+
+        template<typename>
+        struct grab_fun : public std::false_type{};
+
+        template<typename ty>
+        struct grab_fun<ty (*)()> : public std::true_type{
+            using ret_type = ty;
+        };
+
+        template<typename U>
+        concept is_function = grab_fun<U>::value;
+
+        template<typename U>
+        using grab_fun_ret = typename grab_fun<U>::ret_type;
+
+
+        template<auto member, typename Enc = Endian_enc<false, grab_member_ty<decltype(member)> > >
         struct enc_member{
+            static_assert(is_member<decltype(member)>, "Must pass a valid pointer to member");
+
+            using T = grab_member_T<decltype(member)>;
+            using ty = grab_member_ty<decltype(member)>;
+
             static_assert(strong_enctype_of<Enc, ty>, "Must be a valid class encoding");
 
             static consteval uint g_min() noexcept{
@@ -44,8 +82,11 @@ namespace sts{
             }
         };
 
-        template<typename T, typename ty, ty T::* member, ty (*func)()>
+        template<auto member, auto func>
         struct noenc_member{
+            static_assert(is_member<decltype(member)>, "Must pass a valid pointer to member");
+            using T = grab_member_T<decltype(member)>;
+
             static consteval uint g_min() noexcept{
                 return 0;
             }
@@ -88,6 +129,8 @@ namespace sts{
 
         template<typename T, typename Par, typename... Pars>
         struct quick_enc_0<T, Par, Pars...>{
+            static_assert(std::same_as<T, typename Par::T>, "Pointer to member belonging to a different class");
+
             using next = quick_enc_0<T, Pars...>;
 
             static consteval uint g_min() noexcept{
