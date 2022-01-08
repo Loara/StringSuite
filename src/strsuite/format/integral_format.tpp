@@ -49,3 +49,39 @@
         }
     }
 
+template<typename Stream, std::integral I>
+void read_integer(Stream &in, I &val, uint base){
+    val = 0;
+    if(base < 2 || base > 36)
+        return;
+    bool sign = false;
+    bool pos = true;
+    unicode chr;
+    while(true){
+        try{
+             chr = in.ctype_read_ghost();
+        }
+        catch(IOEOF &){ break;}
+        if(chr == '+'_uni || chr == '-'_uni){
+            if(sign)
+                break;//already taken
+            //accept it
+            in.dis_char();
+            sign = true;
+            if(chr == '-'_uni)
+                pos = false;
+        }
+        else{
+            auto cnv = get_number<I>(chr, base);
+            if(!cnv)
+                break;
+            //accept it
+            in.dis_char();
+            val = val * static_cast<I>(base) + cnv.get();
+        }
+    }
+    if(!pos)
+        val = -val;
+
+}
+

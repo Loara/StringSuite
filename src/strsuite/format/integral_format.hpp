@@ -34,7 +34,7 @@ namespace sts{
 
         template<std::unsigned_integral I>
         constexpr unicode convert_unit(I i) const{
-            if(base >= 36)
+            if(base > 36)
                 throw out_of_range{"Invalid base"};
             I j = i % base;
             if(j < 10)
@@ -44,33 +44,36 @@ namespace sts{
             else
                 return static_cast<unicode>((j - 10u) + 'a');
         }
-
-        template<std::unsigned_integral I>
-        constexpr I get_number(unicode c) const{
-            if(base >= 36)
-                throw out_of_range{"Invalid base"};
-            I zer = static_cast<I>('0');
-            I A = static_cast<I>('A');
-            I a = static_cast<I>('a');
-            size_t val = static_cast<size_t>(c);
-            I ret;
-            if(val >= zer && val < zer + 10u)
-                ret = val - zer;
-            else if(val >= A && val < A + 26u)
-                ret = val - A + 10u;
-            else if(val >= a && val < a + 26u)
-                ret = val - a + 10u;
-            else
-                throw out_of_range{"Invalid number"};
-
-            if(ret >= base)
-                throw out_of_range{"Invalid number"};
-            return ret;
-        }
     };
+
+    template<std::integral I>
+    constexpr conditional_result<I> get_number(unicode c, uint base){
+        if(base < 2 || base > 36)
+            throw out_of_range{"Invalid base"};//Must throw in this case since is an option error
+        I zer = static_cast<I>('0');
+        I A = static_cast<I>('A');
+        I a = static_cast<I>('a');
+        size_t val = static_cast<size_t>(c);
+        I ret;
+        if(val >= zer && val < zer + 10u)
+            ret = val - zer;
+        else if(val >= A && val < A + 26u)
+            ret = val - A + 10u;
+        else if(val >= a && val < a + 26u)
+            ret = val - a + 10u;
+        else
+            return conditional_result{false, I(0)};
+
+        if(ret >= base)
+            return conditional_result{false, I(0)};
+        return conditional_result{true, ret};
+    }
 
     template<typename Stream, std::integral I>
     void write_integer(Stream &out, I val, const Int_opts &opt);
+
+    template<typename Stream, std::integral I>
+    void read_integer(Stream &in, I &val, uint base =10);
 
     struct IntFormatter{
         template<general_enctype T, std::integral I>

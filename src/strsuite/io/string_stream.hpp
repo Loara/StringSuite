@@ -64,6 +64,7 @@ namespace sts{
         uint char_write(const_tchar_pt<S>, size_t);
         template<general_enctype S>
         size_t string_write(const adv_string_view<S> &);
+        void dis_char();
 
         template<typename IStream> requires read_char_stream<IStream, T>
         uint get_char(IStream &);
@@ -81,11 +82,9 @@ namespace sts{
         template<write_byte_stream OBStream>
         void put_all_char_bytes(OBStream &);
 
-        //template<general_enctype R>
-        //size_t string_write_conv(const adv_string_view<R> &);
-
         uint ctype_write(const ctype &);
         ctype ctype_read();
+        ctype ctype_read_ghost();
         feat::Proxy_wrapper_ctype<T> light_ctype_read() requires strong_enctype<T>;
 
         EncMetric_info<T> raw_format() const noexcept { return format; }

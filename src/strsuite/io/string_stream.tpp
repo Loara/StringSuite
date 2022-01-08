@@ -261,6 +261,15 @@ uint string_stream<T>::char_write_conv_0(const_tchar_pt<R> pt, size_t buf){
     this->raw_las_step(ret);
     return ret;
 }
+
+template<general_enctype T>
+void string_stream<T>::dis_char(){
+    if(len == 0)
+        return;
+    uint in = this->get_chLen(format);
+    len--;
+    this->raw_fir_step(in);
+}
 /*
 template<general_enctype T>
 template<general_enctype R>
@@ -322,6 +331,16 @@ string_stream<T>::ctype string_stream<T>::ctype_read(){
     tuple_ret<ctype> r = format.decode(this->base + this->fir, this->siz);
     len--;
     this->raw_fir_step(get_len_el(r));
+    return get_chr_el(r);
+}
+
+template<general_enctype T>
+string_stream<T>::ctype string_stream<T>::ctype_read_ghost(){
+    if(len == 0)
+        throw IOEOF{};
+    tuple_ret<ctype> r = format.decode(this->base + this->fir, this->siz);
+    //len--;
+    //this->raw_fir_step(get_len_el(r));
     return get_chr_el(r);
 }
 
