@@ -19,6 +19,8 @@ To build and install the library you can run these commands:
     cmake --build build
     cmake --install build
 
+You can also customize your installation by using [build options](doc/md/bldopt.md).
+
 ## Arch Linux
 On Arch Linux you can use package `stringsuite` in AUR, additional informations can be found at https://aur.archlinux.org/packages/stringsuite/.
 

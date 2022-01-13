@@ -1,5 +1,8 @@
 # Index
 
+## General arguments
+
+* [Build options](bldopt.md)
 * [Size and length](meas.md)
 
 ## `encmetric` module

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(StringSuite VERSION 3.1 DESCRIPTION "Library to manage encoded strings" LANGUAGES CXX)
+project(StringSuite VERSION 3.1 DESCRIPTION "Library to manage encoded strings" HOMEPAGE_URL "https://github.com/Loara/StringSuite" LANGUAGES CXX)
 
 include (GNUInstallDirs)
 
@@ -18,23 +18,22 @@ set(gcc_like_cxx "$<COMPILE_LANG_AND_ID:CXX,ARMClang,AppleClang,Clang,GNU>")
 set(msvc_cxx "$<COMPILE_LANG_AND_ID:CXX,MSVC>")
 set(on_win "$<PLATFORM_ID:Windows>")
 
+#options
+option(INSTALL_HEADERS "Install also header files" ON)
+option(INSTALL_PKGCONFIG "Generate and install a pkg-config file" OFF)
 
 target_compile_options(lang_req INTERFACE
   "$<${gcc_like_cxx}:$<$<CONFIG:Debug>:-g;-Wall;-Wextra;-pedantic;-Werror>$<$<CONFIG:Release>:-O2>>"
   "$<${msvc_cxx}:$<$<CONFIG:Debug>:/Wall;/WX>>"
 )
 
-#option(debugging "Enable all warnings and set them as errors" OFF)
-#if(debugging)
-#add_compile_options(-g -Wall -Wextra -pedantic -Werror)
-#endif()
-
-if(CMAKE_SYSTEM_NAME MATCHES Win)
+#if(CMAKE_SYSTEM_NAME MATCHES Win)
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	#set(using_windows ON)
-	configure_file(win_enc_io_core.cpp.in sys_enc_io_core.cpp)
+	configure_file(win_enc_io_core.cpp.in sys_enc_io_core.cpp COPYONLY)
 else()
 	#set(using_windows OFF)
-	configure_file(linux_enc_io_core.cpp.in sys_enc_io_core.cpp)
+	configure_file(linux_enc_io_core.cpp.in sys_enc_io_core.cpp COPYONLY)
 endif()
 
 add_library(strsuite STATIC
@@ -60,6 +59,16 @@ target_compile_definitions(strsuite PRIVATE "$<${on_win}:using_windows>")
 
 #install
 install(TARGETS strsuite ARCHIVE)
+
+if(INSTALL_PKGCONFIG)
+
+configure_file(stringsuite.pc.in stringsuite.pc @ONLY)
+install(FILES "${CMAKE_BINARY_DIR}/stringsuite.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+
+endif()
+
+if(INSTALL_HEADERS)
+
 install(FILES "strsuite/encmetric/all_enc.hpp"
     "strsuite/encmetric/ascii_extensions.hpp"
     "strsuite/encmetric/config.hpp"
@@ -103,6 +112,7 @@ install(FILES "strsuite/tokens/tokens.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDI
 install(FILES "strsuite/format/integral_format.hpp"
     "strsuite/format/format_tmp.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/format)
 
+
 install(FILES "strsuite/encmetric/chite.tpp"
     "strsuite/encmetric/enc_string.tpp"
     "strsuite/encmetric/dynstring.tpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/encmetric)
@@ -113,6 +123,9 @@ install(FILES "strsuite/io/nl_stream.tpp"
 install(FILES "strsuite/format/integral_format.tpp"
     "strsuite/format/format_tmp.tpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/format)
 
+
 install(FILES "strsuite/encmetric.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite)
 install(FILES "strsuite/io.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite)
 install(FILES "strsuite/format.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite)
+
+endif()
