@@ -38,21 +38,7 @@ namespace sts{
         template<auto a>
         using grab_member_ty = typename grab_member<decltype(a)>::member_type;
 
-        /*
-        template<typename>
-        struct grab_fun : public std::false_type{};
 
-        template<typename ty>
-        struct grab_fun<ty (*)()> : public std::true_type{
-            using ret_type = ty;
-        };
-
-        template<typename U>
-        concept is_function = grab_fun<U>::value;
-
-        template<typename U>
-        using grab_fun_ret = typename grab_fun<U>::ret_type;
-        */
 
         template<auto member, typename Enc = Endian_enc<false, grab_member_ty<member> > >
         struct enc_member{
@@ -105,6 +91,40 @@ namespace sts{
             }
         };
 
+        template<size_t num, size_t N =4>
+        struct id_code{
+            static consteval uint g_min() noexcept{
+                return N;
+            }
+            static uint g_clen(const byte *, size_t){
+                return N;
+            }
+            static validation_result g_valid(const byte *b, size_t l) noexcept{
+                if(l < N)
+                    return validation_result{false, 0};
+                size_t val = Endian_enc<false, size_t, N>::decode_direct(b, l);
+                return validation_result{val == num, N};
+            }
+            static uint g_get(const byte *b, size_t l){
+                size_t val = Endian_enc<false, size_t, N>::decode_direct(b, l);
+                if(val != num)
+                    throw sts::incorrect_encoding{"Invalid control code inside encoded object"};
+                return N;
+            }
+            static uint g_set(byte *b, size_t l){
+                return Endian_enc<false, size_t, N>::encode(num, b, l);
+            }
+        };
+
+        template<typename>
+        inline constexpr bool is_id_code = false;
+
+        template<size_t a, size_t b>
+        inline constexpr bool is_id_code<id_code<a, b>> = true;
+
+        template<typename Par, typename T>
+        concept quick_enc_parameter = is_id_code<Par> || std::same_as<typename Par::T, T>;
+
         template<typename, typename...>
         struct quick_enc_0;
 
@@ -129,7 +149,7 @@ namespace sts{
 
         template<typename T, typename Par, typename... Pars>
         struct quick_enc_0<T, Par, Pars...>{
-            static_assert(std::same_as<T, typename Par::T>, "Pointer to member belonging to a different class");
+            static_assert(quick_enc_parameter<Par, T>, "Pointer to member belonging to a different class");
 
             using next = quick_enc_0<T, Pars...>;
 
@@ -156,11 +176,19 @@ namespace sts{
                     return validation_result{true, valid.get() + n.get()};
             }
             static uint g_get(T *oj, const byte *b, size_t s){
-                uint inc = Par::g_get(oj, b, s);
+                uint inc = 0;
+                if constexpr(is_id_code<Par>)
+                    inc = Par::g_get(b, s);
+                else
+                    inc = Par::g_get(oj, b, s);
                 return inc + next::g_get(oj, b+inc, s-inc);
             }
             static uint g_set(const T *oj, byte *b, size_t s){
-                uint inc = Par::g_set(oj, b, s);
+                uint inc = 0;
+                if constexpr(is_id_code<Par>)
+                    inc = Par::g_set(b, s);
+                else
+                    inc = Par::g_set(oj, b, s);
                 return inc + next::g_set(oj, b+inc, s-inc);
             }
         };

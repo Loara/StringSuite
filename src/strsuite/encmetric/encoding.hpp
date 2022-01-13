@@ -199,7 +199,9 @@ constexpr void assert_raw(){static_assert(!enc_raw<T>, "Using RAW format");}
  */
 namespace feat{
     template<typename T>
-    class has_max : public std::false_type{};
+    class has_max : public std::false_type{
+
+    };
 
     template<typename T> requires requires(){typename std::integral_constant<uint, T::max_bytes()>;}
     class has_max<T> : public std::true_type{
@@ -217,6 +219,30 @@ namespace feat{
 
     template<typename T> requires has_max<T>::value
     class fixed_size<T> : public std::bool_constant<T::min_bytes() == T::max_bytes()> {};
+
+    /*
+     * Decoding object without retrieving also its size. Redefine only if you can provide a more optimized algorithm instead of usual decoding one
+     */
+
+    template<typename Enc>
+    struct decode_direct_test : public std::false_type{
+        static_assert(strong_enctype<Enc>, "Not an encoding class");
+        using ctype = typename Enc::ctype;
+
+        static ctype decode(const byte *b, size_t l){
+            return get_chr_el(Enc::decode(b, l));
+        }
+    };
+
+    template<typename Enc> requires strong_enctype<Enc> && requires(const byte * const b, const size_t s){
+        {Enc::decode_direct(b, s)}->std::same_as<typename Enc::ctype> ;}
+    struct decode_direct_test<Enc> : public std::true_type{
+        using ctype = typename Enc::ctype;
+
+        static ctype decode(const byte *b, size_t l){
+            return Enc::decode_direct(b, l);
+        }
+    };
 
     /*
      * An encoding is opt_find if and only if there exists N>0 integer such that every encoded character can be divided in two consecutive regions:

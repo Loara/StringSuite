@@ -25,3 +25,7 @@ Encode and decode the member `member` of type `ty` by using the `Enc` encoding.
 `sts::q_param::noenc_member<ty T::* member, auto func>`
 
 Doesn't encode `member`, instead during decoding initialize `member` with the result of `func()`.
+
+`sts::q_param::id_code<size_t num, size_t N =4>`
+
+Encode number `num` by using `N` bytes with little-endian order. When decoding throws an `sts::incorrect_encoding` if the decoded number is not equal to `num`.

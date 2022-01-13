@@ -30,6 +30,7 @@ class EncMetric{
 		virtual uint d_chLen(const byte *, size_t) const=0;
 		virtual validation_result d_validChar(const byte *, size_t) const noexcept =0;
 		virtual tuple_ret<ctype> d_decode(const byte *, size_t) const =0;
+        virtual ctype d_decode_direct(const byte *, size_t) const =0;
 		virtual uint d_encode(const ctype &, byte *, size_t) const =0;
 
 		virtual bool d_has_max() const noexcept=0;
@@ -102,6 +103,7 @@ class DynEncoding : public EncMetric<typename T::ctype>{
 		validation_result d_validChar(const byte *b, size_t siz) const noexcept {return static_enc::validChar(b, siz);}
 
 		tuple_ret<ctype> d_decode(const byte *by, size_t l) const {return static_enc::decode(by, l);}
+		ctype d_decode_direct(const byte *by, size_t l) const {return feat::decode_direct_test<static_enc>::decode(by, l);}
 		uint d_encode(const ctype &uni, byte *by, size_t l) const {return static_enc::encode(uni, by, l);}
 
 		std::type_index index() const noexcept {return std::type_index{typeid(T)};}
@@ -159,7 +161,7 @@ class EncMetric_info{
 		validation_result validChar(const byte *b, size_t l) const noexcept {return T::validChar(b, l);}
 		[[nodiscard]] tuple_ret<ctype> decode(const byte *by, size_t l) const {return T::decode(by, l);}
 		ctype decode_direct(const byte *by, size_t l) const{
-            return get_chr_el(decode(by, l));
+            return feat::decode_direct_test<T>::decode(by, l);
         }
 		uint encode(const ctype &uni, byte *by, size_t l) const {return T::encode(uni, by, l);}
 		std::type_index index() const noexcept {return DynEncoding<T>::index();}
@@ -232,7 +234,7 @@ class EncMetric_info<WIDE<tt>>{
 		validation_result validChar(const byte *b, size_t l) const noexcept {return f->d_validChar(b, l);}
 		[[nodiscard]] tuple_ret<ctype> decode(const byte *by, size_t l) const {return f->d_decode(by, l);}
 		ctype decode_direct(const byte *by, size_t l) const{
-            return get_chr_el(decode(by, l));
+            return f->d_decode_direct(by, l);
         }
 		uint encode(const ctype &uni, byte *by, size_t l) const {return f->d_encode(uni, by, l);}
 		std::type_index index() const noexcept {return f->index();}
