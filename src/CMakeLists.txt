@@ -19,8 +19,13 @@ set(msvc_cxx "$<COMPILE_LANG_AND_ID:CXX,MSVC>")
 set(on_win "$<PLATFORM_ID:Windows>")
 
 #options
-option(INSTALL_HEADERS "Install also header files" ON)
-option(INSTALL_PKGCONFIG "Generate and install a pkg-config file" OFF)
+set(LIBRARY_DIR "${CMAKE_INSTALL_LIBDIR}" CACHE PATH "Library directory")
+
+option(INSTALL_HEADERS "Install header files" ON)
+set(HEADER_DIR "${CMAKE_INSTALL_INCLUDEDIR}" CACHE PATH "C++ header files directory")
+
+option(INSTALL_PKGCONFIG "Generate and install pkg-config manifest file" OFF)
+set(PKGCONFIG_DIR "${CMAKE_INSTALL_LIBDIR}/pkgconfig" CACHE PATH "Dpkg-config manifest files directory")
 
 target_compile_options(lang_req INTERFACE
   "$<${gcc_like_cxx}:$<$<CONFIG:Debug>:-g;-Wall;-Wextra;-pedantic;-Werror>$<$<CONFIG:Release>:-O2>>"
@@ -29,10 +34,8 @@ target_compile_options(lang_req INTERFACE
 
 #if(CMAKE_SYSTEM_NAME MATCHES Win)
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	#set(using_windows ON)
 	configure_file(win_enc_io_core.cpp.in sys_enc_io_core.cpp COPYONLY)
 else()
-	#set(using_windows OFF)
 	configure_file(linux_enc_io_core.cpp.in sys_enc_io_core.cpp COPYONLY)
 endif()
 
@@ -58,12 +61,12 @@ target_include_directories(strsuite PUBLIC "${PROJECT_SOURCE_DIR}")
 target_compile_definitions(strsuite PRIVATE "$<${on_win}:using_windows>")
 
 #install
-install(TARGETS strsuite ARCHIVE)
+install(TARGETS strsuite ARCHIVE DESTINATION ${LIBRARY_DIR})
 
 if(INSTALL_PKGCONFIG)
 
 configure_file(stringsuite.pc.in stringsuite.pc @ONLY)
-install(FILES "${CMAKE_BINARY_DIR}/stringsuite.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+install(FILES "${CMAKE_BINARY_DIR}/stringsuite.pc" DESTINATION ${PKGCONFIG_DIR})
 
 endif()
 
@@ -96,7 +99,7 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
     "strsuite/encmetric/jis.hpp"
     "strsuite/encmetric/win_codepages.hpp"
     "strsuite/encmetric/type_array.hpp"
-    "strsuite/encmetric/serialize.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/encmetric)
+    "strsuite/encmetric/serialize.hpp" DESTINATION ${HEADER_DIR}/strsuite/encmetric)
 
 install(FILES "strsuite/io/enc_io_core.hpp"
     "strsuite/io/enc_io_buffer.hpp"
@@ -105,27 +108,27 @@ install(FILES "strsuite/io/enc_io_core.hpp"
     "strsuite/io/string_stream.hpp"
     "strsuite/io/nl_stream.hpp"
     "strsuite/io/buffers.hpp"
-    "strsuite/io/cio_stream.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/io)
+    "strsuite/io/cio_stream.hpp" DESTINATION ${HEADER_DIR}/strsuite/io)
 
-install(FILES "strsuite/tokens/tokens.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/tokens)
+install(FILES "strsuite/tokens/tokens.hpp" DESTINATION ${HEADER_DIR}/strsuite/tokens)
 
 install(FILES "strsuite/format/integral_format.hpp"
-    "strsuite/format/format_tmp.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/format)
+    "strsuite/format/format_tmp.hpp" DESTINATION ${HEADER_DIR}/strsuite/format)
 
 
 install(FILES "strsuite/encmetric/chite.tpp"
     "strsuite/encmetric/enc_string.tpp"
-    "strsuite/encmetric/dynstring.tpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/encmetric)
+    "strsuite/encmetric/dynstring.tpp" DESTINATION ${HEADER_DIR}/strsuite/encmetric)
 
 install(FILES "strsuite/io/nl_stream.tpp"
-    "strsuite/io/string_stream.tpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/io)
+    "strsuite/io/string_stream.tpp" DESTINATION ${HEADER_DIR}/strsuite/io)
 
 install(FILES "strsuite/format/integral_format.tpp"
-    "strsuite/format/format_tmp.tpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite/format)
+    "strsuite/format/format_tmp.tpp" DESTINATION ${HEADER_DIR}/strsuite/format)
 
 
-install(FILES "strsuite/encmetric.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite)
-install(FILES "strsuite/io.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite)
-install(FILES "strsuite/format.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/strsuite)
+install(FILES "strsuite/encmetric.hpp" DESTINATION ${HEADER_DIR}/strsuite)
+install(FILES "strsuite/io.hpp" DESTINATION ${HEADER_DIR}/strsuite)
+install(FILES "strsuite/format.hpp" DESTINATION ${HEADER_DIR}/strsuite)
 
 endif()
