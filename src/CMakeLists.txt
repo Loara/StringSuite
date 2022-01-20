@@ -87,6 +87,7 @@ install(FILES "strsuite/encmetric/all_enc.hpp"
     "strsuite/encmetric/enc_string.hpp"
     "strsuite/encmetric/dynstring.hpp"
     "strsuite/encmetric/encoding.hpp"
+    "strsuite/encmetric/features.hpp"
     "strsuite/encmetric/encmetric.hpp"
     "strsuite/encmetric/exceptions.hpp"
     "strsuite/encmetric/iso8859_enc.hpp"
@@ -108,9 +109,8 @@ install(FILES "strsuite/io/enc_io_core.hpp"
     "strsuite/io/string_stream.hpp"
     "strsuite/io/nl_stream.hpp"
     "strsuite/io/buffers.hpp"
-    "strsuite/io/cio_stream.hpp" DESTINATION ${HEADER_DIR}/strsuite/io)
-
-install(FILES "strsuite/tokens/tokens.hpp" DESTINATION ${HEADER_DIR}/strsuite/tokens)
+    "strsuite/io/cio_stream.hpp"
+    "strsuite/io/tokens.hpp" DESTINATION ${HEADER_DIR}/strsuite/io)
 
 install(FILES "strsuite/format/integral_format.hpp"
     "strsuite/format/format_tmp.hpp" DESTINATION ${HEADER_DIR}/strsuite/format)

@@ -41,8 +41,9 @@ namespace sts{
 */
 template<general_enctype T, typename U, typename B>
 class base_tchar_pt{
+    public:
+        using data_type = B;
 	private:
-		using data_type_0 = B;
 		/*
 		    Static cast operations
 		*/
@@ -50,16 +51,14 @@ class base_tchar_pt{
 		U& instance() noexcept {return *(mycast());}
 		const U* mycast() const noexcept {return static_cast<const U*>(this);}
 		const U& instance() const noexcept {return *(mycast());}
-		U p_new_instance(data_type_0 *bin) const noexcept {return mycast()->new_instance(bin);}
+		U p_new_instance(data_type *bin) const noexcept {return mycast()->new_instance(bin);}
 
 	protected:
-		data_type_0 *ptr;
+		data_type *ptr;
 		[[no_unique_address]] EncMetric_info<T> ei;
-		explicit constexpr base_tchar_pt(data_type_0 *b, EncMetric_info<T> f) noexcept : ptr{b}, ei{f} {}
+		explicit constexpr base_tchar_pt(data_type *b, EncMetric_info<T> f) noexcept : ptr{b}, ei{f} {}
 	public:
-        using data_type = data_type_0;
-
-		using ctype = typename EncMetric_info<T>::ctype;
+		using ctype = typename T::ctype;
 		using static_enc = T;
 		/*
 		    Raw pointer
@@ -74,21 +73,7 @@ class base_tchar_pt{
 		constexpr bool has_max() const noexcept {return ei.has_max();}
 		constexpr uint max_bytes() const noexcept {return ei.max_bytes();}
 		bool is_fixed() const noexcept {return ei.is_fixed();}
-		uint chLen(size_t siz) const {return ei.chLen(ptr, siz);}
-		validation_result validChar(size_t l) const noexcept {return ei.validChar(ptr, l);}
-		std::tuple<uint, ctype> decode(size_t l) const {return ei.decode(ptr, l);}
-
 		std::type_index index() const noexcept {return ei.index();}
-		/*
-		    Step the pointer by 1 character, returns the number og bytes skipped
-		*/
-		uint next(size_t siz);
-		uint next_update(size_t &siz);
-		validation_result valid_next(size_t siz) noexcept;
-		validation_result valid_next_update(size_t &siz) noexcept;
-
-		tuple_ret<ctype> decode_next(size_t l);
-		tuple_ret<ctype> decode_next_update(size_t &l);
 		/*
 		    Access ptr as a byte array
 		*/
@@ -120,69 +105,83 @@ class base_tchar_pt{
 		bool operator!=(const U &oth) const {return ptr != oth.data();}		
 };
 
-/*
-    Adds the funstion wrapper from_unicode for rw pointers
-*/
-template<general_enctype T, typename U>
-class wbase_tchar_pt : public base_tchar_pt<T, U, byte>{
-	protected:
-		constexpr explicit wbase_tchar_pt(byte *b, EncMetric_info<T> f) noexcept : base_tchar_pt<T, U, byte>{b, f} {}
-	public:
-		uint encode(const typename base_tchar_pt<T, U, byte>::ctype &uni, size_t l) const {return this->ei.encode(uni, this->ptr, l);}
-		uint encode_next(const typename base_tchar_pt<T, U, byte>::ctype &uni, size_t l);
-		uint encode_next_update(const typename base_tchar_pt<T, U, byte>::ctype &uni, size_t &l);
-};
+template<typename T>
+concept char_ptr = std::same_as<T, char> || std::same_as<T, char8_t> || std::same_as<T, char16_t> || std::same_as<T, char32_t> || std::same_as<T, void>;
 
 /*
     Standard implementations
 */
 template<general_enctype T>
-class const_tchar_pt : public base_tchar_pt<T, const_tchar_pt<T>, byte const>{
+class tread_pt : public base_tchar_pt<T, tread_pt<T>, byte const>{
 	public:
-		constexpr explicit const_tchar_pt(const byte *c, EncMetric_info<T> f) noexcept : base_tchar_pt<T, const_tchar_pt<T>, byte const>{c, f} {}
+		constexpr explicit tread_pt(const byte *c, EncMetric_info<T> f) noexcept : base_tchar_pt<T, tread_pt<T>, byte const>{c, f} {}
 
-		constexpr explicit const_tchar_pt(const byte *b) noexcept requires not_widenc<T> : const_tchar_pt{b, EncMetric_info<T>{}} {}
-		constexpr explicit const_tchar_pt(const char *b)  noexcept requires not_widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{}} {}
-		constexpr explicit const_tchar_pt(const char8_t *b) noexcept requires not_widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{}} {}
-		constexpr explicit const_tchar_pt(const char16_t *b) noexcept requires not_widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{}} {}
-		constexpr explicit const_tchar_pt(const char32_t *b) noexcept requires not_widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{}} {}
-		constexpr explicit const_tchar_pt(std::nullptr_t) noexcept requires not_widenc<T> : const_tchar_pt{static_cast<const byte *>(nullptr), EncMetric_info<T>{}} {}
+		constexpr explicit tread_pt(const byte *b) noexcept requires not_widenc<T> : tread_pt{b, EncMetric_info<T>{}} {}
+		constexpr explicit tread_pt(std::nullptr_t) noexcept requires not_widenc<T> : tread_pt{static_cast<const byte *>(nullptr), EncMetric_info<T>{}} {}
+		template<typename pty>
+		constexpr explicit tread_pt(const pty *b)  noexcept requires not_widenc<T> && char_ptr<pty> : tread_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{}} {}
 
-		constexpr explicit const_tchar_pt(const byte *b, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : const_tchar_pt{b, EncMetric_info<T>{f}} {}
-		constexpr explicit const_tchar_pt(const char *b, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{f}} {}
-		constexpr explicit const_tchar_pt(const char8_t *b, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{f}} {}
-		constexpr explicit const_tchar_pt(const char16_t *b, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{f}} {}
-		constexpr explicit const_tchar_pt(const char32_t *b, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : const_tchar_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{f}} {}
-		constexpr explicit const_tchar_pt(std::nullptr_t, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : const_tchar_pt{static_cast<const byte *>(nullptr), EncMetric_info<T>{f}} {}
+		constexpr explicit tread_pt(const byte *b, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : tread_pt{b, EncMetric_info<T>{f}} {}
+		constexpr explicit tread_pt(std::nullptr_t, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : tread_pt{static_cast<const byte *>(nullptr), EncMetric_info<T>{f}} {}
+		template<typename pty>
+		constexpr explicit tread_pt(const pty *b, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> && char_ptr<pty> : tread_pt{reinterpret_cast<const byte *>(b), EncMetric_info<T>{f}} {}
 
-		const_tchar_pt new_instance(const byte *c) const noexcept{return const_tchar_pt<T>{c, this->ei};}
+		tread_pt new_instance(const byte *c) const noexcept{return tread_pt<T>{c, this->ei};}
+
+		//------------------
+
+		using typename base_tchar_pt<T, tread_pt<T>, byte const>::ctype;
+
+		uint chLen(size_t siz) const {return this->ei.chLen(this->ptr, siz);}
+		validation_result validChar(size_t l) const noexcept {return this->ei.validChar(this->ptr, l);}
+		std::tuple<uint, ctype> decode(size_t l) const {return this->ei.decode(this->ptr, l);}
+
+		/*
+		    Step the pointer by 1 character, returns the number og bytes skipped
+		*/
+		uint next(size_t siz);
+		uint next_update(size_t &siz);
+		validation_result valid_next(size_t siz) noexcept;
+		validation_result valid_next_update(size_t &siz) noexcept;
+
+		tuple_ret<ctype> decode_next(size_t l);
+		tuple_ret<ctype> decode_next_update(size_t &l);
 };
 
 template<general_enctype T>
-class tchar_pt : public wbase_tchar_pt<T, tchar_pt<T>>{
+using const_tchar_pt = tread_pt<T>;
+
+template<general_enctype T>
+class twrite_pt : public base_tchar_pt<T, twrite_pt<T>, byte>{
 	public:
-		constexpr explicit tchar_pt(byte *c, EncMetric_info<T> f) noexcept : wbase_tchar_pt<T, tchar_pt<T>>{c, f} {}
+		constexpr explicit twrite_pt(byte *c, EncMetric_info<T> f) noexcept : base_tchar_pt<T, twrite_pt<T>, byte>{c, f} {}
 
-		constexpr explicit tchar_pt(byte *b) noexcept requires not_widenc<T> : tchar_pt{b, EncMetric_info<T>{}} {}
-		constexpr explicit tchar_pt(char *b) noexcept requires not_widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{}} {}
-		constexpr explicit tchar_pt(char8_t *b) noexcept requires not_widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{}} {}
-		constexpr explicit tchar_pt(char16_t *b) noexcept requires not_widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{}} {}
-		constexpr explicit tchar_pt(char32_t *b) noexcept requires not_widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{}} {}
-		constexpr explicit tchar_pt(std::nullptr_t) noexcept requires not_widenc<T> : tchar_pt{static_cast<byte *>(nullptr), EncMetric_info<T>{}} {}
+		constexpr explicit twrite_pt(byte *b) noexcept requires not_widenc<T> : twrite_pt{b, EncMetric_info<T>{}} {}
+		constexpr explicit twrite_pt(std::nullptr_t) noexcept requires not_widenc<T> : twrite_pt{static_cast<byte *>(nullptr), EncMetric_info<T>{}} {}
+		template<typename pty>
+		constexpr explicit twrite_pt(pty *b) noexcept requires not_widenc<T> && char_ptr<pty> : twrite_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{}} {}
 
 
-		constexpr explicit tchar_pt(byte *b, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : tchar_pt{b, EncMetric_info<T>{f}} {}
-		constexpr explicit tchar_pt(char *b, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{f}} {}
-		constexpr explicit tchar_pt(char8_t *b, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{f}} {}
-		constexpr explicit tchar_pt(char16_t *b, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{f}} {}
-		constexpr explicit tchar_pt(char32_t *b, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : tchar_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{f}} {}
-		constexpr explicit tchar_pt(std::nullptr_t, EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : tchar_pt{static_cast<byte *>(nullptr), EncMetric_info<T>{f}} {}
+		constexpr explicit twrite_pt(byte *b, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : twrite_pt{b, EncMetric_info<T>{f}} {}
+		constexpr explicit twrite_pt(std::nullptr_t, EncMetric<typename T::ctype> *f) noexcept requires widenc<T> : twrite_pt{static_cast<byte *>(nullptr), EncMetric_info<T>{f}} {}
+		template<typename pty>
+		constexpr explicit twrite_pt(pty *b, const EncMetric<typename T::ctype> *f) noexcept requires widenc<T> && char_ptr<pty> : twrite_pt{reinterpret_cast<byte *>(b), EncMetric_info<T>{f}} {}
 
-		constexpr const_tchar_pt<T> cast() const noexcept{ return const_tchar_pt<T>{this->ptr, this->ei};}
-		constexpr operator const_tchar_pt<T>() const noexcept{ return cast();}
+		constexpr tread_pt<T> cast() const noexcept{ return tread_pt<T>{this->ptr, this->ei};}
 
-		tchar_pt new_instance(byte *c) const noexcept{return tchar_pt<T>{c, this->ei};}
+		twrite_pt new_instance(byte *c) const noexcept{return twrite_pt<T>{c, this->ei};}
+
+		//--------------------
+
+		using typename base_tchar_pt<T, twrite_pt<T>, byte>::ctype;
+
+		uint encode(const ctype &uni, size_t l) const {return this->ei.encode(uni, this->ptr, l);}
+		uint encode_next(const ctype &uni, size_t l);
+		uint encode_next_update(const ctype &uni, size_t &l);
 };
+
+template<general_enctype T>
+using tchar_pt = twrite_pt<T>;
 
 //---------------------------------------------
 
@@ -192,12 +191,12 @@ class tchar_pt : public wbase_tchar_pt<T, tchar_pt<T>>{
 template<general_enctype T>
 class tchar_relative{
     private:
-        const tchar_pt<T> &ptr;
+        const twrite_pt<T> &ptr;
         std::size_t dif;
     public:
         using ctype = typename T::ctype;
-        constexpr tchar_relative(const tchar_pt<T> &fr, std::size_t t = 0) noexcept : ptr{fr}, dif{t} {}
-        constexpr tchar_relative(tchar_pt<T> &&, std::size_t = 0) =delete;
+        constexpr tchar_relative(const twrite_pt<T> &fr, std::size_t t = 0) noexcept : ptr{fr}, dif{t} {}
+        constexpr tchar_relative(twrite_pt<T> &&, std::size_t = 0) =delete;
 
         constexpr tchar_relative(const tchar_relative &e) noexcept : ptr{e.ptr}, dif{e.dif} {}
 
@@ -227,7 +226,7 @@ class tchar_relative{
 		tuple_ret<ctype> decode_next_update(size_t &l);
 		uint encode_next_update(const ctype &uni, size_t &l);
 
-		tchar_pt<T> convert() const noexcept {return ptr.new_instance(data());}
+		twrite_pt<T> convert() const noexcept {return ptr.new_instance(data());}
 		tchar_relative operator+(std::size_t t) const{
             return tchar_relative(ptr, dif + t);
         }
@@ -240,7 +239,7 @@ class tchar_relative{
 //---------------------------------------------
 
 template<general_enctype S, general_enctype T>
-bool sameEnc(const const_tchar_pt<S> &s, const const_tchar_pt<T> &t) noexcept{
+bool sameEnc(const tread_pt<S> &s, const tread_pt<T> &t) noexcept{
     return s.raw_format().equalTo(t.raw_format());
 }
 
@@ -248,58 +247,57 @@ bool sameEnc(const const_tchar_pt<S> &s, const const_tchar_pt<T> &t) noexcept{
     Assign an encoding to a RAW character pointer
 */
 template<typename tt>
-inline tchar_pt<WIDE<tt>> set_encoding(tchar_pt<RAW<tt>> r, const EncMetric<tt> *f) noexcept {return tchar_pt<WIDE<tt>>{r.data(), f};}
+inline twrite_pt<WIDE<tt>> set_encoding(twrite_pt<RAW<tt>> r, const EncMetric<tt> *f) noexcept {return twrite_pt<WIDE<tt>>{r.data(), f};}
 template<typename tt>
-inline const_tchar_pt<WIDE<tt>> set_encoding(const_tchar_pt<RAW<tt>> r, const EncMetric<tt> *f) noexcept {return const_tchar_pt<WIDE<tt>>{r.data(), f};}
+inline tread_pt<WIDE<tt>> set_encoding(tread_pt<RAW<tt>> r, const EncMetric<tt> *f) noexcept {return tread_pt<WIDE<tt>>{r.data(), f};}
 
 /*
  * S should be a base for T
  */
 template<general_enctype T, general_enctype S>
-bool can_rebase_pointer(const_tchar_pt<S> from, EncMetric_info<T> f) noexcept{
+bool can_rebase_pointer(tread_pt<S> from, EncMetric_info<T> f) noexcept{
     return from.raw_format().base_for(f);
 }
 template<general_enctype T, general_enctype S>
-void assert_rebase_pointer(const_tchar_pt<S> from, EncMetric_info<T> f){
+void assert_rebase_pointer(tread_pt<S> from, EncMetric_info<T> f){
     from.raw_format().assert_base_for(f);
 }
 template<general_enctype T, general_enctype S>
-const_tchar_pt<T> rebase_pointer(const_tchar_pt<S> from, EncMetric_info<T> f){
+tread_pt<T> rebase_pointer(tread_pt<S> from, EncMetric_info<T> f){
     from.raw_format().assert_base_for(f);
-    return const_tchar_pt<T>{from.data(), f};
+    return tread_pt<T>{from.data(), f};
 }
-
+/*
+ * twrite_pt is thought only to perform write-only operations
 template<general_enctype T, general_enctype S>
-tchar_pt<T> rebase_pointer(tchar_pt<S> from, EncMetric_info<T> f){
+twrite_pt<T> rebase_pointer(twrite_pt<S> from, EncMetric_info<T> f){
     from.raw_format().assert_base_for(f);
-    return tchar_pt<T>{from.data(), f};
+    return twrite_pt<T>{from.data(), f};
 }
+*/
 
 /*
- * Use this method only if you want to write characters onto from
- * so if you want to write an ASCII character on tchar_pt<UTF8> use this function
+ * Use this method only if you want to write characters onto to
+ * so if you want to write an ASCII character on twrite_pt<UTF8> use this function
  * to convert it
  */
 template<general_enctype T, general_enctype S>
-void assert_inv_rebase_pointer(tchar_pt<S> to, EncMetric_info<T> f){
+void assert_inv_rebase_pointer(twrite_pt<S> to, EncMetric_info<T> f){
     f.assert_base_for(to.raw_format());
 }
 template<general_enctype T, general_enctype S>
-tchar_pt<T> inv_rebase_pointer(tchar_pt<S> to, EncMetric_info<T> f){
+twrite_pt<T> inv_rebase_pointer(twrite_pt<S> to, EncMetric_info<T> f){
     f.assert_base_for(to.raw_format());
-    return tchar_pt<T>{to.data(), f};
+    return twrite_pt<T>{to.data(), f};
 }
 
 /*
     Estimate the size of a possible string with n characters
 */
 template<general_enctype T>
-uint min_size_estimate(const_tchar_pt<T>, uint) noexcept;
+uint min_size_estimate(tread_pt<T>, uint) noexcept;
 template<general_enctype T>
-uint max_size_estimate(const_tchar_pt<T>, uint);
-
-using c_wchar_pt = const_tchar_pt<WIDE<unicode>>;
-using wchar_pt = tchar_pt<WIDE<unicode>>;
+uint max_size_estimate(tread_pt<T>, uint);
 
 #include <strsuite/encmetric/chite.tpp>
 }

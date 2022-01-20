@@ -71,6 +71,12 @@ concept read_char_stream = general_enctype<S> &&  requires(T stream, const tchar
     };
 
 template<typename T, typename S>
+concept read_ctype_char_stream = read_char_stream<T, S> && requires(T stream){
+        {stream.ctype_read()}->std::convertible_to<typename S::ctype>;
+        {stream.ctype_read_ghost()}->std::convertible_to<typename S::ctype>;
+    };
+
+template<typename T, typename S>
 concept write_char_stream = general_enctype<S> && requires(T stream){
         stream.flush();
     }
@@ -78,6 +84,11 @@ concept write_char_stream = general_enctype<S> && requires(T stream){
         {stream.char_write(dat, siz)}->std::convertible_to<uint>;
         {stream.char_write(vdat, siz)}->std::convertible_to<uint>;
         {stream.string_write(str)}->std::convertible_to<size_t>;
+    };
+
+template<typename T, typename S>
+concept write_ctype_char_stream = write_char_stream<T, S> && requires(T stream, const typename S::ctype obj){
+        {stream.ctype_write(obj)}->std::convertible_to<uint>;
     };
 
 /*

@@ -20,23 +20,23 @@
 
 namespace sts{
 
-extern template class tchar_pt<ASCII>;
-extern template class const_tchar_pt<ASCII>;
+extern template class twrite_pt<ASCII>;
+extern template class tread_pt<ASCII>;
 extern template class adv_string_view<ASCII>;
 extern template class adv_string<ASCII>;
 
-extern template class tchar_pt<UTF8>;
-extern template class const_tchar_pt<UTF8>;
+extern template class twrite_pt<UTF8>;
+extern template class tread_pt<UTF8>;
 extern template class adv_string_view<UTF8>;
 extern template class adv_string<UTF8>;
 
-extern template class tchar_pt<UTF16SYS>;
-extern template class const_tchar_pt<UTF16SYS>;
+extern template class twrite_pt<UTF16SYS>;
+extern template class tread_pt<UTF16SYS>;
 extern template class adv_string_view<UTF16SYS>;
 extern template class adv_string<UTF16SYS>;
 
-extern template class tchar_pt<UTF32SYS>;
-extern template class const_tchar_pt<UTF32SYS>;
+extern template class twrite_pt<UTF32SYS>;
+extern template class tread_pt<UTF32SYS>;
 extern template class adv_string_view<UTF32SYS>;
 extern template class adv_string<UTF32SYS>;
 

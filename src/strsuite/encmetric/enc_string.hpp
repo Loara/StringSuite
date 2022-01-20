@@ -32,16 +32,17 @@ using terminate_func = std::function<bool(const byte *, const EncMetric_info<T> 
 better a costrained class
 */
 template<typename FuncType, typename T>
-concept is_terminate_func = requires(const FuncType &ft, const byte *b, const EncMetric_info<T> &info, const size_t &siz){
-    {ft(b, info, siz)}->std::same_as<bool>;
+concept is_terminate_func = requires(const FuncType &ft, const const_tchar_pt<T> ptr, const size_t siz){
+    {ft(ptr, siz)}->std::same_as<bool>;
 };
 
 /*
  * Basic terminate function: string is terminated if and only if the encoded character is all 0 bytes
  */
 template<general_enctype T>
-bool zero_terminating(const byte *data, const EncMetric_info<T> &format, size_t){
-    uint size = format.min_bytes();
+bool zero_terminating(const_tchar_pt<T> ptr, size_t){
+    uint size = ptr.min_bytes();
+    auto data = ptr.data();
 	for(uint i=0; i<size; i++){
 		if(data[i] != byte{0})
 			return false;
@@ -54,11 +55,11 @@ bool zero_terminating(const byte *data, const EncMetric_info<T> &format, size_t)
  * WARNING: control up to st characters and may throw if the string is not correctly encoded
  */
 template<general_enctype T>
-bool encoding_terminating(const byte *data, const EncMetric_info<T> &format, size_t st){
+bool encoding_terminating(const_tchar_pt<T> ptr, size_t st){
     using ctype = typename T::ctype;
     ctype cha;
     try{
-        std::tie(std::ignore, cha) = format.decode(data, st);
+        std::tie(std::ignore, cha) = ptr.decode(st);
     }
     catch(const buffer_small &){
         return false;
@@ -66,16 +67,23 @@ bool encoding_terminating(const byte *data, const EncMetric_info<T> &format, siz
     return cha == ctype{0};
 }
 
+/*
+ * length is not automatically computed when you create a string, but it's lazily computed when needed.
+ */
 template<general_enctype T>
 class adv_string_view{
 	private:
 		const_tchar_pt<T> ptr;
-		size_t len;//character number
 		size_t siz;//bytes number
-	protected:
-		explicit adv_string_view(size_t length, size_t size, const_tchar_pt<T> bin) noexcept : ptr{bin}, len{length}, siz{size} {}
-	public:
+		mutable size_t len;//character number, lazily evaluated
+		mutable size_t ded_siz;
 
+		void step_internal() const;
+        //void deduce_len() const;
+        void set_length(size_t) const noexcept;
+	protected:
+		explicit adv_string_view(size_t length, size_t size, const_tchar_pt<T> bin, size_t ds) noexcept : ptr{bin}, siz{size}, len{length}, ded_siz{ds} {}
+	public:
         using ctype = typename T::ctype;
 
         class placeholder{
@@ -83,12 +91,17 @@ class adv_string_view{
             const byte *start;
             size_t siz, len;
             placeholder(const byte *p, size_t s, size_t l) : start{p}, siz{s}, len{l} {}
+            placeholder(const byte *p, size_t s) : start{p}, siz{s}, len{0} {}
+
+            bool is_len_defined() const noexcept;
         public:
+            placeholder(const placeholder &) =default;
             ~placeholder() {}
+
+            placeholder &operator=(const placeholder &) =default;
 
             const byte *data() const noexcept;
             size_t nbytes() const noexcept;
-            size_t nchr() const noexcept;
 
             bool comparable(const placeholder &p) const noexcept{
                 return start == p.start;
@@ -98,14 +111,21 @@ class adv_string_view{
                 if(!comparable(p))
                     return std::partial_ordering::unordered;
                 else
-                    return len <=> p.len;
+                    return siz <=> p.siz;
             }
 
             bool operator==(const placeholder &p) const noexcept { return (*this <=> p) == 0;}
             friend class adv_string_view<T>;
         };
 
-        explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz);
+        struct ded_type{
+            size_t siz;
+            size_t len;
+        };
+
+        ded_type get_ded_length() const noexcept {return ded_type{ded_siz, len};}
+
+        explicit adv_string_view(const_tchar_pt<T>, size_t siz);
 
         template<typename FuncType>
 		explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz, const FuncType &);
@@ -114,27 +134,28 @@ class adv_string_view{
 		*/
 		explicit adv_string_view(const_tchar_pt<T>, size_t maxsiz, size_t maxlen);
 
-        explicit adv_string_view(EncMetric_info<T> f) : adv_string_view{0, 0, const_tchar_pt{nullptr, f}} {}
+        explicit adv_string_view(EncMetric_info<T> f) : adv_string_view{0, 0, const_tchar_pt{nullptr, f}, 0} {}
         explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz} {}
         template<typename FuncType>
 		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz, const FuncType &tf) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, tf} {}
-		explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz, size_t maxlen) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, maxlen} {}
+		//explicit adv_string_view(const byte *b, EncMetric_info<T> f, size_t maxsiz, size_t maxlen) : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, maxlen{}
+		// not so useful
 
         explicit adv_string_view() requires strong_enctype<T> : adv_string_view{EncMetric_info<T>{}} {}
 		template<typename U>
         explicit adv_string_view(const U *b, size_t maxsiz) requires strong_enctype<T> : adv_string_view{const_tchar_pt<T>{b}, maxsiz} {}
 		template<typename U, typename FuncType>
 		explicit adv_string_view(const U *b, size_t maxsiz, const FuncType &tf) requires strong_enctype<T> : adv_string_view{const_tchar_pt<T>{b}, maxsiz, tf} {}
-		template<typename U>
-		explicit adv_string_view(const U *b, size_t siz, size_t len) requires strong_enctype<T> : adv_string_view{const_tchar_pt<T>{b}, siz, len} {}
+		//template<typename U>
+		//explicit adv_string_view(const U *b, size_t siz, size_t len) requires strong_enctype<T> : adv_string_view{const_tchar_pt<T>{b}, siz, len} {}
 
         explicit adv_string_view(const EncMetric<typename T::ctype> *f) requires widenc<T> : adv_string_view{EncMetric_info<T>{f}} {}
 		template<typename U>
         explicit adv_string_view(const U *b, size_t maxsiz, const EncMetric<typename T::ctype> *f) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz} {}
 		template<typename U, typename FuncType>
 		explicit adv_string_view(const U *b, size_t maxsiz, const EncMetric<typename T::ctype> *f, const FuncType &tf) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, maxsiz, tf} {}
-		template<typename U>
-		explicit adv_string_view(const U *b, const EncMetric<typename T::ctype> *f, size_t siz, size_t len) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, siz, len} {}
+		//template<typename U>
+		//explicit adv_string_view(const U *b, const EncMetric<typename T::ctype> *f, size_t siz, size_t len) requires widenc<T> : adv_string_view{const_tchar_pt<T>{b, f}, siz, len} {}
 
 		virtual ~adv_string_view() {}
 		/*
@@ -152,11 +173,15 @@ class adv_string_view{
          */
         template<general_enctype S>
         constexpr bool can_rebase(EncMetric_info<S>) const noexcept;
+
         template<general_enctype S>
         adv_string_view<S> rebase(EncMetric_info<S>) const;
+
         template<strong_enctype S>
         adv_string_view<S> rebase() const {return rebase(EncMetric_info<S>{});}
+
         adv_string_view<WIDE<ctype>> rebase(const EncMetric<ctype> *denc) const {return rebase(EncMetric_info<WIDE<ctype>>{denc});}
+
         template<general_enctype S>
         adv_string_view<S> rebase_as(const adv_string_view<S> &as) const{ return rebase(as.raw_format());}
 
@@ -189,10 +214,16 @@ class adv_string_view{
 		adv_string_view<T> substring(placeholder b) const;
 		adv_string_view<T> substring(size_t b) const;
 
-		size_t length() const noexcept {return len;}
+        bool empty() const noexcept{ return siz == 0;}
+        void det_length() const;
+        void det_length(placeholder &) const;
+		size_t length() const;
 		size_t size() const noexcept {return siz;}
-		size_t size(size_t a, size_t n) const;
-		size_t size(size_t n) const {return size(0, n);}
+		size_t size(placeholder, size_t n) const;
+		size_t size(size_t a, size_t n) const {return size(select(a), n); }
+		size_t size(size_t n) const {return size(select_begin(), n);}
+		size_t rem_siz(placeholder) const;
+        size_t rem_siz(size_t a) const {return rem_siz(select(a)); }
 
 		template<general_enctype S>
 		bool equal_to(const adv_string_view<S> &, size_t n) const;//compare only the first n character
@@ -206,19 +237,7 @@ class adv_string_view{
 		std::weak_ordering operator<=>(const adv_string_view<S> &) const;
 
 		template<general_enctype S>
-		bool operator==(const adv_string_view<S> &t) const {return (*this <=> t) == 0;}
-		/*
-		template<general_enctype S>
-		bool operator!=(const adv_string_view<S> &t) const {return !(*this == t);}
-		template<general_enctype S>
-		bool operator>(const adv_string_view<S> &t) const {return (*this <=> t) > 0;}
-		template<general_enctype S>
-		bool operator<(const adv_string_view<S> &t) const {return (*this <=> t) < 0;}
-		template<general_enctype S>
-		bool operator>=(const adv_string_view<S> &t) const {return (*this <=> t) >= 0;}
-		template<general_enctype S>
-		bool operator<=(const adv_string_view<S> &t) const {return (*this <=> t) <= 0;}
-		*/
+		bool operator==(const adv_string_view<S> &t) const;
 
 		template<general_enctype S>
 		index_result bytesOf(const adv_string_view<S> &) const;
@@ -262,7 +281,10 @@ class adv_string_view{
         template<typename Container>
         void get_all_char(Container &) const;
 
-	friend adv_string_view<T> direct_build<T>(const_tchar_pt<T> ptr, size_t len, size_t siz) noexcept;
+        friend adv_string_view<T> direct_build<T>(const_tchar_pt<T> , size_t , size_t ) noexcept;
+
+        template<general_enctype S>
+        friend class adv_string_view;
 };
 
 /*
@@ -272,10 +294,11 @@ class adv_string_view{
  */
 template<general_enctype T>
 adv_string_view<T> direct_build(const_tchar_pt<T> ptr, size_t len, size_t siz) noexcept{
-    return adv_string_view<T>{len, siz, ptr};
+    return adv_string_view<T>{len, siz, ptr, siz};
 }
 
-using wstr_view = adv_string_view<WIDE<unicode>>;
+
+using adv_wstr_view = adv_string_view<WIDE<unicode>>;
 
 #include <strsuite/encmetric/enc_string.tpp>
 }

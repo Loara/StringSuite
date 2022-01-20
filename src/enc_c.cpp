@@ -17,22 +17,22 @@
 */
 #include <strsuite/encmetric/enc_c_0.hpp>
 
-template class sts::tchar_pt<sts::ASCII>;
-template class sts::const_tchar_pt<sts::ASCII>;
+template class sts::twrite_pt<sts::ASCII>;
+template class sts::tread_pt<sts::ASCII>;
 template class sts::adv_string_view<sts::ASCII>;
 template class sts::adv_string<sts::ASCII>;
 
-template class sts::tchar_pt<sts::UTF8>;
-template class sts::const_tchar_pt<sts::UTF8>;
+template class sts::twrite_pt<sts::UTF8>;
+template class sts::tread_pt<sts::UTF8>;
 template class sts::adv_string_view<sts::UTF8>;
 template class sts::adv_string<sts::UTF8>;
 
-template class sts::tchar_pt<sts::UTF16SYS>;
-template class sts::const_tchar_pt<sts::UTF16SYS>;
+template class sts::twrite_pt<sts::UTF16SYS>;
+template class sts::tread_pt<sts::UTF16SYS>;
 template class sts::adv_string_view<sts::UTF16SYS>;
 template class sts::adv_string<sts::UTF16SYS>;
 
-template class sts::tchar_pt<sts::UTF32SYS>;
-template class sts::const_tchar_pt<sts::UTF32SYS>;
+template class sts::twrite_pt<sts::UTF32SYS>;
+template class sts::tread_pt<sts::UTF32SYS>;
 template class sts::adv_string_view<sts::UTF32SYS>;
 template class sts::adv_string<sts::UTF32SYS>;

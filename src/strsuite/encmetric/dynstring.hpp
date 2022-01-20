@@ -26,12 +26,12 @@ class adv_string : public adv_string_view<T>{
 	private:
 		basic_ptr bind;
 
-		adv_string(const_tchar_pt<T>, size_t, size_t, basic_ptr);
+		adv_string(const_tchar_pt<T>, size_t, size_t, basic_ptr, size_t);
 
 		/*
 			USE WITH EXTREME CARE
 		*/
-		adv_string(EncMetric_info<T>, size_t len, size_t siz, basic_ptr data);
+		adv_string(EncMetric_info<T>, size_t len, size_t siz, basic_ptr data, size_t ded);
 	public:
 		adv_string(const adv_string_view<T> &, std::pmr::memory_resource *alloc);
 		adv_string(const adv_string<T> &me) : adv_string{static_cast<const adv_string_view<T> &>(me), me.get_allocator()} {}
@@ -47,7 +47,7 @@ class adv_string : public adv_string_view<T>{
 
 template<general_enctype T>
 adv_string<T> direct_build_dyn(basic_ptr data, size_t len, size_t siz, EncMetric_info<T> enc){
-    return adv_string<T>{enc, len, siz, std::move(data)};
+    return adv_string<T>{enc, len, siz, std::move(data), siz};
 }
 
 
@@ -83,7 +83,7 @@ adv_string<T> alloc_string(const U *b, const EncMetric<typename T::ctype> *f, si
         return adv_string<T>{adv_string_view<T>{new_const_pt<T>(b, f), siz, len}, alloc};
 }
 
-using wstr = adv_string<WIDEchr>;
+using adv_wstr = adv_string<WIDEchr>;
 
 #include <strsuite/encmetric/dynstring.tpp>
 }
