@@ -30,7 +30,49 @@ class Token{
 		adv_string_view<T> data;
         using placeholder = typename adv_string_view<T>::placeholder;
         placeholder b, e, end;
+
+        void rec_find(const adv_string_view<T> &, bool &b, size_t &) const noexcept{
+            b = false;
+        }
+
+        template<typename S, typename...Ty>
+        void rec_find(const adv_string_view<T> &chr, bool &b, size_t &ret, const adv_string_view<S> & cu, const adv_string_view<Ty> &... next) const{
+            if(cu.containsChar(chr)){
+                b = true;
+            }
+            else{
+                ret++;
+                rec_find(chr, b, ret, next...);
+            }
+        }
+
 	public:
+
+        /*
+         * Type returned by goUp and goUntil
+         */
+
+        struct path_finder{
+            /*
+             * True if e has not increased
+             */
+            bool eof_init;
+            /*
+             * True if originally e != end but now these are equal
+             */
+            bool eof_ter;
+            /*
+             * Index of the first string in which delimited character was found
+             * set to 0 by goUntil
+             */
+            size_t idx;
+
+            bool eof() const noexcept{ return eof_init || eof_ter; }
+            bool found() const noexcept{ return !eof_init && !eof_ter; }
+
+            operator bool() const noexcept{ return !eof_init;}
+        };
+
         template<general_enctype S>
 		Token(const adv_string_view<S> &main, EncMetric_info<T> info) : data{main.rebase(info)}, b{data.select_begin()}, e{data.select_begin()}, end{data.select_end()} {
             data.verify();
@@ -60,30 +102,40 @@ class Token{
 		/*
          * Steps the token pointer until it encounter a character contained in the argumet
          */
-        template<general_enctype S>
-		bool goUp(const adv_string_view<S> &delim){
+        template<typename... Ty>
+		path_finder goUp(const adv_string_view<Ty> &... delim){
 			if(e == end)
-				return false;
-			while(!delim.containsChar(e)){
-				e.next();
-				if(e == end)
-					return false;
-			}
-			return true;
+				return path_finder{true, false, 0};
+            while(true){
+                bool find = false;
+                size_t idx = 0;
+                auto chr = data.substring(e, end);
+                rec_find(chr, find, idx, delim...);
+                if(find)
+                    return path_finder{false, false, idx};
+                if(data.select_next_eof(e))
+                    break;
+            }
+            return path_finder{false, true, 0};
 		}
 		/*
          * Steps the token pointer until it encounter a character NOT contained in the argumet
          */
-        template<general_enctype S>
-		bool goUntil(const adv_string_view<S> &delim){
+        template<typename... Ty>
+		path_finder goUntil(const adv_string_view<Ty> &... delim){
 			if(e == end)
-				return false;
-			while(delim.containsChar(e)){
-				e.next();
-				if(e == end)
-					return false;
-			}
-			return true;
+				return path_finder{true, false, 0};
+            while(true){
+                bool find = false;
+                size_t idx = 0;
+                auto chr = data.substring(e, end);
+                rec_find(chr, find, idx, delim...);
+                if(!find)
+                    return path_finder{false, false, 0};
+                if(data.select_next_eof(e))
+                    break;
+            }
+            return path_finder{false, true, 0};
 		}
 		/*
          * Get a view of token delimited by any delimiter character passed in the argument

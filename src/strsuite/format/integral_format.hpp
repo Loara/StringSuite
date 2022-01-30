@@ -71,6 +71,10 @@ namespace sts{
 
     template<typename Stream, std::integral I>
     void write_integer(Stream &out, I val, const Int_opts &opt);
+    template<typename Stream, std::integral I>
+    void write_integer(Stream &out, I val){
+        write_integer(out, val, Int_opts{});
+    }
 
     template<typename Stream, std::integral I>
     void read_integer(Stream &in, I &val, uint base =10);
