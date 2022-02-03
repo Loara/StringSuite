@@ -18,6 +18,7 @@
 */
 #include <strsuite/io/enc_io_core.hpp>
 #include <strsuite/io/cio_stream.hpp>
+#include <strsuite/io/string_stream_wrapper.hpp>
 #include <strsuite/io/tokens.hpp>
 
 namespace sts{

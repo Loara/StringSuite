@@ -17,7 +17,8 @@
 */
 
     template<typename Stream, std::integral I>
-    void write_integer(Stream &out, I val, const Int_opts &opt){
+    void write_integer(Stream &o, I val, const Int_opts &opt){
+        string_stream_wrapper<Stream, false, true> out{o};
         if(opt.base < 2 || opt.base > 36)
             return;
         bool minus = false;
@@ -50,7 +51,8 @@
     }
 
 template<typename Stream, std::integral I>
-void read_integer(Stream &in, I &val, uint base){
+void read_integer(Stream &iii, I &val, uint base){
+    string_stream_wrapper<Stream, true, false> in{iii};
     val = 0;
     if(base < 2 || base > 36)
         return;

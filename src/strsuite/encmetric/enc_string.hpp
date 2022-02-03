@@ -85,7 +85,11 @@ class adv_string_view{
 		explicit adv_string_view(size_t length, size_t size, const_tchar_pt<T> bin, size_t ds) noexcept : ptr{bin}, siz{size}, len{length}, ded_siz{ds} {}
 	public:
         using ctype = typename T::ctype;
+        using light_ctype = typename EncMetric_info<T>::light_ctype;
 
+        /*
+         * Class placeholder
+         */
         class placeholder{
         private:
             const byte *start;
@@ -117,6 +121,9 @@ class adv_string_view{
             bool operator==(const placeholder &p) const noexcept { return (*this <=> p) == 0;}
             friend class adv_string_view<T>;
         };
+        /*
+         *
+         */
 
         struct ded_type{
             size_t siz;
@@ -277,6 +284,10 @@ class adv_string_view{
 		ctype get_char(placeholder) const;
         ctype get_char(size_t chr) const {return get_char(select(chr));}
         ctype get_first_char() const {return get_char(select_begin());}
+
+		light_ctype get_char_light(placeholder) const;
+        light_ctype get_char_light(size_t chr) const {return get_char_light(select(chr));}
+        light_ctype get_first_char_light() const {return get_char_light(select_begin());}
 
         template<typename Container>
         void get_all_char(Container &) const;

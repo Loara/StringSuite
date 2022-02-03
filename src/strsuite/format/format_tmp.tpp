@@ -18,19 +18,19 @@
 
 template<general_enctype T, typename Formatter>
 template<typename U>
-adv_formatter<T, Formatter>::adv_formatter(U &&ff, EncMetric_info<T> info, std::pmr::memory_resource *alloc) : f{std::forward<U>(ff)}, stream{info, alloc} {}
+adv_formatter<T, Formatter>::adv_formatter(U &&ff, EncMetric_info<T> i, std::pmr::memory_resource *alloc) : info{i}, f{std::forward<U>(ff)}, res{alloc} {}
 
 template<general_enctype T, typename Formatter>
 template<typename Arg, typename... Args>
-void adv_formatter<T, Formatter>::dispatch_call(size_t i, const adv_string_view<T> &s, Arg && a, Args &&... args){
+void adv_formatter<T, Formatter>::dispatch_call(string_stream<T> &stream, size_t i, const adv_string_view<T> &s, Arg && a, Args &&... args){
     if(i == 0)
         return f.format(stream, std::forward<Arg>(a), s);
     else
-        return dispatch_call(i-1, s, std::forward<Args>(args)...);
+        return dispatch_call(stream, i-1, s, std::forward<Args>(args)...);
 }
 
 template<general_enctype T, typename Formatter>
-void adv_formatter<T, Formatter>::dispatch_call(size_t , const adv_string_view<T> &){
+void adv_formatter<T, Formatter>::dispatch_call(string_stream<T> &, size_t , const adv_string_view<T> &){
     throw out_of_range{"Index is too big"};
 }
 
@@ -41,45 +41,34 @@ size_t adv_formatter<T, Formatter>::get_id(placeholder &place, const adv_string_
 }
 
 template<general_enctype T, typename Formatter>
-template<typename... Args>
-adv_string<T> adv_formatter<T, Formatter>::format(const adv_string_view<T> &str, Args &&... args){
-    adv_string_view<T> empty{stream.raw_format()};
+template<general_enctype S, typename... Args>
+adv_string<T> adv_formatter<T, Formatter>::format(const adv_string_view<S> &s, Args &&... args){
+    adv_string_view<T> str = s.rebase(info);
+    adv_string_view<T> empty{info};
+    std::set<unicode> spaces{' '_uni, '\n'_uni, '\r'_uni, '\t'_uni};
     if(str.length() == 0)
-        return adv_string<T>{empty, std::pmr::get_default_resource()};
-    const auto fine = str.select_end();
-    auto mid = str.select_begin();
-    bool param = false;
-    size_t i = 0;
-    auto place = str.select_begin();
-    typename T::ctype chr;
-    while(place < fine){
-        chr = str.get_char(place);
-        if(param){
-            if(chr == '}'_uni){
-                param = false;
-                dispatch_call(i, str.substring(mid, place), std::forward<Args>(args)...);
-                str.select_next(place);
-                mid = place;
+        return adv_string<T>{empty, res};
+    Token<T> token{str};
+    string_stream<T> stream{info, res};
+    while(!token.ended()){
+        auto res = token.goUp_ctype('%'_uni);
+        stream.string_write(token.share());
+        token.flush();
+        if(res.found()){
+            token.step();
+            token.goUntil_container(spaces);
+            token.flush();
+            res = token.goUp_ctype('%'_uni);
+            if(res.found()){
+                size_t red = 0;
+                auto dec = token.subToken();
+                read_integer(dec, red);
+                dispatch_call(stream, res.idx, empty, args...);
+                token.step();
             }
+            token.flush();
         }
-        else{
-            if(chr == '{'_uni){
-                stream.string_write(str.substring(mid, place));
-                str.select_next(place);
-                i = get_id(place, str);
-                str.select_next(place);
-                chr = str.get_char(place);
-                if(chr == '}'_uni){
-                    dispatch_call(i, empty, std::forward<Args>(args)...);
-                }
-                else if(chr == '|'_uni){
-                    param = true;
-                }
-                str.select_next(place);
-                mid = place;
-            }
-        }
-        str.select_next_eof(place);
     }
     return stream.move();
 }
+

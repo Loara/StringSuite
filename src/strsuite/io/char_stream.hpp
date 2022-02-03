@@ -62,8 +62,11 @@ size_t force_byte_write(T &stream, const byte *b, size_t siz){
     return ret;
 }
 
+template<typename T>
+concept char_stream = general_enctype<typename T::enc>;
+
 template<typename T, typename S>
-concept read_char_stream = general_enctype<S> &&  requires(T stream, const tchar_pt<S> dat, const size_t siz){
+concept read_char_stream = char_stream<T> && general_enctype<S> &&  requires(T stream, const tchar_pt<S> dat, const size_t siz){
         {stream.char_read(dat, siz)}->std::convertible_to<uint>;
         {stream.char_read_v(dat, siz)}->std::convertible_to<uint>;
         {stream.ghost_read(dat, siz)}->std::convertible_to<uint>;
@@ -77,7 +80,7 @@ concept read_ctype_char_stream = read_char_stream<T, S> && requires(T stream){
     };
 
 template<typename T, typename S>
-concept write_char_stream = general_enctype<S> && requires(T stream){
+concept write_char_stream = char_stream<T> && general_enctype<S> && requires(T stream){
         stream.flush();
     }
     && requires(T stream, const const_tchar_pt<S> dat, const tchar_pt<S> vdat, const adv_string_view<S> str, const size_t siz){
@@ -104,6 +107,7 @@ class CharIStream{
         virtual EncMetric_info<T> do_encmetric() const noexcept=0;
     public:
         using ctype = typename T::ctype;
+        using enc = T;
 
         virtual ~CharIStream() {}
         template<general_enctype S>
@@ -151,6 +155,7 @@ class CharOStream{
     public:
         using ctype = typename T::ctype;
         using enc = T;
+
         virtual ~CharOStream() {}
         template<general_enctype S>
         uint char_write(const_tchar_pt<S> pt, size_t buf) {

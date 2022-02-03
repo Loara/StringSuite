@@ -104,7 +104,14 @@ namespace feat{
     template<typename T>
     concept has_proxy_type = strong_enctype<T> && requires (const typename T::proxy_ctype &re, byte * const buff, const size_t siz){
         {T::encode(re, buff, siz)}->std::convertible_to<uint>;
+    } && requires(const typename T::ctype &val, void (*f)(const typename T::proxy_ctype &)){
+        //Conversion stability
+        f(val);
     };
+
+    /*
+     *
+    */
 
     template<typename T>
     concept has_not_proxy_type = strong_enctype<T> && !requires(){typename T::proxy_ctype;};
@@ -112,6 +119,7 @@ namespace feat{
     template<typename T>
     struct Proxy_wrapper{
         static_assert(strong_enctype<T>, "Not a encoding type");
+        static_assert(has_proxy_type<T> || has_not_proxy_type<T>, "Partial proxy type specification");
 
         using proxy_ctype = typename T::ctype;
 		static tuple_ret<proxy_ctype> light_decode(const byte *by, size_t l){

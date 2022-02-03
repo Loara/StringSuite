@@ -138,6 +138,9 @@ template<general_enctype T>
 class EncMetric_info{
 	public:
 		using ctype=typename T::ctype;
+        using proxy_ctype=typename feat::Proxy_wrapper<T>::proxy_ctype;
+        using light_ctype=proxy_ctype;
+
 		constexpr EncMetric_info(const EncMetric_info<T> &) noexcept {}
 		constexpr EncMetric_info() noexcept {}
 		const EncMetric<ctype> *format() const noexcept {return DynEncoding<T>::instance();}
@@ -159,11 +162,22 @@ class EncMetric_info{
 
 		uint chLen(const byte *b, size_t siz) const {return T::chLen(b, siz);}
 		validation_result validChar(const byte *b, size_t l) const noexcept {return T::validChar(b, l);}
+
 		[[nodiscard]] tuple_ret<ctype> decode(const byte *by, size_t l) const {return T::decode(by, l);}
-		ctype decode_direct(const byte *by, size_t l) const{
+		[[nodiscard]] ctype decode_direct(const byte *by, size_t l) const{
             return feat::decode_direct_test<T>::decode(by, l);
         }
-		uint encode(const ctype &uni, byte *by, size_t l) const {return T::encode(uni, by, l);}
+        [[nodiscard]] tuple_ret<proxy_ctype> light_decode(const byte *by, size_t l) const{
+            return feat::Proxy_wrapper<T>::light_decode(by, l);
+        }
+        [[nodiscard]] proxy_ctype light_decode_direct(const byte *by, size_t l) const{
+            return get_chr_el(feat::Proxy_wrapper<T>::light_decode(by, l));
+        }
+
+        /*
+         * a proxy_ctype is valid if and only if any ctype can be converted in an proxy_ctype object
+         */
+		uint encode(const proxy_ctype &uni, byte *by, size_t l) const {return T::encode(uni, by, l);}
 		std::type_index index() const noexcept {return DynEncoding<T>::index();}
 
 		template<general_enctype S>
@@ -216,6 +230,8 @@ class EncMetric_info<WIDE<tt>>{
 		const EncMetric<tt> *f;
 	public:
 		using ctype=tt;
+        using light_ctype=tt;
+
 		constexpr EncMetric_info(const EncMetric<tt> *format) noexcept : f{format} {}
 		constexpr EncMetric_info(const EncMetric_info &info) noexcept : f{info.f} {}
 		constexpr const EncMetric<tt> *format() const noexcept {return f;}
@@ -232,10 +248,18 @@ class EncMetric_info<WIDE<tt>>{
 
 		uint chLen(const byte *b, size_t siz) const {return f->d_chLen(b, siz);}
 		validation_result validChar(const byte *b, size_t l) const noexcept {return f->d_validChar(b, l);}
+
 		[[nodiscard]] tuple_ret<ctype> decode(const byte *by, size_t l) const {return f->d_decode(by, l);}
-		ctype decode_direct(const byte *by, size_t l) const{
+		[[nodiscard]] ctype decode_direct(const byte *by, size_t l) const{
             return f->d_decode_direct(by, l);
         }
+        [[nodiscard]] tuple_ret<ctype> light_decode(const byte *by, size_t l) const{
+            return f->d_decode(by, l);
+        }
+        [[nodiscard]] ctype light_decode_direct(const byte *by, size_t l) const{
+            return get_chr_el(f->d_decode(by, l));
+        }
+
 		uint encode(const ctype &uni, byte *by, size_t l) const {return f->d_encode(uni, by, l);}
 		std::type_index index() const noexcept {return f->index();}
 

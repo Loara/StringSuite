@@ -33,7 +33,8 @@ namespace sts{
         uint char_write_conv_0(const_tchar_pt<R>, size_t);
         uint char_write_0(const byte *, size_t);
     public:
-        using ctype=typename T::ctype;
+        using ctype = typename T::ctype;
+        using enc = T;
         friend class basic_buffer<string_stream<T>, true, true>;
 
         string_stream(EncMetric_info<T> info, std::pmr::memory_resource *alloc) : basic_buffer<string_stream<T>, true, true>{nullptr, 0}, buffer{alloc}, len{0}, format{info} {
@@ -98,5 +99,6 @@ namespace sts{
         //uint do_char_write(const_tchar_pt<T>, size_t);
         //size_t do_string_write(const adv_string_view<T> &);
     };
+
 #include <strsuite/io/string_stream.tpp>
 }

@@ -565,9 +565,16 @@ template<typename T>
 adv_string_view<T>::ctype adv_string_view<T>::get_char(placeholder pch) const{
     validate(pch);
     if(pch == select_end())
+        throw out_of_range{"Argument doesn't point to any valid character"};
+    return get_chr_el(ptr.new_instance(pch.data()).decode(siz - pch.siz));
+}
+
+template<typename T>
+adv_string_view<T>::light_ctype adv_string_view<T>::get_char_light(placeholder pch) const{
+    validate(pch);
+    if(pch == select_end())
         throw out_of_range{"Placeholder to end"};
-    auto chr = ptr.new_instance(pch.data()).decode(siz - pch.siz);
-    return get_chr_el(chr);
+    return ptr.raw_format().light_decode_direct(pch.data(), siz - pch.siz);
 }
 
 template<typename T>
