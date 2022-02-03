@@ -22,6 +22,7 @@
 #include <array>
 #include <strsuite/encmetric/base.hpp>
 #include <strsuite/io/string_stream.hpp>
+#include <strsuite/format/format_exc.hpp>
 
 namespace sts{
 

@@ -114,7 +114,8 @@ install(FILES "strsuite/io/enc_io_core.hpp"
     "strsuite/io/tokens.hpp" DESTINATION ${HEADER_DIR}/strsuite/io)
 
 install(FILES "strsuite/format/integral_format.hpp"
-    "strsuite/format/format_tmp.hpp" DESTINATION ${HEADER_DIR}/strsuite/format)
+    "strsuite/format/format_tmp.hpp"
+    "strsuite/format/format_exc.hpp" DESTINATION ${HEADER_DIR}/strsuite/format)
 
 
 install(FILES "strsuite/encmetric/chite.tpp"

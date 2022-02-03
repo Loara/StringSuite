@@ -31,7 +31,7 @@ void adv_formatter<T, Formatter>::dispatch_call(string_stream<T> &stream, size_t
 
 template<general_enctype T, typename Formatter>
 void adv_formatter<T, Formatter>::dispatch_call(string_stream<T> &, size_t , const adv_string_view<T> &){
-    throw out_of_range{"Index is too big"};
+    throw out_of_range{"There's no argument associated to index provided inside a formatting parameter"};
 }
 
 template<general_enctype T, typename Formatter>
@@ -58,16 +58,32 @@ adv_string<T> adv_formatter<T, Formatter>::format(const adv_string_view<S> &s, A
             token.step();
             token.goUntil_container(spaces);
             token.flush();
-            res = token.goUp_ctype('%'_uni);
+            res = token.goUp_ctype('%'_uni, '|'_uni);
             if(res.found()){
                 size_t red = 0;
                 auto dec = token.subToken();
                 read_integer(dec, red);
-                dispatch_call(stream, res.idx, empty, args...);
                 token.step();
+                token.flush();
+                if(res.idx == 0)
+                    dispatch_call(stream, red, empty, args...);
+                else if(res.idx == 1){
+                    res = token.goUp_ctype('%'_uni);
+                    if(res.found()){
+                        auto view = token.share();
+                        token.step();
+                        token.flush();
+                        dispatch_call(stream, red, view, args...);
+                    }
+                    else
+                        throw UnboundParException{};
+                }
             }
-            token.flush();
+            else
+                throw UnboundParException{};
         }
+        else
+            token.flush();
     }
     return stream.move();
 }
