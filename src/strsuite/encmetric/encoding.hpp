@@ -81,25 +81,6 @@ class WIDE{
 using WIDEchr=WIDE<unicode>;
 
 /*
-    Use when you don't know actual encoding of a string. It assumes size == length and doesn't allow any decode/encode
-*/
-template<typename tt>
-class RAW{
-	public:
-		using ctype=tt;
-		static consteval uint min_bytes() noexcept {return 1;}
-		static consteval uint max_bytes() {return 1;}
-		static constexpr uint chLen(const byte *, size_t) {return 1;}
-		static constexpr validation_result validChar(const byte *, size_t i) noexcept{
-			return validation_result{i >= 1, 1};
-		}
-		static tuple_ret<tt> decode(const byte *, size_t) {throw raw_error{};}
-		static uint encode(const tt &, byte *, size_t) {throw raw_error{};}
-};
-
-using RAWchr=RAW<unicode>;
-
-/*
  * Concepts
  */
 
@@ -117,20 +98,12 @@ struct is_wide : public std::false_type {};
 template<typename tt>
 struct is_wide<WIDE<tt>> : public std::true_type {};
 
-template<typename U>
-struct is_raw : public std::false_type {};
-template<typename tt>
-struct is_raw<RAW<tt>> : public std::true_type {};
-
 template<typename T>
 concept widenc = is_wide<T>::value;
 template<typename T>
 concept not_widenc = strong_enctype<T> && !is_wide<T>::value;
 template<typename S, typename T>
 concept not_widenc_both = not_widenc<S> && not_widenc<T>;
-
-template<typename T>
-concept enc_raw = is_raw<T>::value;
 
 template<typename T>
 concept general_enctype = widenc<T> || strong_enctype<T>;
@@ -153,7 +126,7 @@ concept same_enc = not_widenc<S> && not_widenc<T> && std::same_as<S, T>;
  */
 
 template<typename S, typename T>
-concept same_data = general_enctype<S> && general_enctype<T> && (enc_raw<S> || enc_raw<T> || std::same_as<typename S::ctype, typename T::ctype>);
+concept same_data = general_enctype<S> && general_enctype<T> && ( std::same_as<typename S::ctype, typename T::ctype>);
 
 /*
     Removing alias mechanism, substituted with assigment rules.
@@ -190,9 +163,6 @@ template<strong_enctype T>
 constexpr int min_length(int nchr) noexcept{
 	return T::min_bytes() * nchr;
 }
-
-template<strong_enctype T>
-constexpr void assert_raw(){static_assert(!enc_raw<T>, "Using RAW format");}
 
 
 //---------------------------------------------------

@@ -69,12 +69,6 @@ class buffer_big : public encoding_error{
         buffer_big(const char *m) : encoding_error{m} {}
 };
 
-class raw_error : public encoding_error{
-    public:
-        raw_error() : encoding_error{"Cannot encode/decode RAW byte streams"} {}
-        raw_error(const char *m) : encoding_error{m} {}
-};
-
 }
 
 

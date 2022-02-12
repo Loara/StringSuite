@@ -60,17 +60,16 @@ inline u32str_view getstring(const char32_t *c, size_t maxsiz){
 /*
     Detect utf8, utf16 encoding from BOM, if haven't BOM then throw exception
 */
-inline const EncMetric<unicode> *detect_bom(adv_string_view<RAW<unicode>> t){
-	const_tchar_pt<RAW<unicode>> ptr = t.begin();
-	if(t.size() < 2)
+inline const EncMetric<unicode> *detect_bom(const byte *ptr, size_t size){
+	if(size < 2)
 		throw encoding_error{"No BOM"};
-	if(ptr[0] == byte{0xfe} && ptr[1] == byte{0xff})
+	if(ptr[0] == 0xfe_by && ptr[1] == 0xff_by)
 		return DynEncoding<UTF16BE>::instance();
-	if(ptr[0] == byte{0xff} && ptr[1] == byte{0xfe})
+	if(ptr[0] == 0xff_by && ptr[1] == 0xfe_by)
 		return DynEncoding<UTF16LE>::instance();
-	if(t.size() < 3)
+	if(size < 3)
 		throw encoding_error{"No BOM"};
-	if(ptr[0] == byte{0xef} && ptr[1] == byte{0xbb} && ptr[2] == byte{0xbf})
+	if(ptr[0] == 0xef_by && ptr[1] == 0xbb_by && ptr[2] == 0xbf_by)
 		return DynEncoding<UTF8>::instance();
 	throw encoding_error{"No BOM"};
 

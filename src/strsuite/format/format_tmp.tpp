@@ -58,25 +58,22 @@ adv_string<T> adv_formatter<T, Formatter>::format(const adv_string_view<S> &s, A
             token.step();
             token.goUntil_container(spaces);
             token.flush();
-            res = token.goUp_ctype('%'_uni, '|'_uni);
+            res = token.goUp_ctype('%'_uni);
             if(res.found()){
                 size_t red = 0;
                 auto dec = token.subToken();
                 read_integer(dec, red);
                 token.step();
                 token.flush();
-                if(res.idx == 0)
-                    dispatch_call(stream, red, empty, args...);
-                else if(res.idx == 1){
-                    res = token.goUp_ctype('%'_uni);
-                    if(res.found()){
-                        auto view = token.share();
-                        token.step();
-                        token.flush();
-                        dispatch_call(stream, red, view, args...);
-                    }
-                    else
-                        throw UnboundParException{};
+                res = token.goUp_ctype('%'_uni);
+                if(res.found()){
+                    auto view = token.share();
+                    token.step();
+                    token.flush();
+                    dispatch_call(stream, red, view, args...);
+                }
+                else
+                    throw UnboundParException{};
                 }
             }
             else

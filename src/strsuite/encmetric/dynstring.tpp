@@ -17,15 +17,15 @@
 */
 
 template<typename T>
-adv_string<T>::adv_string(const_tchar_pt<T> ptr, size_t len, size_t siz, basic_ptr by, size_t ded) : adv_string_view<T>{len, siz, ptr, ded}, bind{std::move(by)} {}
+adv_string<T>::adv_string(const_tchar_pt<T> ptr, size_t len, size_t siz, basic_ptr by) : adv_string_view<T>{len, siz, ptr}, bind{std::move(by)} {}
 
 template<typename T>
-adv_string<T>::adv_string(EncMetric_info<T> enc, size_t len, size_t siz, basic_ptr by, size_t ded) : adv_string_view<T>{len, siz, const_tchar_pt<T>{by.memory, enc}, ded}, bind{std::move(by)} {}
+adv_string<T>::adv_string(EncMetric_info<T> enc, size_t len, size_t siz, basic_ptr by) : adv_string_view<T>{len, siz, const_tchar_pt<T>{by.memory, enc}}, bind{std::move(by)} {}
 
 
 template<typename T>
 adv_string<T>::adv_string(const adv_string_view<T> &st, std::pmr::memory_resource *alloc)
-	 : adv_string{st.raw_format(), st.get_ded_length().len, st.size(), basic_ptr{st.data(), (std::size_t)st.size(), alloc}, st.get_ded_length().siz} {}
+	 : adv_string{st.raw_format(), st.length(), st.size(), basic_ptr{st.data(), st.size(), alloc}} {}
 
 
 

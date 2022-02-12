@@ -85,7 +85,6 @@ class DynEncoding : public EncMetric<typename T::ctype>{
 	private:
 		DynEncoding() noexcept {}
 	public:
-        static_assert(!enc_raw<T>, "EncMetric cannot hold a RAW encoding");
 		using static_enc = T;
         using ctype = typename T::ctype;
 

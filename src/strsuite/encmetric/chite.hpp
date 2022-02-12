@@ -137,7 +137,7 @@ class tread_pt : public base_tchar_pt<T, tread_pt<T>, byte const>{
 		std::tuple<uint, ctype> decode(size_t l) const {return this->ei.decode(this->ptr, l);}
 
 		/*
-		    Step the pointer by 1 character, returns the number og bytes skipped
+		    Step the pointer by 1 character, returns the number of skipped bytes
 		*/
 		uint next(size_t siz);
 		uint next_update(size_t &siz);
@@ -242,14 +242,6 @@ template<general_enctype S, general_enctype T>
 bool sameEnc(const tread_pt<S> &s, const tread_pt<T> &t) noexcept{
     return s.raw_format().equalTo(t.raw_format());
 }
-
-/*
-    Assign an encoding to a RAW character pointer
-*/
-template<typename tt>
-inline twrite_pt<WIDE<tt>> set_encoding(twrite_pt<RAW<tt>> r, const EncMetric<tt> *f) noexcept {return twrite_pt<WIDE<tt>>{r.data(), f};}
-template<typename tt>
-inline tread_pt<WIDE<tt>> set_encoding(tread_pt<RAW<tt>> r, const EncMetric<tt> *f) noexcept {return tread_pt<WIDE<tt>>{r.data(), f};}
 
 /*
  * S should be a base for T
